@@ -82,7 +82,8 @@ function mapInfo(state = {}, action) {
     }
     case CLICK_ON_MAP: {
         return assign({}, state, {
-            clickPoint: action.point
+            clickPoint: action.point,
+            clickLayer: action.layer || null
         });
     }
     case CHANGE_MAPINFO_FORMAT: {
@@ -146,7 +147,7 @@ function mapInfo(state = {}, action) {
         }
         let resolution = action.metadata && action.metadata.resolution || 1;
         let bufferedPoint = buffer(point, (action.metadata.buffer || 1) * resolution, unit);
-        const intersected = action.layer.features.filter(
+        const intersected = (action.layer.features || []).filter(
                     (feature) => {
                         try {
                             // TODO: instead of create a fixed buffer, we should check the feature style to create the proper buffer.

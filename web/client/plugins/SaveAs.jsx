@@ -20,32 +20,39 @@ const {createMap, createThumbnail, onDisplayMetadataEdit, metadataChanged} = req
 const {editMap, updateCurrentMap, errorCurrentMap, resetCurrentMap} = require('../actions/currentMap');
 const {mapSelector} = require('../selectors/map');
 const stateSelector = state => state;
-const {layersSelector} = require('../selectors/layers');
+const {layersSelector, groupsSelector} = require('../selectors/layers');
+const {servicesSelector, selectedServiceSelector} = require('../selectors/catalog');
 const {indexOf} = require('lodash');
 
-const LayersUtils = require('../utils/LayersUtils');
+const MapUtils = require('../utils/MapUtils');
 
-const selector = createSelector(mapSelector, stateSelector, layersSelector, (map, state, layers) => ({
+const selector = createSelector(mapSelector, stateSelector, layersSelector, groupsSelector, (map, state, layers, groups) => ({
     currentZoomLvl: map && map.zoom,
     show: state.controls && state.controls.saveAs && state.controls.saveAs.enabled,
     mapType: state && (state.home && state.home.mapType || state.maps && state.maps.mapType) || "leaflet",
     newMapId: state.currentMap && state.currentMap.newMapId,
     map,
+    catalogServices: servicesSelector(state),
+    selectedService: selectedServiceSelector(state),
     user: state.security && state.security.user,
     currentMap: state.currentMap,
     metadata: state.maps.metadata,
     layers,
-    textSearchConfig: state.searchconfig && state.searchconfig.textSearchConfig
+    textSearchConfig: state.searchconfig && state.searchconfig.textSearchConfig,
+    groups
 }));
 
 class SaveAs extends React.Component {
     static propTypes = {
+        catalogServices: PropTypes.object,
+        selectedService: PropTypes.string,
         show: PropTypes.bool,
         newMapId: PropTypes.number,
         map: PropTypes.object,
         user: PropTypes.object,
         mapType: PropTypes.string,
         layers: PropTypes.array,
+        groups: PropTypes.array,
         params: PropTypes.object,
         metadata: PropTypes.object,
         currentMap: PropTypes.object,
@@ -120,24 +127,11 @@ class SaveAs extends React.Component {
 
     // this method creates the content for the Map Resource
     createV2Map = () => {
-        let map =
-            {
-                center: this.props.map.center,
-                maxExtent: this.props.map.maxExtent,
-                projection: this.props.map.projection,
-                units: this.props.map.units,
-                zoom: this.props.map.zoom
-            };
-        let layers = this.props.layers.map((layer) => {
-            return LayersUtils.saveLayer(layer);
-        });
-        // Groups are ignored, as they already are defined in the layers
-        let resultingmap = {
-            version: 2,
-            // layers are defined inside the map object
-            map: assign({}, map, {layers, text_serch_config: this.props.textSearchConfig})
+        let catalogServices = {
+            services: this.props.catalogServices,
+            selectedService: this.props.selectedService
         };
-        return resultingmap;
+        return MapUtils.saveMapConfiguration(this.props.map, this.props.layers, this.props.groups, this.props.textSearchConfig, catalogServices);
     };
 
     saveMap = (id, name, description) => {

@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 const React = require('react');
-const Grid = require('react-data-grid');
+const Grid = require('../data/grid/DataGrid');
 const ContainerDimensions = require('react-container-dimensions').default;
 
 /**
@@ -18,10 +18,12 @@ const ContainerDimensions = require('react-container-dimensions').default;
  */
 module.exports = (props) => (<ContainerDimensions>
             { ({ width, height }) =>
-            <Grid
-                {...props}
-                minHeight={height}
-                minWidth={width}
-            />
+            <div className={props.className}>
+                <Grid
+                    {...props}
+                    minHeight={height}
+                    minWidth={width}
+                    />
+            </div>
             }
         </ContainerDimensions>);

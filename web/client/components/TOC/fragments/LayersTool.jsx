@@ -12,9 +12,6 @@ const {Glyphicon, Tooltip} = require('react-bootstrap');
 const OverlayTrigger = require('../../misc/OverlayTrigger');
 const Message = require('../../I18N/Message');
 
-require("./css/layertool.css");
-
-
 class LayersTool extends React.Component {
     static propTypes = {
         node: PropTypes.object,
@@ -33,7 +30,7 @@ class LayersTool extends React.Component {
         const cn = this.props.className ? " " + this.props.className : "";
         const tool = (<Glyphicon className={"toc-layer-tool" + cn} style={this.props.style}
                    glyph={this.props.glyph}
-                   onClick={(options) => this.props.onClick(this.props.node, options || {})}/>);
+                   onClick={() => this.props.onClick(this.props.node)}/>);
         return this.props.tooltip ?
            <OverlayTrigger placement="bottom" overlay={(<Tooltip id={"Tooltip-" + this.props.tooltip}><strong><Message msgId={this.props.tooltip}/></strong></Tooltip>)}>
                {tool}

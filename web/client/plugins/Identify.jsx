@@ -12,10 +12,13 @@ const {createSelector} = require('reselect');
 
 const {mapSelector} = require('../selectors/map');
 const {layersSelector} = require('../selectors/layers');
+const {on} = require('../actions/controls');
 
 const {getFeatureInfo, getVectorInfo, purgeMapInfoResults, showMapinfoMarker, hideMapinfoMarker, showMapinfoRevGeocode, hideMapinfoRevGeocode, noQueryableLayers, clearWarning} = require('../actions/mapInfo');
+const {closeAnnotations} = require('../actions/annotations');
 const {changeMousePointer} = require('../actions/map');
 const {changeMapInfoFormat} = require('../actions/mapInfo');
+const {currentLocaleSelector} = require('../selectors/locale');
 
 const Message = require('./locale/Message');
 
@@ -33,14 +36,20 @@ const selector = createSelector([
     mapSelector,
     layersSelector,
     (state) => state.mapInfo && state.mapInfo.clickPoint,
+    (state) => state.mapInfo && state.mapInfo.clickLayer,
     (state) => state.mapInfo && state.mapInfo.showModalReverse,
     (state) => state.mapInfo && state.mapInfo.reverseGeocodeData,
-    (state) => state.mapInfo && state.mapInfo.warning
+    (state) => state.mapInfo && state.mapInfo.warning,
+    currentLocaleSelector
 
-], (enabled, responses, requests, format, map, layers, point, showModalReverse, reverseGeocodeData, warning) => ({
-    enabled, responses, requests, format, map, layers, point, showModalReverse, reverseGeocodeData, warning
+], (enabled, responses, requests, format, map, layers, point, layer, showModalReverse, reverseGeocodeData, warning, currentLocale) => ({
+    enabled, responses, requests, format, map, layers, point, layer, showModalReverse, reverseGeocodeData, warning, currentLocale
 }));
 // result panel
+
+const conditionalToggle = on.bind(null, purgeMapInfoResults(), (state) =>
+    !(state.annotations && state.annotations.editing)
+, closeAnnotations);
 
 /**
  * Identify plugin. This plugin allows to perform getfeature info.
@@ -87,7 +96,7 @@ const selector = createSelector([
 const IdentifyPlugin = connect(selector, {
     sendRequest: getFeatureInfo,
     localRequest: getVectorInfo,
-    purgeResults: purgeMapInfoResults,
+    purgeResults: conditionalToggle,
     changeMousePointer,
     showMarker: showMapinfoMarker,
     noQueryableLayers,
@@ -121,5 +130,6 @@ module.exports = {
             position: 3
         }
     }),
-    reducers: {mapInfo: require('../reducers/mapInfo')}
+    reducers: {mapInfo: require('../reducers/mapInfo')},
+    epics: require('../epics/identify')
 };

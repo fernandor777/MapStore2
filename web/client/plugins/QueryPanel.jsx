@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,12 +5,15 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
+const PropTypes = require('prop-types');
 const React = require('react');
 const {connect} = require('react-redux');
+const {Button, Glyphicon} = require('react-bootstrap');
 const Sidebar = require('react-sidebar').default;
 const {createSelector} = require('reselect');
 const {changeLayerProperties, changeGroupProperties, toggleNode,
        sortNode, showSettings, hideSettings, updateSettings, updateNode, removeNode} = require('../actions/layers');
+const Message = require('./locale/Message');
 
 const {getLayerCapabilities} = require('../actions/layerCapabilities');
 
@@ -25,8 +27,8 @@ const LayersUtils = require('../utils/LayersUtils');
 // include application component
 const QueryBuilder = require('../components/data/query/QueryBuilder');
 
-const {featureTypeSelectedEpic, wfsQueryEpic, closeFeatureEpic, viewportSelectedEpic} = require('../epics/wfsquery');
-
+const {featureTypeSelectedEpic, wfsQueryEpic, viewportSelectedEpic, redrawSpatialFilterEpic} = require('../epics/wfsquery');
+const autocompleteEpics = require('../epics/autocomplete');
 const {bindActionCreators} = require('redux');
 const {
     // QueryBuilder action functions
@@ -49,10 +51,11 @@ const {
     changeDwithinValue,
     zoneGetValues,
     zoneSearch,
-    zoneChange
+    zoneChange,
+    toggleMenu
 } = require('../actions/queryform');
 
-const {createQuery} = require('../actions/wfsquery');
+const {createQuery, initQueryPanel} = require('../actions/wfsquery');
 
 const {
     changeDrawingStatus,
@@ -70,19 +73,29 @@ const SmartQueryForm = connect((state) => {
         groupLevels: state.queryform.groupLevels,
         groupFields: state.queryform.groupFields,
         filterFields: state.queryform.filterFields,
+        attributes: state.query && state.query.typeName && state.query.featureTypes && state.query.featureTypes[state.query.typeName] && state.query.featureTypes[state.query.typeName].attributes,
+        featureTypeError: state.query && state.query.typeName && state.query.featureTypes && state.query.featureTypes[state.query.typeName] && state.query.featureTypes[state.query.typeName].error,
         spatialField: state.queryform.spatialField,
         showDetailsPanel: state.queryform.showDetailsPanel,
         toolbarEnabled: state.queryform.toolbarEnabled,
         attributePanelExpanded: state.queryform.attributePanelExpanded,
+        autocompleteEnabled: state.queryform.autocompleteEnabled,
+        maxFeaturesWPS: state.queryform.maxFeaturesWPS,
         spatialPanelExpanded: state.queryform.spatialPanelExpanded,
-        searchUrl: "http://demo.geo-solutions.it/geoserver/ows?service=WFS",
-        featureTypeName: "topp:states",
+        featureTypeConfigUrl: state.query && state.query.url,
+        searchUrl: state.query && state.query.url,
+        featureTypeName: state.query && state.query.typeName,
         ogcVersion: "1.1.0",
+        params: {typeName: state.query && state.query.typeName},
         resultTitle: "Query Result",
-        showGeneratedFilter: false
+        showGeneratedFilter: false,
+        allowEmptyFilter: true,
+        emptyFilterWarning: true,
+        maxHeight: state.map && state.map.present && state.map.present.size && state.map.present.size.height
     };
 }, dispatch => {
     return {
+
         attributeFilterActions: bindActionCreators({
             onAddGroupField: addGroupField,
             onAddFilterField: addFilterField,
@@ -92,6 +105,7 @@ const SmartQueryForm = connect((state) => {
             onUpdateLogicCombo: updateLogicCombo,
             onRemoveGroupField: removeGroupField,
             onChangeCascadingValue: changeCascadingValue,
+            toggleMenu: toggleMenu,
             onExpandAttributeFilterPanel: expandAttributeFilterPanel
         }, dispatch),
         spatialFilterActions: bindActionCreators({
@@ -130,7 +144,7 @@ const tocSelector = createSelector(
     })
 );
 
-class LayerTree extends React.Component {
+class QueryPanel extends React.Component {
     static propTypes = {
         id: PropTypes.number,
         buttonContent: PropTypes.node,
@@ -146,6 +160,7 @@ class LayerTree extends React.Component {
         onZoomToExtent: PropTypes.func,
         retrieveLayerData: PropTypes.func,
         onSort: PropTypes.func,
+        onInit: PropTypes.func,
         onSettings: PropTypes.func,
         hideSettings: PropTypes.func,
         updateSettings: PropTypes.func,
@@ -168,6 +183,7 @@ class LayerTree extends React.Component {
         onToggleQuery: () => {},
         onZoomToExtent: () => {},
         onSettings: () => {},
+        onInit: () => {},
         updateNode: () => {},
         removeNode: () => {},
         activateLegendTool: true,
@@ -179,6 +195,11 @@ class LayerTree extends React.Component {
         querypanelEnabled: false
     };
 
+    componentWillReceiveProps(newProps) {
+        if (newProps.querypanelEnabled === true && this.props.querypanelEnabled === false) {
+            this.props.onInit();
+        }
+    }
     getNoBackgroundLayers = (group) => {
         return group.name !== 'background';
     };
@@ -188,9 +209,9 @@ class LayerTree extends React.Component {
             <Sidebar
                 open={this.props.querypanelEnabled}
                 sidebar={this.renderQueryPanel()}
+                sidebarClassName="query-form-panel-container"
                 styles={{
                     sidebar: {
-                        backgroundColor: 'white',
                         zIndex: 1024,
                         width: 600
                     },
@@ -202,6 +223,9 @@ class LayerTree extends React.Component {
                         right: this.props.querypanelEnabled ? 0 : 'auto',
                         width: '0',
                         overflow: 'visible'
+                    },
+                    content: {
+                        overflowY: 'auto'
                     }
                 }}
                 >
@@ -212,7 +236,11 @@ class LayerTree extends React.Component {
 
     renderQueryPanel = () => {
         return (<div>
-            <SmartQueryForm/>
+            <Button id="toc-query-close-button" bsStyle="primary" key="menu-button" className="square-button" onClick={() => this.props.onToggleQuery()}><Glyphicon glyph="arrow-left"/></Button>
+            <SmartQueryForm
+                spatialOperations={this.props.spatialOperations}
+                spatialMethodOptions={this.props.spatialMethodOptions}
+                featureTypeErrorText={<Message msgId="layerProperties.featureTypeError"/>}/>
         </div>);
     };
 
@@ -230,12 +258,13 @@ const QueryPanelPlugin = connect(tocSelector, {
     onToggleQuery: toggleControl.bind(null, 'queryPanel', null),
     onSort: LayersUtils.sortUsing(LayersUtils.sortLayers, sortNode),
     onSettings: showSettings,
+    onInit: initQueryPanel,
     onZoomToExtent: zoomToExtent,
     hideSettings,
     updateSettings,
     updateNode,
     removeNode
-})(LayerTree);
+})(QueryPanel);
 
 module.exports = {
     QueryPanelPlugin,
@@ -243,5 +272,5 @@ module.exports = {
         queryform: require('../reducers/queryform'),
         query: require('../reducers/query')
     },
-    epics: {featureTypeSelectedEpic, wfsQueryEpic, closeFeatureEpic, viewportSelectedEpic}
+    epics: {featureTypeSelectedEpic, wfsQueryEpic, viewportSelectedEpic, redrawSpatialFilterEpic, ...autocompleteEpics}
 };

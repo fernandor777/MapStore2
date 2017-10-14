@@ -15,10 +15,12 @@ const {changeMeasurementState} = require('../../actions/measurement');
 const {changeSelectionState} = require('../../actions/selection');
 const {changeLocateState, onLocateError} = require('../../actions/locate');
 const {changeDrawingStatus, endDrawing, setCurrentStyle} = require('../../actions/draw');
+const {geometryChanged, drawStopped} = require('../../actions/draw');
 const {updateHighlighted} = require('../../actions/highlight');
 
 const {connect} = require('react-redux');
 const assign = require('object-assign');
+const {projectionDefsSelector} = require('../../selectors/map');
 
 const Empty = () => { return <span/>; };
 
@@ -27,6 +29,7 @@ module.exports = (mapType, actions) => {
     const components = require('./' + mapType + '/index');
 
     const LMap = connect((state) => ({
+        projectionDefs: projectionDefsSelector(state),
         mousePosition: state.mousePosition || {enabled: false}
     }), assign({}, {
         onCreationError: creationError,
@@ -60,6 +63,8 @@ module.exports = (mapType, actions) => {
         state.draw || {}, {
             onChangeDrawingStatus: changeDrawingStatus,
             onEndDrawing: endDrawing,
+            onGeometryChanged: geometryChanged,
+            onDrawStopped: drawStopped,
             setCurrentStyle: setCurrentStyle
         })( components.DrawSupport || Empty);
 

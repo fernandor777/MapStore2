@@ -8,7 +8,7 @@
 
 var React = require('react');
 var ReactDOM = require('react-dom');
-var ReactTestUtils = require('react-addons-test-utils');
+var ReactTestUtils = require('react-dom/test-utils');
 var General = require('../General');
 
 var expect = require('expect');
@@ -44,7 +44,7 @@ describe('test  Layer Properties General module component', () => {
         expect(comp).toExist();
         const inputs = ReactTestUtils.scryRenderedDOMComponentsWithTag( comp, "input" );
         expect(inputs).toExist();
-        expect(inputs.length).toBe(3);
+        expect(inputs.length).toBe(8);
 
     });
     it('tests Layer Properties Display component events', () => {
@@ -69,7 +69,7 @@ describe('test  Layer Properties General module component', () => {
         expect(comp).toExist();
         const inputs = ReactTestUtils.scryRenderedDOMComponentsWithTag( comp, "input" );
         expect(inputs).toExist();
-        expect(inputs.length).toBe(3);
+        expect(inputs.length).toBe(8);
         ReactTestUtils.Simulate.change(inputs[0]);
         expect(spy.calls.length).toBe(1);
     });

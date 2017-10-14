@@ -9,8 +9,9 @@
 const MapUtils = require('../MapUtils');
 const CoordinatesUtils = require('../CoordinatesUtils');
 const WMTSUtils = require('../WMTSUtils');
+const FilterUtils = require('../FilterUtils');
 
-const {isArray} = require('lodash');
+const {isArray, isObject} = require('lodash');
 
 const assign = require('object-assign');
 
@@ -42,6 +43,8 @@ module.exports = {
 
         const matrixIds = WMTSUtils.limitMatrix(layer.matrixIds && WMTSUtils.getMatrixIds(layer.matrixIds, tileMatrixSet || srs) || WMTSUtils.getDefaultMatrixId(layer), resolutions.length);
 
+        const CQL_FILTER = FilterUtils.isFilterValid(layer.filterObj) && FilterUtils.toCQLFilter(layer.filterObj);
+
         return {
             request: {
                 service: 'WMTS',
@@ -49,7 +52,7 @@ module.exports = {
                 layer: layer.name,
                 infoformat: props.format,
                 style: layer.style || '',
-                ...assign({}, layer.baseParams, layer.params, props.params),
+                ...assign({}, (CQL_FILTER ? {CQL_FILTER} : {}), layer.baseParams, layer.params, props.params),
                 tilecol: tileCol,
                 tilerow: tileRow,
                 tilematrix: matrixIds[Math.round(props.map.zoom)],
@@ -58,7 +61,7 @@ module.exports = {
                 j: tileJ
             },
             metadata: {
-                title: layer.title,
+                title: isObject(layer.title) ? layer.title[props.currentLocale] || layer.title.default : layer.title,
                 regex: layer.featureInfoRegex
             },
             url: isArray(layer.url) ?

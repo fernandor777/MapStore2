@@ -30,6 +30,9 @@ const GET_COORDINATES_FROM_PIXEL_HOOK = 'GET_COORDINATES_FROM_PIXEL_HOOK';
 
 var hooks = {};
 var CoordinatesUtils = require('./CoordinatesUtils');
+const LayersUtils = require('./LayersUtils');
+const assign = require('object-assign');
+const {isObject, head} = require('lodash');
 
 function registerHook(name, hook) {
     hooks[name] = hook;
@@ -282,6 +285,61 @@ function transformExtent(projection, center, width, height) {
     return {width, height};
 }
 
+const groupSaveFormatted = (node) => {
+    if (isObject(node.title) && head(Object.keys(node.title).filter(t => node.title[t]))) {
+        return {id: node.id, title: node.title, expanded: node.expanded};
+    }
+    return {id: node.id, expanded: node.expanded};
+};
+
+function saveMapConfiguration(currentMap, currentLayers, currentGroups, textSearchConfig, catalogServices) {
+
+    const map = {
+        center: currentMap.center,
+        maxExtent: currentMap.maxExtent,
+        projection: currentMap.projection,
+        units: currentMap.units,
+        zoom: currentMap.zoom
+    };
+
+    const layers = currentLayers.map((layer) => {
+        return LayersUtils.saveLayer(layer);
+    });
+
+    const flatGroupId = currentGroups.reduce((a, b) => {
+        const flatGroups = a.concat(LayersUtils.getGroupNodes(b));
+        return flatGroups;
+    }, [].concat(currentGroups.map(g => g.id)));
+
+    const groups = flatGroupId.map(g => {
+        const node = LayersUtils.getNode(currentGroups, g);
+        return node && node.nodes ? groupSaveFormatted(node) : null;
+    }).filter(g => g);
+
+    return {
+        version: 2,
+        // layers are defined inside the map object
+        map: assign({}, map, {layers, groups, text_serch_config: textSearchConfig}),
+        catalogServices
+    };
+}
+
+function isSimpleGeomType(geomType) {
+    switch (geomType) {
+        case "MultiPoint": case "MultiLineString": case "MultiPolygon": return false;
+        case "Point": case "LineString": case "Polygon": case "Circle": default: return true;
+    }
+}
+function getSimpleGeomType(geomType = "Point") {
+    switch (geomType) {
+        case "Point": case "LineString": case "Polygon": case "Circle": return geomType;
+        case "MultiPoint": return "Point";
+        case "MultiLineString": return "LineString";
+        case "MultiPolygon": return "Polygon";
+        default: return geomType;
+    }
+}
+
 module.exports = {
     EXTENT_TO_ZOOM_HOOK,
     RESOLUTIONS_HOOK,
@@ -307,5 +365,8 @@ module.exports = {
     getBbox,
     mapUpdated,
     getCurrentResolution,
-    transformExtent
+    transformExtent,
+    saveMapConfiguration,
+    isSimpleGeomType,
+    getSimpleGeomType
 };

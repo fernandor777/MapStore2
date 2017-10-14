@@ -12,6 +12,7 @@ var ConfigUtils = require('../../../utils/ConfigUtils');
 var CoordinatesUtils = require('../../../utils/CoordinatesUtils');
 var assign = require('object-assign');
 var mapUtils = require('../../../utils/MapUtils');
+const Rx = require('rxjs');
 
 const {throttle} = require('lodash');
 
@@ -53,7 +54,7 @@ class LeafletMap extends React.Component {
         zoomControl: true,
         mapOptions: {
             zoomAnimation: true,
-            attributionControl: true
+            attributionControl: false
         },
         projection: "EPSG:3857",
         onLayerLoading: () => {},
@@ -90,13 +91,22 @@ class LeafletMap extends React.Component {
             doubleClickZoom: false,
             boxZoom: false,
             tap: false
-        }, this.props.mapOptions, this.crs ? {crs: this.crs} : {});
+        }, {maxZoom: 23}, this.props.mapOptions, this.crs ? {crs: this.crs} : {});
 
         const map = L.map(this.props.id, assign({zoomControl: this.props.zoomControl}, mapOptions) ).setView([this.props.center.y, this.props.center.x],
           Math.round(this.props.zoom));
 
         this.map = map;
 
+
+        this.attribution = L.control.attribution();
+        this.attribution.addTo(this.map);
+        if (this.props.mapOptions.attribution && this.props.mapOptions.attribution.container) {
+            document.querySelector(this.props.mapOptions.attribution.container).appendChild(this.attribution.getContainer());
+            if (document.querySelector('.leaflet-control-container .leaflet-control-attribution')) {
+                document.querySelector('.leaflet-control-container .leaflet-control-attribution').parentNode.removeChild(document.querySelector('.leaflet-control-container .leaflet-control-attribution'));
+            }
+        }
 
         this.map.on('moveend', this.updateMapInfoState);
         // this uses the hook defined in ./SingleClick.js for leaflet 0.7.*
@@ -135,6 +145,12 @@ class LeafletMap extends React.Component {
         this.forceUpdate();
 
         this.map.on('layeradd', (event) => {
+            // we want to run init code only the first time a layer is added to the map
+            if (event.layer._ms2Added) {
+                return;
+            }
+            event.layer._ms2Added = true;
+
             // avoid binding if not possible, e.g. for measurement vector layers
             if (!event.layer.layerId) {
                 return;
@@ -146,22 +162,52 @@ class LeafletMap extends React.Component {
             if (event && event.layer && event.layer.on ) {
                 // TODO check event.layer.on is a function
                 // Needed to fix GeoJSON Layer neverending loading
-                let hadError = false;
+
+                let layerLoadingStream$ = new Rx.Subject();
+                let layerLoadStream$ = new Rx.Subject();
+                let layerErrorStream$ = new Rx.Subject();
+
+                layerErrorStream$
+                    .bufferToggle(
+                        layerLoadingStream$,
+                        () => layerLoadStream$)
+                    .subscribe({
+                        next: (errorEvent) => {
+                            const tileCount = errorEvent && errorEvent[0] && errorEvent[0].target && errorEvent[0].target._tiles && Object.keys(errorEvent[0].target._tiles).length || 0;
+                            if (tileCount > 0 && errorEvent && errorEvent.length > 0) {
+                                this.props.onLayerError(errorEvent[0].target.layerId, tileCount, errorEvent.length);
+                            }
+                        }
+                    });
+
                 if (!(event.layer.options && event.layer.options.hideLoading)) {
                     this.props.onLayerLoading(event.layer.layerId);
+                    layerLoadingStream$.next();
                 }
+
                 event.layer.on('loading', (loadingEvent) => {
-                    hadError = false;
                     this.props.onLayerLoading(loadingEvent.target.layerId);
+                    layerLoadingStream$.next();
                 });
-                event.layer.on('load', (loadEvent) => { this.props.onLayerLoad(loadEvent.target.layerId, hadError); });
-                event.layer.on('tileerror', (errorEvent) => {
-                    const isError = errorEvent.target.onError ? errorEvent.target.onError(errorEvent) : true;
-                    if (isError) {
-                        hadError = true;
-                        this.props.onLayerError(errorEvent.target.layerId);
-                    }
+
+                event.layer.on('load', (loadEvent) => {
+                    this.props.onLayerLoad(loadEvent.target.layerId);
+                    layerLoadStream$.next();
                 });
+
+                event.layer.on('tileerror', (errorEvent) => { layerErrorStream$.next(errorEvent); });
+
+                event.layer.layerLoadingStream$ = layerLoadingStream$;
+                event.layer.layerLoadStream$ = layerLoadStream$;
+                event.layer.layerErrorStream$ = layerErrorStream$;
+            }
+        });
+
+        this.map.on('layerremove', (event) => {
+            if (event.layer.layerLoadingStream$) {
+                event.layer.layerLoadingStream$.complete();
+                event.layer.layerLoadStream$.complete();
+                event.layer.layerErrorStream$.complete();
             }
         });
 
@@ -197,6 +243,10 @@ class LeafletMap extends React.Component {
     }
 
     componentWillUnmount() {
+        const attributionContainer = this.props.mapOptions.attribution && this.props.mapOptions.attribution.container && document.querySelector(this.props.mapOptions.attribution.container);
+        if (attributionContainer && attributionContainer.querySelector('.leaflet-control-attribution')) {
+            attributionContainer.removeChild(this.attribution.getContainer());
+        }
         this.map.remove();
     }
 
@@ -336,11 +386,12 @@ class LeafletMap extends React.Component {
         });
         mapUtils.registerHook(mapUtils.GET_PIXEL_FROM_COORDINATES_HOOK, (pos) => {
             let latLng = CoordinatesUtils.reproject(pos, this.props.projection, 'EPSG:4326');
-            let pixel = this.map.latLngToContainerPoint([latLng.x, latLng.y]);
+            let pixel = this.map.latLngToContainerPoint([latLng.y, latLng.x]);
             return [pixel.x, pixel.y];
         });
         mapUtils.registerHook(mapUtils.GET_COORDINATES_FROM_PIXEL_HOOK, (pixel) => {
-            let pos = CoordinatesUtils.reproject(this.map.containerPointToLatLng(pixel), 'EPSG:4326', this.props.projection);
+            const point = this.map.containerPointToLatLng(pixel);
+            let pos = CoordinatesUtils.reproject([point.lng, point.lat], 'EPSG:4326', this.props.projection);
             return [pos.x, pos.y];
         });
     };

@@ -10,6 +10,8 @@ const image = new ol.style.Circle({
   stroke: new ol.style.Stroke({color: 'red', width: 1})
 });
 
+const Icons = require('../../../utils/openlayers/Icons');
+
 const defaultStyles = {
   'Point': () => [new ol.style.Style({
       image: image
@@ -102,6 +104,17 @@ var styleFunction = function(feature, options) {
     return defaultStyles[feature.getGeometry().getType()](options);
 };
 
+function getMarkerStyle(options) {
+    if (options.style.iconUrl) {
+        return Icons.standard.getIcon(options);
+    }
+    const iconLibrary = options.style.iconLibrary || 'extra';
+    if (Icons[iconLibrary]) {
+        return Icons[iconLibrary].getIcon(options);
+    }
+    return null;
+}
+
 function getStyle(options) {
     let style = options.nativeStyle;
     if (!style && options.style) {
@@ -120,27 +133,11 @@ function getStyle(options) {
                 image: new ol.style.Circle(assign({}, style, {radius: options.style.radius || 5}))
             };
         }
+        if (options.style.iconUrl || options.style.iconGlyph) {
+            const markerStyle = getMarkerStyle(options);
 
-        if (options.style.iconUrl ) {
-            let markerStyle = [new ol.style.Style({
-                  image: new ol.style.Icon(({
-                    anchor: options.iconAnchor || [0.5, 1],
-                    anchorXUnits: ( options.iconAnchor || options.iconAnchor === 0) ? 'pixels' : 'fraction',
-                    anchorYUnits: ( options.iconAnchor || options.iconAnchor === 0) ? 'pixels' : 'fraction',
-                    src: options.style.iconUrl
-                }))
-            })];
-            if (options.style.shadowUrl) {
-                markerStyle = [new ol.style.Style({
-                      image: new ol.style.Icon(({
-                        anchor: [12, 41],
-                        anchorXUnits: 'pixels',
-                        anchorYUnits: 'pixels',
-                        src: options.style.shadowUrl || markerShadow
-                      }))
-                  }), markerStyle [0]];
-            }
-            style = (feature) => {
+            style = function(f) {
+                var feature = this || f;
                 const type = feature.getGeometry().getType();
                 switch (type) {
                     case "Point":
@@ -170,5 +167,6 @@ function getStyle(options) {
 }
 module.exports = {
     getStyle,
+    getMarkerStyle,
     styleFunction
 };

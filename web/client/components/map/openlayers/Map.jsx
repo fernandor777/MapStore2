@@ -5,14 +5,14 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var ol = require('openlayers');
+const ol = require('openlayers');
 const PropTypes = require('prop-types');
-var React = require('react');
-var assign = require('object-assign');
+const React = require('react');
+const assign = require('object-assign');
 
-var CoordinatesUtils = require('../../../utils/CoordinatesUtils');
-var ConfigUtils = require('../../../utils/ConfigUtils');
-var mapUtils = require('../../../utils/MapUtils');
+const CoordinatesUtils = require('../../../utils/CoordinatesUtils');
+const ConfigUtils = require('../../../utils/ConfigUtils');
+const mapUtils = require('../../../utils/MapUtils');
 
 const {isEqual, throttle} = require('lodash');
 
@@ -88,9 +88,11 @@ class OpenlayersMap extends React.Component {
         }
         let controls = ol.control.defaults(assign({
             zoom: this.props.zoomControl,
-            attributionOptions: {
+            attributionOptions: assign({
                 collapsible: false
-            }
+            }, this.props.mapOptions.attribution && this.props.mapOptions.attribution.container ? {
+                target: document.querySelector(this.props.mapOptions.attribution.container)
+            } : {})
         }, this.props.mapOptions.controls));
         let map = new ol.Map({
             layers: [],
@@ -101,18 +103,35 @@ class OpenlayersMap extends React.Component {
         });
 
         this.map = map;
-
+        const oldOn = this.map.on;
+        this.map.disabledListeners = {};
+        this.map.on = (event, handler) => {
+            oldOn.call(this.map, event, (e) => {
+                if (!this.map.disabledListeners[event]) {
+                    handler(e);
+                }
+            });
+        };
+        this.map.disableEventListener = (event) => {
+            this.map.disabledListeners[event] = true;
+        };
+        this.map.enableEventListener = (event) => {
+            delete this.map.disabledListeners[event];
+        };
         map.on('moveend', this.updateMapInfoState);
         map.on('singleclick', (event) => {
             if (this.props.onClick) {
                 let pos = event.coordinate.slice();
                 let coords = ol.proj.toLonLat(pos, this.props.projection);
-                let tLng = coords[0] / 360 % 1 * 360;
-                if (tLng < -180) {
-                    tLng = tLng + 360;
-                } else if (tLng > 180) {
-                    tLng = tLng - 360;
-                }
+                let tLng = CoordinatesUtils.normalizeLng(coords[0]);
+                let layerInfo;
+                map.forEachFeatureAtPixel(event.pixel, (feature, layer) => {
+                    if (layer && layer.get('handleClickOnLayer')) {
+                        layerInfo = layer.get('msId');
+                    }
+                    coords = ol.proj.toLonLat(feature.getGeometry().getFirstCoordinate(), this.props.projection);
+                    tLng = CoordinatesUtils.normalizeLng(coords[0]);
+                });
                 this.props.onClick({
                     pixel: {
                         x: event.pixel[0],
@@ -127,7 +146,7 @@ class OpenlayersMap extends React.Component {
                         ctrl: event.originalEvent.ctrlKey,
                         shift: event.originalEvent.shiftKey
                     }
-                });
+                }, layerInfo);
             }
         });
         const mouseMove = throttle(this.mouseMoveEvent, 100);
@@ -184,6 +203,11 @@ class OpenlayersMap extends React.Component {
     }
 
     componentWillUnmount() {
+        const attributionContainer = this.props.mapOptions.attribution && this.props.mapOptions.attribution.container
+        && document.querySelector(this.props.mapOptions.attribution.container);
+        if (attributionContainer && attributionContainer.querySelector('.ol-attribution')) {
+            attributionContainer.removeChild(document.querySelector('.ol-attribution'));
+        }
         this.map.setTarget(null);
     }
 

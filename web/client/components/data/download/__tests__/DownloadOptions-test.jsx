@@ -10,7 +10,7 @@ var ReactDOM = require('react-dom');
 var DownloadOptions = require('../DownloadOptions');
 var expect = require('expect');
 const spyOn = expect.spyOn;
-const TestUtils = require('react-addons-test-utils');
+const TestUtils = require('react-dom/test-utils');
 
 describe('Test for DownloadOptions component', () => {
     beforeEach((done) => {
@@ -30,6 +30,11 @@ describe('Test for DownloadOptions component', () => {
     });
     it('render with element selected', () => {
         const cmp = ReactDOM.render(<DownloadOptions downloadOptions={{selectedFormat: "test"}} formats={[{name: "test"}]}/>, document.getElementById("container"));
+        expect(cmp).toExist();
+        expect(TestUtils.scryRenderedDOMComponentsWithClass(cmp, "Select-value-label")).toExist();
+    });
+    it('render with srs list element selected', () => {
+        const cmp = ReactDOM.render(<DownloadOptions downloadOptions={{selectedSrs: "test"}} srsList={[{name: "test"}]}/>, document.getElementById("container"));
         expect(cmp).toExist();
         expect(TestUtils.scryRenderedDOMComponentsWithClass(cmp, "Select-value-label")).toExist();
     });

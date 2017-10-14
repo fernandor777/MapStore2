@@ -10,7 +10,7 @@ const _ = require('lodash');
 const assign = require('object-assign');
 const uuidv1 = require('uuid/v1');
 const ConfigUtils = require('../utils/ConfigUtils');
-const jsesc = require('jsesc');
+const {utfEncode} = require('../utils/EncodeUtils');
 
 let parseOptions = (opts) => opts;
 
@@ -27,6 +27,10 @@ let parseUserGroups = (groupsObj) => {
         return [];
     }
     return groupsObj.User.groups.group.filter(obj => !!obj.id).map((obj) => _.pick(obj, ["id", "groupName", "description"]));
+};
+
+const encodeContent = function(content) {
+    return utfEncode(content);
 };
 
 /**
@@ -118,10 +122,11 @@ var Api = {
                 }
             }, options)));
     },
+    encodeContent,
     putResource: function(resourceId, content, options) {
         return axios.put(
             "data/" + resourceId,
-            jsesc(content, {json: true, wrap: false, quotes: 'backtick'}),
+            encodeContent(content),
             this.addBaseUrl(_.merge({
                 headers: {
                     'Content-Type': "text/plain;charset=utf-8"
@@ -242,13 +247,8 @@ var Api = {
     },
     createUser: function(user, options) {
         const url = "users/";
-        const postUser = assign({}, user);
-        if (postUser.newPassword) {
-            postUser.password = postUser.newPassword;
-        }
-        // uuid is time-based
-        postUser.attribute = {name: "uuid", value: uuidv1()};
-        return axios.post(url, {User: postUser}, this.addBaseUrl(parseOptions(options))).then(function(response) {return response.data; });
+
+        return axios.post(url, {User: Api.utils.initUser(user)}, this.addBaseUrl(parseOptions(options))).then(function(response) {return response.data; });
     },
     deleteUser: function(id, options = {}) {
         const url = "users/user/" + id;
@@ -332,6 +332,25 @@ var Api = {
         return axios.post(url, null, this.addBaseUrl(parseOptions(options))).then(function(response) {
             return response.data;
         });
+    },
+    utils: {
+        /**
+         * initialize User with newPassword and UUID
+         * @param  {object} user The user object
+         * @return {object}      The user object adapted for creation (newPassword, UUID)
+         */
+        initUser: (user) => {
+            const postUser = assign({}, user);
+            if (postUser.newPassword) {
+                postUser.password = postUser.newPassword;
+            }
+            // uuid is time-based
+            const uuidAttr = {
+                name: "UUID", value: uuidv1()
+            };
+            postUser.attribute = postUser.attribute && postUser.attribute.length > 0 ? [...postUser.attribute, uuidAttr] : [uuidAttr];
+            return postUser;
+        }
     }
 };
 

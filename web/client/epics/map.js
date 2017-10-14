@@ -8,19 +8,24 @@
 
 const Rx = require('rxjs');
 const {changeLayerProperties} = require('../actions/layers');
-const {CREATION_ERROR_LAYER} = require('../actions/map');
+const {CREATION_ERROR_LAYER, INIT_MAP} = require('../actions/map');
 const {currentBackgroundLayerSelector, allBackgroundLayerSelector, getLayerFromId} = require('../selectors/layers');
 const {mapTypeSelector} = require('../selectors/maptype');
 const {setControlProperty} = require('../actions/controls');
 const {isSupportedLayer} = require('../utils/LayersUtils');
 const {warning} = require('../actions/notifications');
+const {resetControls} = require('../actions/controls');
+const {clearLayers} = require('../actions/layers');
 const {head} = require('lodash');
 
 const handleCreationBackgroundError = (action$, store) =>
     action$.ofType(CREATION_ERROR_LAYER)
     // added delay because the CREATION_ERROR_LAYER needs to be initialized after MAP_CONFIG_LOADED
     .delay(500)
-    .filter(a => a.options.id === currentBackgroundLayerSelector(store.getState()).id && a.options.group === "background")
+    .filter(a => {
+        const currentBackground = currentBackgroundLayerSelector(store.getState());
+        return currentBackground && a.options.id === currentBackground.id && a.options.group === "background";
+    })
     .switchMap((a) => {
         const maptype = mapTypeSelector(store.getState());
         // consider only the supported backgrounds, removing the layer that generated an error on creation
@@ -56,12 +61,17 @@ const handleCreationLayerError = (action$, store) =>
     .delay(500)
     .switchMap((a) => {
         const maptype = mapTypeSelector(store.getState());
-        return isSupportedLayer(getLayerFromId(store.getState(), a.options.id), maptype) ? Rx.Observable.from([
+        const layer = getLayerFromId(store.getState(), a.options.id);
+        return !!layer && isSupportedLayer(layer, maptype) ? Rx.Observable.from([
             changeLayerProperties(a.options.id, {invalid: true})
         ]) : Rx.Observable.empty();
     });
 
+const resetMapOnInit = action$ =>
+    action$.ofType(INIT_MAP).switchMap(() => Rx.Observable.of(resetControls(), clearLayers()));
+
 module.exports = {
     handleCreationLayerError,
-    handleCreationBackgroundError
+    handleCreationBackgroundError,
+    resetMapOnInit
 };

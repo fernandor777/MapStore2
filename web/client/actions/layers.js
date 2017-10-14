@@ -24,6 +24,10 @@ const UPDATE_SETTINGS = 'UPDATE_SETTINGS';
 const REFRESH_LAYERS = 'REFRESH_LAYERS';
 const LAYERS_REFRESHED = 'LAYERS_REFRESHED';
 const LAYERS_REFRESH_ERROR = 'LAYERS_REFRESH_ERROR';
+const BROWSE_DATA = 'LAYERS:BROWSE_DATA';
+const CLEAR_LAYERS = 'LAYERS:CLEAR_LAYERS';
+const SELECT_NODE = 'LAYERS:SELECT_NODE';
+const FILTER_LAYERS = 'LAYERS:FILTER_LAYERS';
 
 function showSettings(node, nodeType, options) {
     return {
@@ -123,10 +127,12 @@ function layerLoad(layerId, error) {
     };
 }
 
-function layerError(layerId) {
+function layerError(layerId, tilesCount, tilesErrorCount) {
     return {
         type: LAYER_ERROR,
-        layerId: layerId
+        layerId: layerId,
+        tilesCount,
+        tilesErrorCount
     };
 }
 
@@ -144,7 +150,15 @@ function removeLayer(layerId) {
         layerId: layerId
     };
 }
-
+function refreshLayerVersion(layer, version) {
+    return {
+        type: CHANGE_LAYER_PROPERTIES,
+        layer,
+        newProperties: {
+            _v_: version || new Date().getTime()
+        }
+    };
+}
 function refreshLayers(layers, options) {
     return {
         type: REFRESH_LAYERS,
@@ -167,11 +181,38 @@ function layersRefreshError(layers, error) {
         error
     };
 }
+function browseData(layer) {
+    return {
+        type: BROWSE_DATA,
+        layer
+    };
+}
+function clearLayers() {
+    return {
+        type: CLEAR_LAYERS
+    };
+}
+
+function selectNode(id, nodeType, ctrlKey) {
+    return {
+        type: SELECT_NODE,
+        id,
+        nodeType,
+        ctrlKey
+    };
+}
+
+function filterLayers(text) {
+    return {
+        type: FILTER_LAYERS,
+        text
+    };
+}
 
 module.exports = {changeLayerProperties, changeGroupProperties, toggleNode, sortNode, removeNode, contextNode,
     updateNode, layerLoading, layerLoad, layerError, addLayer, removeLayer, showSettings, hideSettings, updateSettings, refreshLayers,
-    layersRefreshed, layersRefreshError,
+    layersRefreshed, layersRefreshError, refreshLayerVersion, browseData, clearLayers, selectNode, filterLayers,
     CHANGE_LAYER_PROPERTIES, CHANGE_GROUP_PROPERTIES, TOGGLE_NODE, SORT_NODE,
     REMOVE_NODE, UPDATE_NODE, LAYER_LOADING, LAYER_LOAD, LAYER_ERROR, ADD_LAYER, REMOVE_LAYER,
-    SHOW_SETTINGS, HIDE_SETTINGS, UPDATE_SETTINGS, CONTEXT_NODE, REFRESH_LAYERS, LAYERS_REFRESHED, LAYERS_REFRESH_ERROR
+    SHOW_SETTINGS, HIDE_SETTINGS, UPDATE_SETTINGS, CONTEXT_NODE, REFRESH_LAYERS, LAYERS_REFRESHED, LAYERS_REFRESH_ERROR, BROWSE_DATA, CLEAR_LAYERS, SELECT_NODE, FILTER_LAYERS
 };

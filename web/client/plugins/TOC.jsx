@@ -9,192 +9,103 @@ const PropTypes = require('prop-types');
 const React = require('react');
 const {connect} = require('react-redux');
 const {createSelector} = require('reselect');
-const {Button, Glyphicon} = require('react-bootstrap');
-const autocompleteEpics = require('../epics/autocomplete');
+const {Glyphicon} = require('react-bootstrap');
 
 const {changeLayerProperties, changeGroupProperties, toggleNode, contextNode,
-       sortNode, showSettings, hideSettings, updateSettings, updateNode, removeNode} = require('../actions/layers');
+       sortNode, showSettings, hideSettings, updateSettings, updateNode, removeNode, browseData, selectNode, filterLayers, refreshLayerVersion} = require('../actions/layers');
 const {getLayerCapabilities} = require('../actions/layerCapabilities');
 const {zoomToExtent} = require('../actions/map');
-const {groupsSelector, layersSelector} = require('../selectors/layers');
-const {mapSelector} = require('../selectors/map');
+const {groupsSelector, layersSelector, selectedNodesSelector, layerFilterSelector, layerSettingSelector} = require('../selectors/layers');
+const {mapSelector, mapNameSelector} = require('../selectors/map');
+const {currentLocaleSelector} = require("../selectors/locale");
 
 const LayersUtils = require('../utils/LayersUtils');
 const mapUtils = require('../utils/MapUtils');
 
-const Message = require('./locale/Message');
+const Message = require('../components/I18N/Message');
 const assign = require('object-assign');
 
 const layersIcon = require('./toolbar/assets/img/layers.png');
 
-// include application component
-const QueryBuilder = require('../components/data/query/QueryBuilder');
+const {isObject, head} = require('lodash');
 
-const {isObject} = require('lodash');
+const {setControlProperty} = require('../actions/controls');
 
-const {bindActionCreators} = require('redux');
-const {
-    // QueryBuilder action functions
-    addGroupField,
-    addFilterField,
-    removeFilterField,
-    updateFilterField,
-    updateExceptionField,
-    updateLogicCombo,
-    removeGroupField,
-    changeCascadingValue,
-    expandAttributeFilterPanel,
-    expandSpatialFilterPanel,
-    selectSpatialMethod,
-    selectViewportSpatialMethod,
-    selectSpatialOperation,
-    removeSpatialSelection,
-    showSpatialSelectionDetails,
-    reset,
-    changeDwithinValue,
-    zoneGetValues,
-    zoneSearch,
-    zoneChange,
-    toggleMenu
-} = require('../actions/queryform');
+const {activeSelector} = require("../selectors/catalog");
 
-const {toggleControl, setControlProperty} = require('../actions/controls');
+const addFilteredAttributesGroups = (nodes, filters) => {
+    return nodes.reduce((newNodes, currentNode) => {
+        let node = assign({}, currentNode);
+        if (node.nodes) {
+            node = assign({}, node, {nodes: addFilteredAttributesGroups(node.nodes, filters)});
+        }
+        filters.forEach(filter => {
+            if (node.nodes && filter.func(node)) {
+                node = assign({}, node, filter.options);
+            } else if (node.nodes) {
+                node = assign({}, node);
+            }
+        });
+        newNodes.push(node);
+        return newNodes;
+    }, []);
+};
 
-const {refreshLayers} = require('../actions/layers');
-
-const {createQuery, toggleQueryPanel} = require('../actions/wfsquery');
-
-const {
-    changeDrawingStatus,
-    endDrawing
-} = require('../actions/draw');
-
-// connecting a Dumb component to the store
-// makes it a smart component
-// we both connect state => props
-// and actions to event handlers
-const SmartQueryForm = connect((state) => {
-    return {
-        // QueryBuilder props
-        useMapProjection: state.queryform.useMapProjection,
-        groupLevels: state.queryform.groupLevels,
-        groupFields: state.queryform.groupFields,
-        filterFields: state.queryform.filterFields,
-        attributes: state.query && state.query.typeName && state.query.featureTypes && state.query.featureTypes[state.query.typeName] && state.query.featureTypes[state.query.typeName].attributes,
-        featureTypeError: state.query && state.query.typeName && state.query.featureTypes && state.query.featureTypes[state.query.typeName] && state.query.featureTypes[state.query.typeName].error,
-        spatialField: state.queryform.spatialField,
-        showDetailsPanel: state.queryform.showDetailsPanel,
-        toolbarEnabled: state.queryform.toolbarEnabled,
-        attributePanelExpanded: state.queryform.attributePanelExpanded,
-        autocompleteEnabled: state.queryform.autocompleteEnabled,
-        maxFeaturesWPS: state.queryform.maxFeaturesWPS,
-        spatialPanelExpanded: state.queryform.spatialPanelExpanded,
-        featureTypeConfigUrl: state.query && state.query.url,
-        searchUrl: state.query && state.query.url,
-        featureTypeName: state.query && state.query.typeName,
-        ogcVersion: "1.1.0",
-        params: {typeName: state.query && state.query.typeName},
-        resultTitle: "Query Result",
-        showGeneratedFilter: false,
-        allowEmptyFilter: true,
-        emptyFilterWarning: true,
-        maxHeight: state.map && state.map.present && state.map.present.size && state.map.present.size.height
-    };
-}, dispatch => {
-    return {
-
-        attributeFilterActions: bindActionCreators({
-            onAddGroupField: addGroupField,
-            onAddFilterField: addFilterField,
-            onRemoveFilterField: removeFilterField,
-            onUpdateFilterField: updateFilterField,
-            onUpdateExceptionField: updateExceptionField,
-            onUpdateLogicCombo: updateLogicCombo,
-            onRemoveGroupField: removeGroupField,
-            onChangeCascadingValue: changeCascadingValue,
-            toggleMenu: toggleMenu,
-            onExpandAttributeFilterPanel: expandAttributeFilterPanel
-        }, dispatch),
-        spatialFilterActions: bindActionCreators({
-            onExpandSpatialFilterPanel: expandSpatialFilterPanel,
-            onSelectSpatialMethod: selectSpatialMethod,
-            onSelectViewportSpatialMethod: selectViewportSpatialMethod,
-            onSelectSpatialOperation: selectSpatialOperation,
-            onChangeDrawingStatus: changeDrawingStatus,
-            onRemoveSpatialSelection: removeSpatialSelection,
-            onShowSpatialSelectionDetails: showSpatialSelectionDetails,
-            onEndDrawing: endDrawing,
-            onChangeDwithinValue: changeDwithinValue,
-            zoneFilter: zoneGetValues,
-            zoneSearch,
-            zoneChange
-        }, dispatch),
-        queryToolbarActions: bindActionCreators({
-            onQuery: createQuery,
-            onReset: reset,
-            onChangeDrawingStatus: changeDrawingStatus
-        }, dispatch)
-    };
-})(QueryBuilder);
-
-const refreshSelector = createSelector([
-    (state) => state.controls && state.controls.RefreshLayers || {},
-    layersSelector,
-    (state) => state.layers && state.layers.refreshing || [],
-    (state) => state.layers && state.layers.refreshError || []
-], (control, layers, refreshing, error) => ({
-    show: control.enabled === true,
-    options: control.options || {},
-    layers: layers.filter((l) => l.type === 'wms' && l.group !== 'background'),
-    refreshing,
-    error
-}));
-
-const refreshLayerSelector = createSelector([
-    (state) => state.controls && state.controls.RefreshLayers || {},
-    (state) => state.layers && state.layers.refreshing || [],
-    (state) => state.layers && state.layers.refreshError || []
-], (control, layers, refreshing, error) => ({
-    show: isObject(control.enabled) || false,
-    options: control.options || {},
-    layers: [control.enabled],
-    refreshing,
-    error
-}));
-
-const RefreshLayers = connect(refreshSelector, {
-    onClose: toggleControl.bind(null, 'RefreshLayers', 'enabled'),
-    onRefresh: refreshLayers,
-    onUpdateOptions: setControlProperty.bind(null, 'RefreshLayers', 'options')
-})(require('../components/TOC/fragments/RefreshLayers'));
-
-const RefreshLayer = connect(refreshLayerSelector, {
-    onClose: toggleControl.bind(null, 'RefreshLayers', 'enabled'),
-    onRefresh: refreshLayers,
-    onUpdateOptions: setControlProperty.bind(null, 'RefreshLayers', 'options')
-})(require('../components/TOC/fragments/RefreshLayers'));
+const filterLayersByTitle = (layer, filterText, currentLocale) => {
+    const translation = isObject(layer.title) ? layer.title[currentLocale] || layer.title.default : layer.title;
+    const title = translation || layer.name;
+    return title.toLowerCase().includes(filterText.toLowerCase());
+};
 
 const tocSelector = createSelector(
     [
         (state) => state.controls && state.controls.toolbar && state.controls.toolbar.active === 'toc',
         groupsSelector,
-        (state) => state.layers && state.layers.settings || {expanded: false, options: {opacity: 1}},
-        (state) => state.controls && state.controls.queryPanel && state.controls.queryPanel.enabled || false,
-        mapSelector
-    ], (enabled, groups, settings, querypanelEnabled, map) => ({
+        layerSettingSelector,
+        mapSelector,
+        currentLocaleSelector,
+        selectedNodesSelector,
+        layerFilterSelector,
+        layersSelector,
+        mapNameSelector,
+        activeSelector
+    ], (enabled, groups, settings, map, currentLocale, selectedNodes, filterText, layers, mapName, catalogActive) => ({
         enabled,
         groups,
         settings,
-        querypanelEnabled,
         currentZoomLvl: map && map.zoom,
         scales: mapUtils.getScales(
             map && map.projection || 'EPSG:3857',
             map && map.mapOptions && map.mapOptions.view && map.mapOptions.view.DPI || null
-        )
+        ),
+        currentLocale,
+        selectedNodes,
+        filterText,
+        selectedLayers: layers.filter((l) => head(selectedNodes.filter(s => s === l.id))),
+        noFilterResults: layers.filter((l) => filterLayersByTitle(l, filterText, currentLocale)).length === 0,
+        selectedGroups: selectedNodes.map(n => LayersUtils.getNode(groups, n)).filter(n => n && n.nodes),
+        mapName,
+        filteredGroups: addFilteredAttributesGroups(groups, [
+            {
+                options: {showComponent: true},
+                func: () => !filterText
+            },
+            {
+                options: {loadingError: true},
+                func: (node) => head(node.nodes.filter(n => n.loadingError && n.loadingError !== 'Warning'))
+            },
+            {
+                options: {expanded: true, showComponent: true},
+                func: (node) => filterText && head(node.nodes.filter(l => filterLayersByTitle(l, filterText, currentLocale) || l.nodes && head(node.nodes.filter(g => g.showComponent))))
+            }
+        ]),
+        catalogActive
     })
 );
 
 const TOC = require('../components/TOC/TOC');
+const Header = require('../components/TOC/Header');
+const Toolbar = require('../components/TOC/Toolbar');
 const DefaultGroup = require('../components/TOC/DefaultGroup');
 const DefaultLayer = require('../components/TOC/DefaultLayer');
 const DefaultLayerOrGroup = require('../components/TOC/DefaultLayerOrGroup');
@@ -205,33 +116,36 @@ class LayerTree extends React.Component {
         buttonContent: PropTypes.node,
         groups: PropTypes.array,
         settings: PropTypes.object,
-        querypanelEnabled: PropTypes.bool,
+        refreshMapEnabled: PropTypes.bool,
         groupStyle: PropTypes.object,
         groupPropertiesChangeHandler: PropTypes.func,
         layerPropertiesChangeHandler: PropTypes.func,
         onToggleGroup: PropTypes.func,
         onToggleLayer: PropTypes.func,
         onContextMenu: PropTypes.func,
-        onToggleQuery: PropTypes.func,
+        onBrowseData: PropTypes.func,
+        onSelectNode: PropTypes.func,
+        selectedNodes: PropTypes.array,
         onZoomToExtent: PropTypes.func,
         retrieveLayerData: PropTypes.func,
         onSort: PropTypes.func,
         onSettings: PropTypes.func,
-        onRefresh: PropTypes.func,
         onRefreshLayer: PropTypes.func,
         hideSettings: PropTypes.func,
         updateSettings: PropTypes.func,
         updateNode: PropTypes.func,
         removeNode: PropTypes.func,
+        activateOpacityTool: PropTypes.bool,
+        activateSortLayer: PropTypes.bool,
+        activateFilterLayer: PropTypes.bool,
+        activateMapTitle: PropTypes.bool,
+        activateToolsContainer: PropTypes.bool,
         activateRemoveLayer: PropTypes.bool,
         activateLegendTool: PropTypes.bool,
         activateZoomTool: PropTypes.bool,
         activateQueryTool: PropTypes.bool,
-        autocompleteEnabled: PropTypes.bool,
         activateSettingsTool: PropTypes.bool,
-        activateRefreshTool: PropTypes.bool,
         visibilityCheckType: PropTypes.string,
-        maxFeaturesWPS: PropTypes.number,
         settingsOptions: PropTypes.object,
         chartStyle: PropTypes.object,
         currentZoomLvl: PropTypes.number,
@@ -239,7 +153,19 @@ class LayerTree extends React.Component {
         layerOptions: PropTypes.object,
         spatialOperations: PropTypes.array,
         spatialMethodOptions: PropTypes.array,
-        groupOptions: PropTypes.object
+        groupOptions: PropTypes.object,
+        currentLocale: PropTypes.string,
+        onFilter: PropTypes.func,
+        filterText: PropTypes.string,
+        selectedLayers: PropTypes.array,
+        selectedGroups: PropTypes.array,
+        mapName: PropTypes.string,
+        filteredGroups: PropTypes.array,
+        noFilterResults: PropTypes.bool,
+        onAddLayer: PropTypes.func,
+        activateAddLayerButton: PropTypes.bool,
+        catalogActive: PropTypes.bool,
+        refreshLayerVersion: PropTypes.func
     };
 
     static defaultProps = {
@@ -252,95 +178,184 @@ class LayerTree extends React.Component {
         onToggleQuery: () => {},
         onZoomToExtent: () => {},
         onSettings: () => {},
-        onRefresh: () => {},
         onRefreshLayer: () => {},
         updateNode: () => {},
         removeNode: () => {},
+        onSelectNode: () => {},
+        selectedNodes: [],
+        activateOpacityTool: true,
+        activateSortLayer: true,
+        activateFilterLayer: true,
+        activateMapTitle: true,
+        activateToolsContainer: true,
         activateLegendTool: true,
         activateZoomTool: true,
         activateSettingsTool: true,
         activateRemoveLayer: true,
         activateQueryTool: false,
-        activateRefreshTool: true,
         visibilityCheckType: "glyph",
         settingsOptions: {
             includeCloseButton: false,
             closeGlyph: "1-close",
             buttonSize: "small"
         },
-        querypanelEnabled: false,
         layerOptions: {},
-        groupOptions: {}
+        groupOptions: {},
+        spatialOperations: [
+            {"id": "INTERSECTS", "name": "queryform.spatialfilter.operations.intersects"},
+            {"id": "BBOX", "name": "queryform.spatialfilter.operations.bbox"},
+            {"id": "CONTAINS", "name": "queryform.spatialfilter.operations.contains"},
+            {"id": "WITHIN", "name": "queryform.spatialfilter.operations.within"}
+        ],
+        spatialMethodOptions: [
+            {"id": "Viewport", "name": "queryform.spatialfilter.methods.viewport"},
+            {"id": "BBOX", "name": "queryform.spatialfilter.methods.box"},
+            {"id": "Circle", "name": "queryform.spatialfilter.methods.circle"},
+            {"id": "Polygon", "name": "queryform.spatialfilter.methods.poly"}
+        ],
+        currentLocale: 'en-US',
+        filterText: '',
+        selectedLayers: [],
+        selectedGroups: [],
+        mapName: '',
+        filteredGroups: [],
+        noFilterResults: false,
+        onAddLayer: () => {},
+        activateAddLayerButton: false,
+        catalogActive: false,
+        refreshLayerVersion: () => {}
     };
 
     getNoBackgroundLayers = (group) => {
         return group.name !== 'background';
     };
 
-    renderTOC = () => {
-        const Group = (<DefaultGroup onSort={this.props.onSort}
-                                  {...this.props.groupOptions}
-                                  propertiesChangeHandler={this.props.groupPropertiesChangeHandler}
-                                  onToggle={this.props.onToggleGroup}
-                                  style={this.props.groupStyle}
-                                  groupVisibilityCheckbox
-                                  visibilityCheckType={this.props.visibilityCheckType}
-                                  />);
-        const Layer = (<DefaultLayer
-                            {...this.props.layerOptions}
-                            settingsOptions={this.props.settingsOptions}
-                            onToggle={this.props.onToggleLayer}
-                            onContextMenu={this.props.onContextMenu}
-                            onToggleQuerypanel={this.props.onToggleQuery }
-                            onZoom={this.props.onZoomToExtent}
-                            onSettings={this.props.onSettings}
-                            onRefresh={this.props.onRefreshLayer}
-                            propertiesChangeHandler={this.props.layerPropertiesChangeHandler}
-                            hideSettings={this.props.hideSettings}
-                            settings={this.props.settings}
-                            updateSettings={this.props.updateSettings}
-                            updateNode={this.props.updateNode}
-                            removeNode={this.props.removeNode}
-                            visibilityCheckType={this.props.visibilityCheckType}
-                            activateRemoveLayer={this.props.activateRemoveLayer}
-                            activateLegendTool={this.props.activateLegendTool}
-                            activateZoomTool={this.props.activateZoomTool}
-                            activateQueryTool={this.props.activateQueryTool}
-                            activateSettingsTool={this.props.activateSettingsTool}
-                            activateRefreshTool={this.props.activateRefreshTool}
-                            retrieveLayerData={this.props.retrieveLayerData}
-                            chartStyle={this.props.chartStyle}
-                            settingsText={<Message msgId="layerProperties.windowTitle"/>}
-                            opacityText={<Message msgId="opacity"/>}
-                            elevationText={<Message msgId="elevation"/>}
-                            saveText={<Message msgId="save"/>}
-                            closeText={<Message msgId="close"/>}
-                            groups={this.props.groups}
-                            currentZoomLvl={this.props.currentZoomLvl}
-                            scales={this.props.scales}/>);
+    getDefaultGroup = () => {
         return (
-            <div className="mapstore-toc">
-                <Button onClick={this.props.onRefresh} bsSize="xsmall"><Glyphicon glyph="refresh"/></Button>
-                <RefreshLayers/>
-                <RefreshLayer/>
-                <TOC onSort={this.props.onSort} filter={this.getNoBackgroundLayers}
-                    nodes={this.props.groups}>
-                    <DefaultLayerOrGroup groupElement={Group} layerElement={Layer}/>
-                </TOC>
-            </div>
-        );
-    };
+            <DefaultGroup
+                onSort={!this.props.filterText && this.props.activateSortLayer ? this.props.onSort : null}
+                {...this.props.groupOptions}
+                propertiesChangeHandler={this.props.groupPropertiesChangeHandler}
+                onToggle={this.props.onToggleGroup}
+                style={this.props.groupStyle}
+                groupVisibilityCheckbox
+                visibilityCheckType={this.props.visibilityCheckType}
+                currentLocale={this.props.currentLocale}
+                selectedNodes={this.props.selectedNodes}
+                onSelect={this.props.activateToolsContainer ? this.props.onSelectNode : null}/>);
+    }
 
-    renderQueryPanel = () => {
+    getDefaultLayer = () => {
         return (
-            <div id="toc-query-container">
-                <Button id="toc-query-close-button" bsStyle="primary" key="menu-button" className="square-button" onClick={this.props.onToggleQuery.bind(this, null, null)}><Glyphicon glyph="arrow-left"/></Button>
-                <SmartQueryForm
-                    spatialOperations={this.props.spatialOperations}
-                    spatialMethodOptions={this.props.spatialMethodOptions}
-                    autocompleteEnabled={this.props.autocompleteEnabled}
-                    maxFeaturesWPS={this.props.maxFeaturesWPS}
-                    featureTypeErrorText={<Message msgId="layerProperties.featureTypeError"/>}/>
+            <DefaultLayer
+                {...this.props.layerOptions}
+                onToggle={this.props.onToggleLayer}
+                activateOpacityTool={this.props.activateOpacityTool}
+                onContextMenu={this.props.onContextMenu}
+                propertiesChangeHandler={this.props.layerPropertiesChangeHandler}
+                onSelect={this.props.activateToolsContainer ? this.props.onSelectNode : null}
+                visibilityCheckType={this.props.visibilityCheckType}
+                activateLegendTool={this.props.activateLegendTool}
+                currentZoomLvl={this.props.currentZoomLvl}
+                scales={this.props.scales}
+                currentLocale={this.props.currentLocale}
+                selectedNodes={this.props.selectedNodes}
+                filterText={this.props.filterText}
+                onUpdateNode={this.props.updateNode}/>);
+    }
+
+    renderTOC = () => {
+        const Group = this.getDefaultGroup();
+        const Layer = this.getDefaultLayer();
+        const sections = [this.props.activateToolsContainer, this.props.activateFilterLayer, this.props.activateMapTitle].filter(s => s);
+        const bodyClass = sections.length > 0 ? ' toc-body-sections-' + sections.length : ' toc-body-sections';
+        return (
+            <div>
+                <Header
+                    title={this.props.mapName}
+                    showTitle={this.props.activateMapTitle}
+                    showFilter={this.props.activateFilterLayer}
+                    showTools={this.props.activateToolsContainer}
+                    onClear={() => { this.props.onSelectNode(); }}
+                    onFilter={this.props.onFilter}
+                    filterTooltipClear={<Message msgId="toc.clearFilter" />}
+                    filterPlaceholder={'Filter layers'}
+                    filterText={this.props.filterText}
+                    toolbar={
+                        <Toolbar
+                            groups={this.props.groups}
+                            selectedLayers={this.props.selectedLayers}
+                            selectedGroups={this.props.selectedGroups}
+                            settings={this.props.settings}
+                            activateTool={{
+                                activateToolsContainer: this.props.activateToolsContainer,
+                                activateRemoveLayer: this.props.activateRemoveLayer,
+                                activateZoomTool: this.props.activateZoomTool,
+                                activateQueryTool: this.props.activateQueryTool,
+                                activateSettingsTool: this.props.activateSettingsTool,
+                                activateAddLayer: this.props.activateAddLayerButton && !this.props.catalogActive,
+                                includeDeleteButtonInSettings: false
+                            }}
+                            options={{
+                                modalOptions: {},
+                                settingsOptions: this.props.settingsOptions
+                            }}
+                            style={{
+                                chartStyle: this.props.chartStyle
+                            }}
+                            text={{
+                                settingsText: <Message msgId="layerProperties.windowTitle"/>,
+                                opacityText: <Message msgId="opacity"/>,
+                                elevationText: <Message msgId="elevation"/>,
+                                saveText: <Message msgId="save"/>,
+                                closeText: <Message msgId="close"/>,
+                                confirmDeleteText: <Message msgId="layerProperties.deleteLayer" />,
+                                confirmDeleteMessage: <Message msgId="layerProperties.deleteLayerMessage" />,
+                                confirmDeleteCancelText: <Message msgId="cancel"/>,
+                                addLayer: <Message msgId="toc.addLayer"/>,
+                                zoomToTooltip: {
+                                    LAYER: <Message msgId="toc.toolZoomToLayerTooltip"/>,
+                                    LAYERS: <Message msgId="toc.toolZoomToLayersTooltip"/>
+                                },
+                                settingsTooltip: {
+                                    LAYER: <Message msgId="toc.toolLayerSettingsTooltip"/>,
+                                    GROUP: <Message msgId="toc.toolGroupSettingsTooltip"/>
+                                },
+                                featuresGridTooltip: <Message msgId="toc.toolFeaturesGridTooltip"/>,
+                                trashTooltip: {
+                                    LAYER: <Message msgId="toc.toolTrashLayerTooltip"/>,
+                                    LAYERS: <Message msgId="toc.toolTrashLayersTooltip"/>
+                                },
+                                reloadTooltip: {
+                                    LAYER: <Message msgId="toc.toolReloadLayerTooltip"/>,
+                                    LAYERS: <Message msgId="toc.toolReloadLayersTooltip"/>
+                                }
+                            }}
+                            onToolsActions={{
+                                onZoom: this.props.onZoomToExtent,
+                                onBrowseData: this.props.onBrowseData,
+                                onUpdate: this.props.updateNode,
+                                onRemove: this.props.removeNode,
+                                onClear: this.props.onSelectNode,
+                                onSettings: this.props.onSettings,
+                                onUpdateSettings: this.props.updateSettings,
+                                onRetrieveLayerData: this.props.retrieveLayerData,
+                                onHideSettings: this.props.hideSettings,
+                                onReload: this.props.refreshLayerVersion,
+                                onAddLayer: this.props.onAddLayer,
+                                onShow: this.props.layerPropertiesChangeHandler}}/>
+                    }/>
+                <div className={'mapstore-toc' + bodyClass}>
+                    {this.props.noFilterResults && this.props.filterText ?
+                        <div>
+                            <div className="toc-filter-no-results"><Message msgId="toc.noFilteredResults" /></div>
+                        </div>
+                        :
+                        <TOC onSort={!this.props.filterText && this.props.activateSortLayer ? this.props.onSort : null} filter={this.getNoBackgroundLayers} nodes={this.props.filteredGroups}>
+                            <DefaultLayerOrGroup groupElement={Group} layerElement={Layer}/>
+                        </TOC>
+                    }
+                </div>
             </div>
         );
     };
@@ -349,18 +364,26 @@ class LayerTree extends React.Component {
         if (!this.props.groups) {
             return <div />;
         }
-        if (this.props.querypanelEnabled) {
-            return this.renderQueryPanel();
-        }
         return this.renderTOC();
     }
 }
+
 /**
  * TOC plugins
  * @name TOC
  * @class
  * @memberof plugins
- * @prop {boolean} cfg.activateQueryTool
+ * @prop {boolean} cfg.activateFilterLayer: activate filter layers tool, default `true`
+ * @prop {boolean} cfg.activateMapTitle: show map title, default `true`
+ * @prop {boolean} cfg.activateOpacityTool: show opacity slider in collapsible panel of layer, default `true`
+ * @prop {boolean} cfg.activateToolsContainer: activate layers and group global toolbar, default `true`
+ * @prop {boolean} cfg.activateLegendTool: show legend in collapsible panel, default `true`
+ * @prop {boolean} cfg.activateZoomTool: activate zoom to extension tool, default `true`
+ * @prop {boolean} cfg.activateSettingsTool: activate settings of layers and groups, default `true`
+ * @prop {boolean} cfg.activateRemoveLayer: activate remove layer tool, default `true`
+ * @prop {boolean} cfg.activateQueryTool: activate query tool options, default `false`
+ * @prop {boolean} cfg.activateSortLayer: activate drag and drob to sort layers, default `true`
+ * @prop {boolean} cfg.activateAddLayerButton: activate a button to open the catalog, default `false`
  * @prop {object} cfg.layerOptions: options to pass to the layer.
  * Some of the layerOptions are: `legendContainerStyle`, `legendStyle`. These 2 allow to customize the legend:
  * For instance you can pass some stying props to the legend.
@@ -385,19 +408,19 @@ const TOCPlugin = connect(tocSelector, {
     onToggleGroup: LayersUtils.toggleByType('groups', toggleNode),
     onToggleLayer: LayersUtils.toggleByType('layers', toggleNode),
     onContextMenu: contextNode,
-    onToggleQuery: toggleQueryPanel,
+    onBrowseData: browseData,
     onSort: LayersUtils.sortUsing(LayersUtils.sortLayers, sortNode),
     onSettings: showSettings,
-    onRefresh: toggleControl.bind(null, 'RefreshLayers', 'enabled'),
-    onRefreshLayer: setControlProperty.bind(null, 'RefreshLayers', 'enabled'),
     onZoomToExtent: zoomToExtent,
     hideSettings,
     updateSettings,
     updateNode,
-    removeNode
+    removeNode,
+    onSelectNode: selectNode,
+    onFilter: filterLayers,
+    onAddLayer: setControlProperty.bind(null, "metadataexplorer", "enabled", true, true),
+    refreshLayerVersion
 })(LayerTree);
-
-const {refresh} = require('../epics/layers');
 
 module.exports = {
     TOCPlugin: assign(TOCPlugin, {
@@ -418,7 +441,6 @@ module.exports = {
             position: 1,
             glyph: "1-layer",
             icon: <img src={layersIcon}/>,
-            title: 'layers',
             buttonConfig: {
                 buttonClassName: "square-button no-border",
                 tooltip: "toc.layers"
@@ -429,6 +451,5 @@ module.exports = {
     reducers: {
         queryform: require('../reducers/queryform'),
         query: require('../reducers/query')
-    },
-    epics: assign({}, {refresh}, autocompleteEpics)
+    }
 };

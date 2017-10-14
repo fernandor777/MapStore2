@@ -1,16 +1,16 @@
-const PropTypes = require('prop-types');
-/**
- * Copyright 2016, GeoSolutions Sas.
+/*
+ * Copyright 2017, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
- */
+*/
 const React = require('react');
+const PropTypes = require('prop-types');
 const SharingLinks = require('./SharingLinks');
 const Message = require('../I18N/Message');
 const {Image, Panel, Button, Glyphicon} = require('react-bootstrap');
-const {head, memoize} = require('lodash');
+const {head, memoize, isObject} = require('lodash');
 const assign = require('object-assign');
 
 const CoordinatesUtils = require('../../utils/CoordinatesUtils');
@@ -42,29 +42,31 @@ require("./RecordItem.css");
 
 class RecordItem extends React.Component {
     static propTypes = {
+        addAuthentication: PropTypes.bool,
+        buttonSize: PropTypes.string,
+        crs: PropTypes.string,
+        currentLocale: PropTypes.string,
+        onCopy: PropTypes.func,
+        onError: PropTypes.func,
         onLayerAdd: PropTypes.func,
         onZoomToExtent: PropTypes.func,
-        zoomToLayer: PropTypes.bool,
         record: PropTypes.object,
-        buttonSize: PropTypes.string,
-        onCopy: PropTypes.func,
         showGetCapLinks: PropTypes.bool,
-        addAuthentication: PropTypes.bool,
-        crs: PropTypes.string,
-        onError: PropTypes.func
+        zoomToLayer: PropTypes.bool
     };
 
     static defaultProps = {
+        buttonSize: "small",
+        crs: "EPSG:3857",
+        currentLocale: 'en-US',
         mapType: "leaflet",
+        onCopy: () => {},
+        onError: () => {},
         onLayerAdd: () => {},
         onZoomToExtent: () => {},
-        zoomToLayer: true,
-        onError: () => {},
         style: {},
-        buttonSize: "small",
-        onCopy: () => {},
         showGetCapLinks: false,
-        crs: "EPSG:3857"
+        zoomToLayer: true
     };
 
     state = {};
@@ -109,15 +111,14 @@ class RecordItem extends React.Component {
         return links;
     };
 
+    getTitle = (title) => {
+        return isObject(title) ? title[this.props.currentLocale] || title.default : title || '';
+    };
+
     renderThumb = (thumbURL, record) => {
         let thumbSrc = thumbURL || defaultThumb;
 
-        return (<Image src={thumbSrc} alt={record && record.title} style={{
-            "float": "left",
-            width: "150px",
-            maxHeight: "150px",
-            marginRight: "20px"
-        }}/>);
+        return (<Image className="preview" src={thumbSrc} alt={record && this.getTitle(record.title)}/>);
 
     };
 
@@ -138,7 +139,7 @@ class RecordItem extends React.Component {
                 <Button
                     key="wms-button"
                     className="record-button"
-                    bsStyle="success"
+                    bsStyle="primary"
                     bsSize={this.props.buttonSize}
                     onClick={() => { this.addLayer(wms); }}
                     key="addlayer">
@@ -151,7 +152,7 @@ class RecordItem extends React.Component {
                 <Button
                     key="wmts-button"
                     className="record-button"
-                    bsStyle="success"
+                    bsStyle="primary"
                     bsSize={this.props.buttonSize}
                     onClick={() => { this.addwmtsLayer(wmts); }}
                     key="addwmtsLayer">
@@ -189,12 +190,12 @@ class RecordItem extends React.Component {
     render() {
         let record = this.props.record;
         return (
-            <Panel className="record-item">
+            <Panel className="record-item" style={{padding: 0}}>
                 {this.renderThumb(record && record.thumbnail, record)}
                 <div>
-                    <h4>{record && record.title}</h4>
-                    <h4><small>{record && record.identifier}</small></h4>
-                    <p className="record-item-description">{this.renderDescription(record)}</p>
+                    <h4 className="truncateText">{record && this.getTitle(record.title)}</h4>
+                    <h4 className="truncateText"><small>{record && record.identifier}</small></h4>
+                    <p className="truncateText record-item-description">{this.renderDescription(record)}</p>
                 </div>
                   {this.renderButtons(record)}
             </Panel>

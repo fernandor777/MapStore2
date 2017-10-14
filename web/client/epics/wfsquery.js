@@ -8,14 +8,37 @@
 
 const Rx = require('rxjs');
 const axios = require('../libs/ajax');
+const Url = require('url');
 const {changeSpatialAttribute, SELECT_VIEWPORT_SPATIAL_METHOD, updateGeometrySpatialField} = require('../actions/queryform');
 const {CHANGE_MAP_VIEW} = require('../actions/map');
-const {FEATURE_TYPE_SELECTED, QUERY, featureTypeLoaded, featureTypeError, querySearchResponse, queryError, featureClose} = require('../actions/wfsquery');
+const {FEATURE_TYPE_SELECTED, QUERY, UPDATE_QUERY, featureLoading, featureTypeLoaded, featureTypeError, querySearchResponse, queryError} = require('../actions/wfsquery');
+const {paginationInfo, isDescribeLoaded, describeSelector} = require('../selectors/query');
+const {mapSelector} = require('../selectors/map');
 const FilterUtils = require('../utils/FilterUtils');
+const CoordinatesUtils = require('../utils/CoordinatesUtils');
 const assign = require('object-assign');
-const {isString} = require('lodash');
-const {TOGGLE_CONTROL, setControlProperty} = require('../actions/controls');
+const {spatialFieldMethodSelector, spatialFieldSelector, spatialFieldGeomTypeSelector, spatialFieldGeomCoordSelector, spatialFieldGeomSelector, spatialFieldGeomProjSelector} = require('../selectors/queryform');
+const {changeDrawingStatus} = require('../actions/draw');
+const {INIT_QUERY_PANEL} = require('../actions/wfsquery');
 
+const {isObject} = require('lodash');
+const {interceptOGCError} = require('../utils/ObservableUtils');
+// this is a workaround for https://osgeo-org.atlassian.net/browse/GEOS-7233. can be removed when fixed
+const workaroundGEOS7233 = ({totalFeatures, features, ...rest}, {startIndex, maxFeatures}, originalSize) => {
+    if (originalSize > totalFeatures && originalSize === startIndex + features.length && totalFeatures === features.length) {
+        return {
+            ...rest,
+            features,
+            totalFeatures: originalSize
+        };
+    }
+    return {
+        ...rest,
+        features,
+        totalFeatures
+    };
+
+};
 const types = {
     // string
     // 'xsd:ENTITIES': 'string',
@@ -91,6 +114,7 @@ const extractInfo = (data) => {
                 conf = fieldConfig[attribute.name] ? {...conf, ...fieldConfig[attribute.name]} : conf;
                 return conf;
             }),
+        original: data,
         attributes: data.featureTypes[0].properties
             .filter((attribute) => attribute.type.indexOf('gml:') !== 0 && types[attribute.type])
             .map((attribute) => {
@@ -122,17 +146,23 @@ const getWFSFilterData = (filterObj) => {
 
 const getWFSFeature = (searchUrl, filterObj) => {
     const data = getWFSFilterData(filterObj);
+
+    const urlParsedObj = Url.parse(searchUrl, true);
+    let params = isObject(urlParsedObj.query) ? urlParsedObj.query : {};
+    params.service = 'WFS';
+    params.outputFormat = 'json';
+    const queryString = Url.format({
+        protocol: urlParsedObj.protocol,
+        host: urlParsedObj.host,
+        pathname: urlParsedObj.pathname,
+        query: params
+    });
+
     return Rx.Observable.defer( () =>
-        axios.post(searchUrl + '?service=WFS&outputFormat=json', data, {
+        axios.post(queryString, data, {
             timeout: 60000,
             headers: {'Accept': 'application/json', 'Content-Type': 'application/json'}
         }));
-};
-
-const getWFSResponseException = (response, code) => {
-    const {unmarshaller} = require('../utils/ogc/WFS');
-    const json = isString(response.data) ? unmarshaller.unmarshalString(response.data) : null;
-    return json && json.value && json.value.exception && json.value.exception[0] && json.value.exception[0].TYPE_NAME === 'OWS_1_0_0.ExceptionType' && json.value.exception[0].exceptionCode === code;
 };
 
 const getFirstAttribute = (state)=> {
@@ -148,9 +178,11 @@ const retryWithForcedSortOptions = (action, store) => {
     return getWFSFeature(action.searchUrl, assign(action.filterObj, {
         sortOptions
     }))
+        .let(interceptOGCError)
         .map((newResponse) => {
-            const newError = getWFSResponseException(newResponse, 'NoApplicableCode');
-            return !newError ? querySearchResponse(newResponse.data, action.searchUrl, action.filterObj) : queryError('No sortable request');
+            const state = store.getState();
+            const data = workaroundGEOS7233(newResponse.data, action.filterObj.pagination, paginationInfo.totalFeatures(state));
+            return querySearchResponse(data, action.searchUrl, action.filterObj);
         })
         .catch((e) => {
             return Rx.Observable.of(queryError(e));
@@ -164,10 +196,16 @@ const retryWithForcedSortOptions = (action, store) => {
  * @return {external:Observable}
  */
 
-const featureTypeSelectedEpic = action$ =>
+const featureTypeSelectedEpic = (action$, store) =>
     action$.ofType(FEATURE_TYPE_SELECTED)
         .filter(action => action.url && action.typeName)
         .switchMap(action => {
+            const state = store.getState();
+            if (isDescribeLoaded(state, action.typeName)) {
+                const info = extractInfo(describeSelector(state));
+                const geometry = info.geometry[0] && info.geometry[0].attribute ? info.geometry[0].attribute : 'the_geom';
+                return Rx.Observable.of(changeSpatialAttribute(geometry));
+            }
             return Rx.Observable.defer( () => axios.get(action.url + '?service=WFS&version=1.1.0&request=DescribeFeatureType&typeName=' + action.typeName + '&outputFormat=application/json'))
                 .map((response) => {
                     if (typeof response.data === 'object' && response.data.featureTypes && response.data.featureTypes[0]) {
@@ -197,70 +235,66 @@ const featureTypeSelectedEpic = action$ =>
 const wfsQueryEpic = (action$, store) =>
     action$.ofType(QUERY)
         .switchMap(action => {
-
             return Rx.Observable.merge(
-                Rx.Observable.of(setControlProperty('drawer', 'enabled', false)),
                 getWFSFeature(action.searchUrl, action.filterObj)
+                    .let(interceptOGCError)
                     .switchMap((response) => {
-                        // try to guess if it was a missing id error and try to search again with forced sortOptions
-                        const error = getWFSResponseException(response, 'NoApplicableCode');
-                        if (error) {
+                        const state = store.getState();
+                        const data = workaroundGEOS7233(response.data, action.filterObj.pagination, paginationInfo.totalFeatures(state));
+                        return Rx.Observable.of(querySearchResponse(data, action.searchUrl, action.filterObj));
+                    })
+                    .startWith(featureLoading(true))
+                    .catch((error) => {
+                        if (error.name === "OGCError" && error.code === 'NoApplicableCode') {
                             return retryWithForcedSortOptions(action, store);
                         }
-                        return Rx.Observable.of(querySearchResponse(response.data, action.searchUrl, action.filterObj));
+                        return Rx.Observable.of(queryError(error));
                     })
-                    .catch((e) => {
-                        return Rx.Observable.of(queryError(e));
-                    })
-            );
+                    .concat(Rx.Observable.of(featureLoading(false)))
+            ).takeUntil(action$.ofType(UPDATE_QUERY));
         });
 
 /**
- * Closes the feature grid when the drawer menu button has been toggled
+ * Generate a spatial filter geometry from the view bounds
  * @memberof epics.wfsquery
- * @param {external:Observable} action$ manages `TOGGLE_CONTROL`
+ * @param {external:Observable} action$ manages `SELECT_VIEWPORT_SPATIAL_METHOD` and `CHANGE_MAP_VIEW`
  * @return {external:Observable}
  */
 
-const closeFeatureEpic = action$ =>
-    action$.ofType(TOGGLE_CONTROL)
-        .switchMap(action => {
-            return action.control && action.control === 'drawer' ? Rx.Observable.of(featureClose()) : Rx.Observable.empty();
-        });
-
-function validateExtent(extent) {
-    if (extent[0] <= -180.0 || extent[2] >= 180.0) {
-        extent[0] = -180.0;
-        extent[2] = 180.0;
-    }
-    return extent;
-}
 const viewportSelectedEpic = (action$, store) =>
     action$.ofType(SELECT_VIEWPORT_SPATIAL_METHOD, CHANGE_MAP_VIEW)
         .switchMap((action) => {
             // calculate new geometry from map properties only for viewport
-            const map = action.type === CHANGE_MAP_VIEW ? action : store.getState().map.present || store.getState().map;
-            if (action.type === SELECT_VIEWPORT_SPATIAL_METHOD ||
-                action.type === CHANGE_MAP_VIEW &&
-                store.getState().queryform &&
-                store.getState().queryform.spatialField &&
-                store.getState().queryform.spatialField.method === "Viewport") {
+            const map = action.type === CHANGE_MAP_VIEW ? action : mapSelector(store.getState());
+            if ((action.type === SELECT_VIEWPORT_SPATIAL_METHOD
+            || action.type === CHANGE_MAP_VIEW && spatialFieldMethodSelector(store.getState()) === "Viewport")
+            && map.bbox && map.bbox.bounds && map.bbox.crs) {
                 const bounds = Object.keys(map.bbox.bounds).reduce((p, c) => {
                     return assign({}, p, {[c]: parseFloat(map.bbox.bounds[c])});
                 }, {});
-                const extent = validateExtent([bounds.minx, bounds.miny, bounds.maxx, bounds.maxy]);
-                const center = [(extent[0] + extent[2]) / 2, (extent[1] + extent[3]) / 2];
-                const start = [extent[0], extent[1]];
-                const end = [extent[2], extent[3]];
-                const coordinates = [[start, [start[0], end[1]], end, [end[0], start[1]], start]];
-                let geometry = {
-                    type: "Polygon", radius: 0, projection: "EPSG:4326",
-                    extent, center, coordinates
-                };
-                return Rx.Observable.of(updateGeometrySpatialField(geometry));
+                return Rx.Observable.of(updateGeometrySpatialField(CoordinatesUtils.getViewportGeometry(bounds, map.bbox.crs)));
             }
             return Rx.Observable.empty();
         });
+
+
+const redrawSpatialFilterEpic = (action$, store) =>
+    action$.ofType(INIT_QUERY_PANEL)
+    .switchMap(() => {
+        const state = store.getState();
+        const spatialField = spatialFieldSelector(state);
+        const feature = {
+            type: "Feature",
+            geometry: {
+                type: spatialFieldGeomTypeSelector(state),
+                coordinates: spatialFieldGeomCoordSelector(state)
+            }
+        };
+        let drawSpatialFilter = spatialFieldGeomSelector(state) ? changeDrawingStatus("drawOrEdit", spatialField.method, "queryform", [feature], {featureProjection: spatialFieldGeomProjSelector(state), drawEnabled: false, editEnabled: false}) : changeDrawingStatus("clean", spatialField.method, "queryform", [], {drawEnabled: false, editEnabled: false});
+         // if a geometry is present it will redraw the spatial field
+        return Rx.Observable.of(drawSpatialFilter);
+    });
+
 
  /**
   * Epics for WFS query requests
@@ -268,10 +302,11 @@ const viewportSelectedEpic = (action$, store) =>
   * @type {Object}
   */
 
+
 module.exports = {
     featureTypeSelectedEpic,
     wfsQueryEpic,
-    closeFeatureEpic,
+    redrawSpatialFilterEpic,
     viewportSelectedEpic,
     getWFSFilterData
 };

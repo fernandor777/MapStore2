@@ -11,7 +11,7 @@ var React = require('react');
 var createReactClass = require('create-react-class');
 var assign = require('object-assign');
 const cx = require('classnames');
-const ReactCSSTransitionGroup = require('react-addons-css-transition-group');
+const {CSSTransitionGroup} = require('react-transition-group');
 
 var SortableMixin = assign(require('react-sortable-items/SortableItemMixin'), {
     renderWithSortable: function(item) {
@@ -76,9 +76,9 @@ var Node = createReactClass({
         let expanded = this.props.node.expanded !== undefined ? this.props.node.expanded : true;
         let prefix = this.props.type;
         const nodeStyle = assign({}, this.props.style, this.props.styler(this.props.node));
-        let collapsible = expanded ? this.renderChildren((child) => child && child.props.position === 'collapsible') : [];
+        let collapsible = expanded && this.props.node.loadingError !== 'Error' ? this.renderChildren((child) => child && child.props.position === 'collapsible') : [];
         if (this.props.animateCollapse) {
-            collapsible = <ReactCSSTransitionGroup transitionName="TOC-Node" transitionEnterTimeout={250} transitionLeaveTimeout={250}>{collapsible}</ReactCSSTransitionGroup>;
+            collapsible = <CSSTransitionGroup transitionName="TOC-Node" transitionEnterTimeout={250} transitionLeaveTimeout={250}>{collapsible}</CSSTransitionGroup>;
         }
         let content = (<div key={this.props.node.name} className={(expanded ? prefix + "-expanded" : prefix + "-collapsed") + " " + this.props.className} style={nodeStyle} >
             {this.renderChildren((child) => child && child.props.position !== 'collapsible')}

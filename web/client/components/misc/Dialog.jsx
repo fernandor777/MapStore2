@@ -29,7 +29,8 @@ class Dialog extends React.Component {
         footerClassName: PropTypes.string,
         onClickOut: PropTypes.func,
         modal: PropTypes.bool,
-        start: PropTypes.object
+        start: PropTypes.object,
+        draggable: PropTypes.bool
     };
 
     static defaultProps = {
@@ -44,7 +45,8 @@ class Dialog extends React.Component {
         headerClassName: "modal-header",
         bodyClassName: "modal-body",
         footerClassName: "modal-footer",
-        modal: false
+        modal: false,
+        draggable: true
     };
 
     renderLoading = () => {
@@ -73,31 +75,36 @@ class Dialog extends React.Component {
     };
 
     render() {
-        const dialog = (<Draggable start={this.props.start} handle=".draggable-header, .draggable-header *">
-            <div id={this.props.id} style={{zIndex: 3, ...this.props.style}} className={this.props.className + " modal-dialog-container"}>
-                <div className={this.props.headerClassName + " draggable-header"}>
-                    {this.renderRole('header')}
-                </div>
-                <div className={this.props.bodyClassName}>
-                    {this.renderLoading()}
-                    {this.renderRole('body')}
-                </div>
-                {this.hasRole('footer') ? <div className={this.props.footerClassName}>
-                    {this.renderRole('footer')}
-                </div> : <span/>}
+        const body = (<div id={this.props.id} style={{zIndex: 3, ...this.props.style}} className={this.props.className + " modal-dialog-container"}>
+            <div className={this.props.headerClassName + " draggable-header"}>
+                {this.renderRole('header')}
             </div>
-        </Draggable>);
+            <div className={this.props.bodyClassName}>
+                {this.renderLoading()}
+                {this.renderRole('body')}
+            </div>
+            {this.hasRole('footer') ? <div className={this.props.footerClassName}>
+                {this.renderRole('footer')}
+            </div> : <span/>}
+        </div>);
+        const dialog = this.props.draggable ? (<Draggable start={this.props.start} handle=".draggable-header, .draggable-header *">
+            {body}
+        </Draggable>) : body;
         let containerStyle = assign({}, this.props.style, this.props.backgroundStyle);
         return this.props.modal ?
-            <div onClick={this.props.onClickOut} style={containerStyle} className={"fade in modal " + this.props.containerClassName} role="dialog">
-            <div onClick={(evt)=> {evt.preventDefault(); evt.stopPropagation(); }} className="modal-dialog" style={{background: "transparent"}}>
+            <div ref={(mask) => { this.mask = mask; }} onClick={this.onClickOut} style={containerStyle} className={"fade in modal " + this.props.containerClassName} role="dialog">
                 {dialog}
-            </div></div> :
+            </div> :
             dialog;
     }
 
     hasRole = (role) => {
         return React.Children.toArray(this.props.children).filter((child) => child.props.role === role).length > 0;
+    };
+    onClickOut = (e) => {
+        if (this.props.onClickOut && this.mask === e.target) {
+            this.props.onClickOut();
+        }
     };
 }
 

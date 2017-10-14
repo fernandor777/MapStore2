@@ -1,11 +1,11 @@
+/*
+* Copyright 2017, GeoSolutions Sas.
+* All rights reserved.
+*
+* This source code is licensed under the BSD-style license found in the
+* LICENSE file in the root directory of this source tree.
+*/
 const PropTypes = require('prop-types');
-/**
- * Copyright 2016, GeoSolutions Sas.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
- */
 
 const React = require('react');
 const {connect} = require('react-redux');
@@ -20,22 +20,28 @@ const ConfirmModal = require('../components/maps/modals/ConfirmModal');
 const ConfigUtils = require('../utils/ConfigUtils');
 
 const {mapSelector} = require('../selectors/map');
-const {layersSelector} = require('../selectors/layers');
+const {layersSelector, groupsSelector} = require('../selectors/layers');
 const stateSelector = state => state;
+const {servicesSelector, selectedServiceSelector} = require('../selectors/catalog');
 
-const LayersUtils = require('../utils/LayersUtils');
+const MapUtils = require('../utils/MapUtils');
 
-const selector = createSelector(mapSelector, stateSelector, layersSelector, (map, state, layers) => ({
+const selector = createSelector(mapSelector, stateSelector, layersSelector, groupsSelector, (map, state, layers, groups) => ({
     currentZoomLvl: map && map.zoom,
     show: state.controls && state.controls.save && state.controls.save.enabled,
     map,
+    catalogServices: servicesSelector(state),
+    selectedService: selectedServiceSelector(state),
     mapId: map && map.mapId,
     layers,
-    textSearchConfig: state.searchconfig && state.searchconfig.textSearchConfig
+    textSearchConfig: state.searchconfig && state.searchconfig.textSearchConfig,
+    groups
 }));
 
 class Save extends React.Component {
     static propTypes = {
+        catalogServices: PropTypes.object,
+        selectedService: PropTypes.string,
         show: PropTypes.bool,
         mapId: PropTypes.string,
         onClose: PropTypes.func,
@@ -43,6 +49,7 @@ class Save extends React.Component {
         loadMapInfo: PropTypes.func,
         map: PropTypes.object,
         layers: PropTypes.array,
+        groups: PropTypes.array,
         params: PropTypes.object,
         textSearchConfig: PropTypes.object
     };
@@ -83,23 +90,11 @@ class Save extends React.Component {
     goForTheUpdate = () => {
         if (this.props.mapId) {
             if (this.props.map && this.props.layers) {
-                let map =
-                    {
-                        center: this.props.map.center,
-                        maxExtent: this.props.map.maxExtent,
-                        projection: this.props.map.projection,
-                        units: this.props.map.units,
-                        zoom: this.props.map.zoom
-                    };
-                let layers = this.props.layers.map((layer) => {
-                    return LayersUtils.saveLayer(layer);
-                });
-                // Groups are ignored, as they already are defined in the layers
-                let resultingmap = {
-                    version: 2,
-                    // layers are defined inside the map object
-                    map: assign({}, map, {layers, text_serch_config: this.props.textSearchConfig})
+                const catalogServices = {
+                    services: this.props.catalogServices,
+                    selectedService: this.props.selectedService
                 };
+                const resultingmap = MapUtils.saveMapConfiguration(this.props.map, this.props.layers, this.props.groups, this.props.textSearchConfig, catalogServices);
                 this.props.onMapSave(this.props.mapId, JSON.stringify(resultingmap));
                 this.props.onClose();
             }
@@ -120,7 +115,7 @@ module.exports = {
                 text: <Message msgId="save"/>,
                 icon: <Glyphicon glyph="floppy-open"/>,
                 action: toggleControl.bind(null, 'save', null),
-            // display the BurgerMenu button only if the map can be edited
+                // display the BurgerMenu button only if the map can be edited
                 selector: (state) => {
                     let map = state.map && state.map.present || state.map || state.config && state.config.map || null;
                     if (map && map.mapId && state && state.security && state.security.user) {

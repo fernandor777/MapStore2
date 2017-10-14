@@ -10,13 +10,15 @@ const {
     FEATURE_TYPE_SELECTED,
     FEATURE_TYPE_LOADED,
     FEATURE_TYPE_ERROR,
+    FEATURE_LOADING,
     FEATURE_LOADED,
     FEATURE_ERROR,
     QUERY_CREATE,
     QUERY_RESULT,
     QUERY_ERROR,
     RESET_QUERY,
-    FEATURE_CLOSE
+    UPDATE_QUERY,
+    TOGGLE_SYNC_WMS
 } = require('../actions/wfsquery');
 
 const {QUERY_FORM_RESET} = require('../actions/queryform');
@@ -47,7 +49,8 @@ const initialState = {
     featureTypes: {},
     data: {},
     result: null,
-    resultError: null
+    resultError: null,
+    syncWmsFilter: false
 };
 
 function query(state = initialState, action) {
@@ -68,22 +71,33 @@ function query(state = initialState, action) {
             featureTypes: assign({}, state.featureTypes, {[action.typeName]: {error: action.error}})
         });
     }
+    case FEATURE_LOADING: {
+        return assign({}, state, {
+            featureLoading: action.isLoading
+        });
+    }
     case FEATURE_LOADED: {
         return assign({}, state, {
+            featureLoading: false,
             data: assign({}, state.data, {[action.typeName]: extractData(action.feature)})
         });
     }
     case FEATURE_ERROR: {
         return assign({}, state, {
+            featureLoading: false,
             featureTypes: assign({}, state.data, {[action.typeName]: {error: action.error}})
         });
     }
     case QUERY_CREATE: {
         return assign({}, state, {
-            open: true,
             isNew: true,
             searchUrl: action.searchUrl,
             filterObj: action.filterObj
+        });
+    }
+    case UPDATE_QUERY: {
+        return assign({}, state, {
+            filterObj: assign({}, state.filterObj, action.updates)
         });
     }
     case QUERY_RESULT: {
@@ -104,8 +118,10 @@ function query(state = initialState, action) {
     }
     case RESET_CONTROLS:
     case QUERY_FORM_RESET:
+        if (action.skip && action.skip.indexOf("query") >= 0) {
+            return state;
+        }
         return assign({}, state, {
-            open: false,
             isNew: false,
             result: null,
             filterObj: null,
@@ -117,11 +133,8 @@ function query(state = initialState, action) {
             resultError: null
         });
     }
-    case FEATURE_CLOSE: {
-        return assign({}, state, {
-            open: false
-        });
-    }
+    case TOGGLE_SYNC_WMS:
+        return assign({}, state, {syncWmsFilter: !state.syncWmsFilter});
     default:
         return state;
     }

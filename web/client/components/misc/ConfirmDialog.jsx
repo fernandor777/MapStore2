@@ -1,22 +1,13 @@
+/*
+* Copyright 2016, GeoSolutions Sas.
+* All rights reserved.
+*
+* This source code is licensed under the BSD-style license found in the
+* LICENSE file in the root directory of this source tree.
+*/
 const PropTypes = require('prop-types');
-/**
- * Copyright 2016, GeoSolutions Sas.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
- */
-/**
- * Copyright 2016, GeoSolutions Sas.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
 const React = require('react');
-
-const {Button, Glyphicon} = require('react-bootstrap');
+const {Button, ButtonGroup, Glyphicon} = require('react-bootstrap');
 
 const Dialog = require('./Dialog');
 const assign = require('object-assign');
@@ -69,10 +60,11 @@ class UserDialog extends React.Component {
                 {this.props.children}
             </div>
             <div role="footer">
-                <Button onClick={this.props.onConfirm} disabled={this.props.confirmButtonDisabled}
-                    bsStyle={this.props.confirmButtonBSStyle}>{this.props.confirmButtonContent}
-                </Button>
-                <Button onClick={this.props.onClose}>{this.props.closeText}</Button>
+                <ButtonGroup>
+                    <Button onClick={this.props.onConfirm} disabled={this.props.confirmButtonDisabled} bsStyle={this.props.confirmButtonBSStyle}>{this.props.confirmButtonContent}
+                    </Button>
+                    <Button onClick={this.props.onClose}>{this.props.closeText}</Button>
+                </ButtonGroup>
             </div>
         </Dialog>);
     }

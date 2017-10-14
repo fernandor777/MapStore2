@@ -174,4 +174,230 @@ describe('CoordinatesUtils', () => {
         expect(CoordinatesUtils.getGeoJSONExtent(featureCollection)[2]).toBe(105.0);
         expect(CoordinatesUtils.getGeoJSONExtent(featureCollection)[3]).toBe(1.0);
     });
+    it('test coordsOLtoLeaflet on point', () => {
+        let geojsonPoint = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [125.6, 10.1]
+            }
+        };
+        expect(CoordinatesUtils.coordsOLtoLeaflet(geojsonPoint.geometry)).toBe(geojsonPoint.geometry.coordinates.reverse());
+    });
+    it('test coordsOLtoLeaflet on LineString', () => {
+        let geojsonPoint = {
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [[1, 2], [3, 4]]
+            }
+        };
+        const reversedPoint = {
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": geojsonPoint.geometry.coordinates.map(point => point.reverse())
+            }
+        };
+
+        expect(CoordinatesUtils.coordsOLtoLeaflet(geojsonPoint.geometry)[0]).toBe(reversedPoint.geometry.coordinates[0]);
+        expect(CoordinatesUtils.coordsOLtoLeaflet(geojsonPoint.geometry)[1]).toBe(reversedPoint.geometry.coordinates[1]);
+    });
+    it('test coordsOLtoLeaflet on Polygon', () => {
+        let geojsonPoint = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[[1, 2], [3, 4], [5, 6], [1, 2]]]
+            }
+        };
+        const reversedPoint = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": geojsonPoint.geometry.coordinates[0].map(point => point.reverse())
+            }
+        };
+
+        expect(CoordinatesUtils.coordsOLtoLeaflet(geojsonPoint.geometry)[0][0]).toBe(reversedPoint.geometry.coordinates[0]);
+        expect(CoordinatesUtils.coordsOLtoLeaflet(geojsonPoint.geometry)[0][1]).toBe(reversedPoint.geometry.coordinates[1]);
+        expect(CoordinatesUtils.coordsOLtoLeaflet(geojsonPoint.geometry)[0][2]).toBe(reversedPoint.geometry.coordinates[2]);
+        expect(CoordinatesUtils.coordsOLtoLeaflet(geojsonPoint.geometry)[0][3]).toBe(reversedPoint.geometry.coordinates[3]);
+    });
+
+    it('test getViewportGeometry not listed projection', () => {
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: -160,
+            miny: -50,
+            maxx: 130,
+            maxy: 60
+        }, 'EPSG:UNKOWN')).toEqual({
+            type: 'Polygon',
+            radius: 0,
+            projection: 'EPSG:UNKOWN',
+            coordinates: [ [ [ -160, -50 ], [ -160, 60 ], [ 130, 60 ], [ 130, -50 ], [ -160, -50 ] ] ],
+            extent: [-160, -50, 130, 60],
+            center: [-15, 5]
+        });
+    });
+
+    it('test getViewportGeometry projection EPSG:4326', () => {
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: -160,
+            miny: -50,
+            maxx: 130,
+            maxy: 60
+        }, 'EPSG:4326')).toEqual({
+            type: 'Polygon',
+            radius: 0,
+            projection: 'EPSG:4326',
+            coordinates: [ [ [ -160, -50 ], [ -160, 60 ], [ 130, 60 ], [ 130, -50 ], [ -160, -50 ] ] ],
+            extent: [-160, -50, 130, 60],
+            center: [-15, 5]
+        });
+    });
+
+    it('test getViewportGeometry projection EPSG:4326 world view', () => {
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: -190,
+            miny: -50,
+            maxx: 230,
+            maxy: 60
+        }, 'EPSG:4326')).toEqual({
+            type: 'Polygon',
+            radius: 0,
+            projection: 'EPSG:4326',
+            coordinates: [ [ [ -180, -50 ], [ -180, 60 ], [ 180, 60 ], [ 180, -50 ], [ -180, -50 ] ] ],
+            extent: [-180, -50, 180, 60],
+            center: [0, 5]
+        });
+    });
+
+    it('test getViewportGeometry projection EPSG:4326 on IDL center position > -180', () => {
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: -190,
+            miny: -50,
+            maxx: -160,
+            maxy: 60
+        }, 'EPSG:4326')).toEqual({
+            type: 'MultiPolygon',
+            radius: 0,
+            projection: 'EPSG:4326',
+            coordinates: [
+                [[[ -180, -50 ], [ -180, 60 ], [ -160, 60 ], [ -160, -50 ], [ -180, -50 ]]],
+                [[[ 170, -50 ], [ 170, 60 ], [ 180, 60 ], [ 180, -50 ], [ 170, -50 ]]]
+            ],
+            extent: [
+                [-180, -50, -160, 60],
+                [170, -50, 180, 60]
+            ],
+
+            center: [ -175, 5]
+        });
+    });
+
+
+    it('test getViewportGeometry projection EPSG:4326 on IDL center position < 180', () => {
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: -230,
+            miny: -50,
+            maxx: -160,
+            maxy: 60
+        }, 'EPSG:4326')).toEqual({
+            type: 'MultiPolygon',
+            radius: 0,
+            projection: 'EPSG:4326',
+            coordinates: [
+                [[[ -180, -50 ], [ -180, 60 ], [ -160, 60 ], [ -160, -50 ], [ -180, -50 ]]],
+                [[[ 130, -50 ], [ 130, 60 ], [ 180, 60 ], [ 180, -50 ], [ 130, -50 ]]]
+            ],
+            extent: [
+                [-180, -50, -160, 60],
+                [130, -50, 180, 60]
+            ],
+            center: [ 165, 5]
+        });
+
+    });
+
+    it('test getViewportGeometry projection EPSG:4326 on IDL center x values < -180', () => {
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: -1640,
+            miny: -50,
+            maxx: -1950,
+            maxy: 60
+        }, 'EPSG:4326')).toEqual({
+            type: 'MultiPolygon',
+            radius: 0,
+            projection: 'EPSG:4326',
+            coordinates: [
+                [[[ -180, -50 ], [ -180, 60 ], [ -150, 60 ], [ -150, -50 ], [ -180, -50 ]]],
+                [[[ 160, -50 ], [ 160, 60 ], [ 180, 60 ], [ 180, -50 ], [ 160, -50 ]]]
+            ],
+            extent: [
+                [-180, -50, -150, 60],
+                [160, -50, 180, 60]
+            ],
+            center: [ -175, 5]
+        });
+
+    });
+
+    it('test getViewportGeometry projection EPSG:4326 on IDL x values > 180', () => {
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: 880,
+            miny: -50,
+            maxx: 930,
+            maxy: 60
+        }, 'EPSG:4326')).toEqual({
+            type: 'MultiPolygon',
+            radius: 0,
+            projection: 'EPSG:4326',
+            coordinates: [
+                [[[ -180, -50 ], [ -180, 60 ], [ -150, 60 ], [ -150, -50 ], [ -180, -50 ]]],
+                [[[ 160, -50 ], [ 160, 60 ], [ 180, 60 ], [ 180, -50 ], [ 160, -50 ]]]
+            ],
+            extent: [
+                [-180, -50, -150, 60],
+                [160, -50, 180, 60]
+            ],
+            center: [ -175, 5]
+        });
+    });
+
+    it('test getViewportGeometry projection EPSG:900913', () => {
+
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: -8932736.873518841,
+            miny: 1995923.6825825204,
+            maxx: -2162250.6561310687,
+            maxy: 6584591.364598222
+        }, 'EPSG:900913')).toEqual({
+            type: 'Polygon',
+            radius: 0,
+            projection: 'EPSG:900913',
+            coordinates: [ [ [ -8932736.873518841, 1995923.68258252 ], [ -8932736.873518841, 6584591.364598221 ], [ -2162250.656131069, 6584591.364598221 ], [ -2162250.656131069, 1995923.68258252 ], [ -8932736.873518841, 1995923.68258252 ] ] ],
+            extent: [-8932736.873518841, 1995923.68258252, -2162250.656131069, 6584591.364598221],
+            center: [-5547493.764824955, 4290257.523590371]
+        });
+    });
+
+    it('test getViewportGeometry projection EPSG:900913 world view', () => {
+
+        /*EPSG:900913 -20037508.342789244 - 20037508.342789244 | EPSG:4326 -180 | 180*/
+        expect(CoordinatesUtils.getViewportGeometry({
+            minx: -77527937.55286229,
+            miny: -32150025.592971414,
+            maxx: 30799841.925342064,
+            maxy: 41268657.319279805
+        }, 'EPSG:900913')).toEqual({
+            type: 'Polygon',
+            radius: 0,
+            projection: 'EPSG:900913',
+            coordinates: [ [ [ -20037508.342789244, -32150025.59297142 ], [ -20037508.342789244, 41268657.319279306 ], [ 20037508.342789244, 41268657.319279306 ], [ 20037508.342789244, -32150025.59297142 ], [ -20037508.342789244, -32150025.59297142 ] ] ],
+            extent: [-20037508.342789244, -32150025.59297142, 20037508.342789244, 41268657.319279306],
+            center: [0, 4559315.863153942]
+        });
+    });
+
 });

@@ -5,14 +5,14 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var Cesium = require('../../../libs/cesium');
+const Cesium = require('../../../libs/cesium');
 const PropTypes = require('prop-types');
 const Rx = require('rxjs');
-var React = require('react');
-var ReactDOM = require('react-dom');
-var ConfigUtils = require('../../../utils/ConfigUtils');
-var ClickUtils = require('../../../utils/cesium/ClickUtils');
-var assign = require('object-assign');
+const React = require('react');
+const ReactDOM = require('react-dom');
+const ConfigUtils = require('../../../utils/ConfigUtils');
+const ClickUtils = require('../../../utils/cesium/ClickUtils');
+const assign = require('object-assign');
 const {throttle} = require('lodash');
 
 class CesiumMap extends React.Component {
@@ -54,6 +54,16 @@ class CesiumMap extends React.Component {
     };
 
     state = { };
+
+    componentWillMount() {
+        /*
+         this prevent the Safari browser to zoom and mess up with the view.
+         added only for Safari's broswers (mobile and not) bescause from safari 10 it
+         won't allow you to disable pinch to zoom with the user-scalable attribute.
+         see https://stackoverflow.com/questions/4389932/how-do-you-disable-viewport-zooming-on-mobile-safari/39711930#39711930
+         */
+        document.addEventListener('gesturestart', this.gestureStartListener );
+    }
 
     componentDidMount() {
         var map = new Cesium.Viewer(this.props.id, assign({
@@ -109,6 +119,8 @@ class CesiumMap extends React.Component {
         this.clickStream$.complete();
         this.pauserStream$.complete();
         this.hand.destroy();
+        // see comment in componentWillMount
+        document.removeEventListener('gesturestart', this.gestureStartListener );
         this.map.destroy();
     }
 
@@ -197,6 +209,10 @@ class CesiumMap extends React.Component {
                 {children}
             </div>
         );
+    }
+
+    gestureStartListener = (e) => {
+        e.preventDefault();
     }
 
     setMousePointer = (pointer) => {

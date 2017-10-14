@@ -24,6 +24,11 @@
         "version": {
             "label": "Versione"
         },
+        "autorefresh": {
+            "of": "di",
+            "updating": "In aggiornamento...",
+            "layers": "layers"
+        },
         "layerProperties": {
             "windowTitle": "Proprietà del livello",
             "title": "Titolo",
@@ -44,11 +49,19 @@
             "deleteLayerMessage": "Sei sicuro di voler eliminare questo livello?",
             "confirmDelete": "Sei sicuro?",
             "featureTypeError": "Impossibile caricare gli attributi del layer",
-            "elevation": "Elevazione"
+            "elevation": "Elevazione",
+            "titleTranslations": "Title translations",
+            "groupProperties": "Group properties"
         },
         "notification": {
+            "update": "Aggiorna",
+            "warning": "Attenzione",
+            "success": "Aggiornamento completo",
             "backgroundLayerNotSupported": "Lo sfondo precedentemente caricato non è supportato per questo tipo di mappa. E' stato pertanto selezionato il primo disponibile.",
-            "noBackgroundLayerSupported": "Non ci sono sfondi supportati per questo tipo di mappa."
+            "noBackgroundLayerSupported": "Non ci sono sfondi supportati per questo tipo di mappa.",
+            "updateOldMap": "Questa è una vecchia mappa perciò non tutte le funzionalità sono abilitate. Clicca su Aggiorna per aggiornare la mappa o semplicemnte chiudi la notifica se non desideri aggiornarla",
+            "warningSaveUpdatedMap": "Alcuni layer non sono stati aggiornati correttamente",
+            "saveUpdatedMap": "Tutti i layer sono stati aggiornati con successo"
         },
         "dock": {
             "row": "{rowsSelected} riga selezionata",
@@ -67,7 +80,10 @@
         "background": "Sfondo",
         "language": "Lingua",
         "mousePositionCoordinates": "Indicatore di coordinate",
-        "showMousePositionCoordinates": "Mostra Coordinate",
+        "mouseCoordinates": "Coordinate:",
+        "mousePositionCRS": "CRS:",
+        "mapScale": "Scala:",
+        "showMousePositionCoordinates": "Mostra/Nascondi Coordinate",
         "menu": "Menu",
         "options": "Opzioni",
         "settings": "Impostazioni",
@@ -75,6 +91,7 @@
         "gohome": "Torna alla home",
         "back": "Torna all'importer",
         "printbutton": "Stampa",
+        "annotationsbutton": "Annotazioni",
         "noresultfound": "Nessun Risultato Trovato",
         "save": "Salva",
         "saveAs": "Salva con nome",
@@ -128,7 +145,7 @@
                     "html":"<h3>Query Builder</h3><p>Esempi personalizzati</p>"
                 },
                 "featuregrid":{
-                    "html":"<h3>Feature Grid</h3><p>Esempi personalizzati</p>"
+                    "html":"<h3>Feature Editor</h3><p>Esempi personalizzati</p>"
                 },
                 "print":{
                     "html":"<h3>Printing</h3><p>Esempi personalizzati</p>"
@@ -204,10 +221,31 @@
             "toggleLayerVisibility": "Attiva o disattiva la visibilità del livello",
             "displayLegendAndTools": "Visualizza legenda e strumenti aggiuntivi",
             "zoomToLayerExtent": "Zoom all' estensione del livello",
+
+            "addLayer": "Aggiungi Livello",
+            "toolZoomToLayerTooltip": "Zoom all' estensione del livello",
+            "toolZoomToLayersTooltip": "Zoom all' estensione del livelli",
+            "toolLayerSettingsTooltip": "Modifica proprietà del livello selezionato",
+            "toolGroupSettingsTooltip": "Modifica proprietà del gruppo selezionato",
+            "toolTrashLayerTooltip": "Rimuovi livello selezionato",
+            "toolTrashLayersTooltip": "Rimuovi livelli selezionati",
+            "toolFeaturesGridTooltip": "Apri tabella degli attributi",
+            "noFilteredResults": "Nessun risultato",
+            "filterPlaceholder": "Filtra livelli",
+            "clearFilter": "Pulisci filtro",
+            "toolReloadLayerTooltip": "Forza caricamento del livello selezionato",
+            "toolReloadLayersTooltip": "Forza caricamento dei livelli selezionati",
+            "statusIconOpen": "Chiudi gruppo",
+            "statusIconClose": "Apri gruppo",
+            "grabLayerIcon": "Trascina e ordina i livelli",
+            "grabGroupIcon": "Trascina e ordina i gruppi",
+            "toggleLayerVisibilityWarning": "Attiva o disattiva la visibilità del livello, Attenzione: il livello non è stato caricato correttamente",
+
             "editLayerProperties": "Modifica proprietà dal livello",
+            "browseData": "Apri tabella degli attributi",
             "searchFeatures": "Effettua una ricerca su questo livello...",
             "removeLayer": "Rimuovi livello",
-            "loadingerror": "Il livello non è stato caricato correttamente",
+            "loadingerror": "Il livello non è stato caricato correttamente o non disponible",
             "measure": "Misure",
             "backgroundSwitcher": "Sfondi",
             "layers": "Livelli",
@@ -436,7 +474,7 @@
             "zoomIn": "Questo è il testo di aiuto per ZoomIn",
             "zoomOut": "Questo è il testo di aiuto per ZoomOut",
             "searchBar": "Scrivi un indirizzo di un luogo per trovarlo. esempio:  '1st avenue, new york'. Puoi anche digitare le coordinate in questo formato: 43.87,10.20",
-            "metadataExplorer": "Questo è il testo di aiuto per MetadataExplorer",
+            "metadataexplorer": "Questo è il testo di aiuto per MetadataExplorer",
             "settingsPanel": "Questo è il testo di aiuto per SettingsPanel",
             "gohome": "Questo è il testo di aiuto per Home",
             "measureComponent": "Questo è il testo di aiuto per MeasureComponent",
@@ -554,6 +592,29 @@
                 "usernamePwdIncorrect":"Username o password non corretti"
             }
         },
+        "annotations": {
+            "edit": "Modifica",
+            "remove": "Rimuovi",
+            "save": "Salva",
+            "cancel": "Annulla",
+            "back": "Indietro",
+            "addMarker": "Aggiungi un punto sulla mappa",
+            "styleGeometry": "Scegli lo stile per il punto",
+            "deleteGeometry": "Rimuovi i punti esistenti",
+            "removeannotation": "Vuoi rimuovere l'annotazione?",
+            "removegeometry": "Vuoi rimuovere tutti i punti dell'annotazione?",
+            "confirm": "Conferma",
+            "mandatory": "Campo obbligatorio",
+            "emptygeometry": "La geometria non può essere vuota",
+            "add": "Nuova",
+            "filter": "Filtra le annotazioni...",
+            "undo": "Sei sicuro di voler abbandonare la modifica in corso?",
+            "title": "Annotazioni",
+            "field": {
+                "title": "Titolo",
+                "description": "Descrizione"
+            }
+        },
         "users": {
             "title": "Gestione Account",
             "users": "Utenti",
@@ -603,7 +664,7 @@
           "errorDelete": "Si è verificato un errore rimuovendo questo utente:",
           "confirmDeleteGroup": "Sei sicuro di voler cancellare questo gruppo?"
         },
-        "share":{
+        "share": {
             "title": "Condividi",
             "titlePanel": "Condividi la mappa",
             "socialIntro": "Sul tuo social preferito",
@@ -615,8 +676,9 @@
             "forceDrawer": "Mostra l'indice dei livelli",
             "apiLinkTitle": "Usando le API",
             "QRCodeLinkTitle": "Usando il QR Code",
-            "msgCopiedUrl":"Copiato",
-            "msgToCopyUrl":"Clicca per copiare"
+            "msgCopiedUrl": "Copiato",
+            "msgToCopyUrl": "Clicca per copiare",
+            "sharedTitle": "Guarda la mia nuova mappa: "
         },
         "snapshot": {
             "title": "Istantanea",
@@ -643,6 +705,9 @@
         },
         "catalog": {
             "title": "Catalogo",
+            "autoload": "Ricerca alla selezione del servizio",
+            "clearValueText": "Cancella selezione",
+            "noResultsText": "Nessun risultato trovato",
             "tooltip": "Sfoglia Catalogo",
             "addToMap": "Aggiungi alla mappa",
             "getWMSLink": "Ottieni link WMS",
@@ -654,12 +719,27 @@
             "share": "Condividi",
             "copyToClipboard": "Copia negli appunti",
             "copied": "Copiato!",
-            "catalogUrlPlaceholder": "URL del catalogo...",
             "textSearchPlaceholder": "testo da cercare...",
             "search": "Cerca",
+            "delete": "Elimina",
             "reset": "Reset",
             "options": "Opzioni",
-            "srs_not_allowed": "Il sistema di coordinate della mappa non è supportato da questo servizio"
+            "srs_not_allowed": "Il sistema di coordinate della mappa non è supportato da questo servizio",
+            "add": "Aggiungi",
+            "service": "Servizio",
+            "servicePlaceholder": "seleziona un servizio",
+            "url": "Url",
+            "urlPlaceholder": "inserisci un url",
+            "type": "Tipo",
+            "serviceTitle": "Titolo",
+            "serviceTitlePlaceholder": "inserisci un titolo",
+            "notification": {
+                "warningAddCatalogService": "Inserisci un url e titolo validi.",
+                "addCatalogService": "Servizio aggiunto corretamente.",
+                "duplicatedServiceTitle": "Un servizio con quel titolo esiste già, Per favore cambia titolo",
+                "serviceDeletedCorrectly": "Il servizio è stato eliminato correttamente",
+                "errorServiceUrl": "Servizio non disponibile. Verifica l'url inserito."
+            }
         },
         "uploader": {
             "filename": "File Name",
@@ -793,22 +873,69 @@
             "single": "Banda Singola"
         },
         "featuregrid": {
+            "columns": "Colonne",
             "header": "Elenco risultati ricerca",
             "tools": "Gestione tabella",
             "export": "Esporta risultati",
             "selectall": "Seleziona tutti",
             "deselectall": "Deseleziona tutti",
             "backtosearch": "Ritorna alla ricerca",
+            "resultInfo": "{total, plural, =0 {Nessun elemento} =1 {{total} di {total}} other {{start}-{end} di {total}}}",
+            "pageInfo": "{totalPages, plural, =0 {Nessuna pagina} =1 {Pagina {totalPages} di {totalPages}} other {Pagina {page} di {totalPages}}}",
             "pagination": {
                 "page": "Pagina",
                 "of":   "di",
                 "to":   "a",
                 "more": "molte"
+            },
+            "noFeaturesAvailable": "Nessun risultato disponibile",
+            "errorSaving": "C'è stato un errore durante il salvataggio",
+            "notSupportedGeometryTitle": "Tipo di geometria non supportato",
+            "notSupportedGeometry": "Il tipo di geometria del layer corrente non è supportato dall'editing ma è ancora possibile modificare gli attributi",
+            "yesButton": "Si",
+            "noButton": "No",
+            "deleteButton": "Elimina",
+            "clear": "Sei sicuro di voler annullare tutte le modifiche fatte?",
+            "featureClose": "Sicuro di voler chiudere la griglia?",
+            "delete": "Confermi di cancellare {count} feature?",
+            "missingGeometry": "Geometria mancante",
+            "filter": {
+                "placeholders": {
+                    "default": "Cerca...",
+                    "string": "Digita testo da cercare...",
+                    "number": "Digita numero o espressione..."
+                },
+                "tooltips": {
+                    "editMode": "La ricerca veloce non è disponibile in modalità editing",
+                    "default": "Cerca...",
+                    "string": "Digita il testo da cercare...",
+                    "number": "Digita un numero o un espression. Esempi: 10, > 2, < 10"
+                }
+            },
+            "toolbar": {
+                "editMode": "Entra in modalità editing",
+                "advancedFilter": "Ricerca avanzata",
+                "quitEditMode": "Esci dalla modalità editing",
+                "addNewFeatures": "Aggiungi una nuova feature",
+                "editFeature": "Modifica la feature",
+                "drawGeom": "Disegna sulla mappa una nuova geometria",
+                "stopDrawGeom": "Annulla la creazione della geometria",
+                "addGeom": "Aggiungi un elemento alla geometria esistente",
+                "deleteSelectedFeatures": "Elimina le feature selezionate",
+                "saveChanges": "Salva i cambiamenti",
+                "saving": "Salvataggio...",
+                "cancelChanges": "Annulla i cambiamenti",
+                "deleteGeometry": "Elimina la geometria",
+                "downloadGridData": "Esporta i dati della griglia",
+                "hideShowColumns": "Nascondi/mostra colonne",
+                "zoomAll": "Zoom all'estensione della pagina",
+                "syncOnMap": "Sincronizza la mappa con i filtri"
             }
         },
         "wfsdownload": {
             "title": "Esporta Dati",
             "format": "Formato file",
+            "srs": "Sistema di riferimento",
             "export": "Esporta",
             "downloadonlycurrentpage": "Scarica solo la pagina corrente",
             "error": {

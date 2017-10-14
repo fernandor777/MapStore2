@@ -5,17 +5,18 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var React = require('react');
-var ReactDOM = require('react-dom');
-var OpenlayersMap = require('../Map.jsx');
-var OpenlayersLayer = require('../Layer.jsx');
-var expect = require('expect');
-var assign = require('object-assign');
-var ol = require('openlayers');
-var mapUtils = require('../../../../utils/MapUtils');
+const React = require('react');
+const ReactDOM = require('react-dom');
+const OpenlayersMap = require('../Map.jsx');
+const OpenlayersLayer = require('../Layer.jsx');
+const expect = require('expect');
+const assign = require('object-assign');
+const ol = require('openlayers');
+const mapUtils = require('../../../../utils/MapUtils');
 
 require('../../../../utils/openlayers/Layers');
 require('../plugins/OSMLayer');
+require('../plugins/VectorLayer');
 
 describe('OpenlayersMap', () => {
 
@@ -23,15 +24,13 @@ describe('OpenlayersMap', () => {
         return parseFloat(f.toFixed(places));
     };
 
-    beforeEach((done) => {
+    beforeEach(() => {
         document.body.innerHTML = '<div id="map"></div>';
-        setTimeout(done);
     });
 
-    afterEach((done) => {
+    afterEach(() => {
         ReactDOM.unmountComponentAtNode(document.getElementById("map"));
         document.body.innerHTML = '';
-        setTimeout(done);
     });
 
     it('creates a div for openlayers map with given id', () => {
@@ -86,6 +85,36 @@ describe('OpenlayersMap', () => {
                 done();
             }, 500);
         }, 500);
+    });
+
+    it('click on feature', (done) => {
+        const testHandlers = {
+            handler: () => {}
+        };
+        const spy = expect.spyOn(testHandlers, 'handler');
+        const comp = (<OpenlayersMap projection="EPSG:4326" center={{y: 43.9, x: 10.3}} zoom={11}
+            onClick={testHandlers.handler}/>);
+        const map = ReactDOM.render(comp, document.getElementById("map"));
+        expect(map).toExist();
+        setTimeout(() => {
+            map.map.forEachFeatureAtPixel = (pixel, callback) => {
+                callback.call(null, {
+                    getGeometry: () => {
+                        return {
+                            getFirstCoordinate: () => [10.3, 43.9]
+                        };
+                    }
+                });
+            };
+            map.map.dispatchEvent({
+                type: 'singleclick',
+                coordinate: [10.3, 43.9],
+                pixel: map.map.getPixelFromCoordinate([10.3, 43.9]),
+                originalEvent: {}
+            });
+            expect(spy.calls.length).toEqual(1);
+            done();
+        }, 0);
     });
 
     it('check layers init', () => {
@@ -330,4 +359,25 @@ describe('OpenlayersMap', () => {
         expect(getCoordinatesFromPixel).toExist();
     });
 
+    it('create attribution with container', () => {
+        let map = ReactDOM.render(<OpenlayersMap center={{y: 43.9, x: 10.3}} zoom={11} mapOptions={{attribution: {container: 'body'}}}/>, document.getElementById("map"));
+        expect(map).toExist();
+        const domMap = document.getElementById('map');
+        let attributions = domMap.getElementsByClassName('ol-attribution');
+        expect(attributions.length).toBe(0);
+        attributions = document.body.getElementsByClassName('ol-attribution');
+        expect(attributions.length).toBe(1);
+    });
+
+    it('remove attribution from container', () => {
+        let map = ReactDOM.render(<OpenlayersMap center={{y: 43.9, x: 10.3}} zoom={11} mapOptions={{attribution: {container: 'body'}}}/>, document.getElementById("map"));
+        expect(map).toExist();
+        const domMap = document.getElementById('map');
+        let attributions = domMap.getElementsByClassName('ol-attribution');
+        expect(attributions.length).toBe(0);
+        attributions = document.body.getElementsByClassName('ol-attribution');
+        document.body.removeChild(attributions[0]);
+        attributions = document.body.getElementsByClassName('ol-attribution');
+        expect(attributions.length).toBe(0);
+    });
 });

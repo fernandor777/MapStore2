@@ -1,5 +1,4 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
  *
@@ -8,6 +7,7 @@ const PropTypes = require('prop-types');
  */
 
 const React = require('react');
+const PropTypes = require('prop-types');
 const {Button, Glyphicon, Tabs, Tab} = require('react-bootstrap');
 
 require("./css/settingsModal.css");
@@ -58,22 +58,16 @@ class SettingsModal extends React.Component {
         id: "mapstore-layer-settings",
         settings: {expanded: false},
         options: {},
+        element: {},
         updateSettings: () => {},
         hideSettings: () => {},
         updateNode: () => {},
         removeNode: () => {},
         retrieveLayerData: () => {},
         buttonSize: "large",
-        closeGlyph: "",
-        panelStyle: {
-            minWidth: "300px",
-            zIndex: 2000,
-            position: "absolute",
-            // overflow: "auto",
-            top: "100px",
-            left: "calc(50% - 150px)"
-        },
-        panelClassName: "toolbar-panel",
+        closeGlyph: "1-close",
+        panelStyle: {},
+        panelClassName: "toolbar-panel portal-dialog",
         includeCloseButton: true,
         includeDeleteButton: true,
         realtimeUpdate: true,
@@ -88,7 +82,28 @@ class SettingsModal extends React.Component {
     };
 
     componentWillMount() {
-        this.setState({initialState: this.props.element});
+        this.setState({
+            initialState: this.props.element,
+            originalSettings: this.props.element
+        });
+    }
+
+    componentWillUpdate(newProps, newState) {
+        if (this.props.settings.expanded && !newProps.settings.expanded && !newState.save) {
+            this.props.updateNode(
+                this.props.settings.node,
+                this.props.settings.nodeType,
+                assign({}, this.props.settings.options, this.state.originalSettings)
+            );
+        }
+
+        if (!this.props.settings.expanded && newProps.settings.expanded) {
+            // update initial and original settings on show modal
+            this.setState({
+                initialState: this.props.element,
+                originalSettings: this.props.element
+            });
+        }
     }
 
     onDelete = () => {
@@ -100,11 +115,7 @@ class SettingsModal extends React.Component {
     };
 
     onClose = () => {
-        this.props.updateNode(
-            this.props.settings.node,
-            this.props.settings.nodeType,
-            assign({}, this.props.settings.options, this.state.originalSettings)
-        );
+        this.setState({save: false});
         this.props.hideSettings();
     };
 
@@ -113,8 +124,7 @@ class SettingsModal extends React.Component {
             updateSettings={this.updateParams}
             element={this.props.element}
             groups={this.props.groups}
-            key="general"
-            on/>);
+            key="general"/>);
     };
 
     renderDisplay = () => {
@@ -131,8 +141,7 @@ class SettingsModal extends React.Component {
                     retrieveLayerData={this.props.retrieveLayerData}
                     updateSettings={this.updateParams}
                     element={this.props.element}
-                    key="style"
-                    o/>);
+                    key="style"/>);
         }
     };
 
@@ -155,10 +164,10 @@ class SettingsModal extends React.Component {
         const display = this.renderDisplay();
         const style = this.renderStyleTab();
         const elevation = this.renderElevationTab();
-        const availableTabs = [<Tab eventKey={1} title={<Message msgId="layerProperties.general" />}>{general}</Tab>,
-            <Tab eventKey={2} title={<Message msgId="layerProperties.display" />}>{display}</Tab>,
-            <Tab eventKey={3} title={<Message msgId="layerProperties.style" />} disabled={!style} >{style}</Tab>]
-            .concat(elevation ? [<Tab eventKey={4} title={<Message msgId="layerProperties.elevation" />}>{elevation}</Tab>] : []);
+        const availableTabs = [<Tab key={1} eventKey={1} title={<Message msgId="layerProperties.general" />}>{general}</Tab>,
+            <Tab key={2} eventKey={2} title={<Message msgId="layerProperties.display" />}>{display}</Tab>,
+            <Tab key={3} eventKey={3} title={<Message msgId="layerProperties.style" />} disabled={!style} >{style}</Tab>]
+            .concat(elevation ? [<Tab key={4} eventKey={4} title={<Message msgId="layerProperties.elevation" />}>{elevation}</Tab>] : []);
         const tabs = <Tabs defaultActiveKey={1} id="layerProperties-tabs">{availableTabs}</Tabs>;
         const footer = (<span role="footer">
             {this.props.includeCloseButton ? <Button bsSize={this.props.buttonSize} onClick={this.onClose}>{this.props.closeText}</Button> : <span/>}
@@ -174,6 +183,7 @@ class SettingsModal extends React.Component {
             <Button bsSize={this.props.buttonSize} bsStyle="primary" onClick={() => {
                 this.updateParams(this.props.settings.options.opacity, true);
                 this.props.hideSettings();
+                this.setState({save: true});
             }}>{this.props.saveText}</Button>
         </span>);
 

@@ -18,6 +18,8 @@ const CHANGE_MAP_SCALES = 'CHANGE_MAP_SCALES';
 const CHANGE_MAP_STYLE = 'CHANGE_MAP_STYLE';
 const CHANGE_ROTATION = 'CHANGE_ROTATION';
 const CREATION_ERROR_LAYER = 'CREATION_ERROR_LAYER';
+const UPDATE_VERSION = 'UPDATE_VERSION';
+const INIT_MAP = 'INIT_MAP';
 
 function creationError(options) {
     return {
@@ -61,10 +63,11 @@ function changeMapScales(scales) {
     };
 }
 
-function clickOnMap(point) {
+function clickOnMap(point, layer) {
     return {
         type: CLICK_ON_MAP,
-        point: point
+        point: point,
+        layer
     };
 }
 
@@ -113,6 +116,19 @@ function changeMapStyle(style, mapStateSource) {
         mapStateSource
     };
 }
+function updateVersion(version) {
+    return {
+        type: UPDATE_VERSION,
+        version
+    };
+}
+
+function initMap() {
+    return {
+        type: INIT_MAP
+    };
+}
+
 module.exports = {
     CHANGE_MAP_VIEW,
     CLICK_ON_MAP,
@@ -126,6 +142,8 @@ module.exports = {
     CHANGE_ROTATION,
     ZOOM_TO_POINT,
     CREATION_ERROR_LAYER,
+    UPDATE_VERSION,
+    INIT_MAP,
     changeMapView,
     clickOnMap,
     changeMousePointer,
@@ -137,5 +155,7 @@ module.exports = {
     changeMapStyle,
     changeRotation,
     zoomToPoint,
-    creationError
+    creationError,
+    updateVersion,
+    initMap
 };

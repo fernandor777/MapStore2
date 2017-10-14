@@ -23,10 +23,11 @@ function configureMap(conf, mapId) {
     };
 }
 
-function configureError(e) {
+function configureError(e, mapId) {
     return {
         type: MAP_CONFIG_LOAD_ERROR,
-        error: e
+        error: e,
+        mapId
     };
 }
 
@@ -39,11 +40,11 @@ function loadMapConfig(configName, mapId) {
                 try {
                     JSON.parse(response.data);
                 } catch (e) {
-                    dispatch(configureError('Configuration file broken (' + configName + '): ' + e.message));
+                    dispatch(configureError('Configuration file broken (' + configName + '): ' + e.message, mapId));
                 }
             }
         }).catch((e) => {
-            dispatch(configureError(e));
+            dispatch(configureError(e, mapId));
         });
     };
 }
@@ -93,4 +94,4 @@ function loadMapInfo(url, mapId) {
 }
 module.exports = {MAP_CONFIG_LOADED, MAP_CONFIG_LOAD_ERROR,
     MAP_INFO_LOAD_START, MAP_INFO_LOADED, MAP_INFO_LOAD_ERROR,
-    loadMapConfig, loadMapInfo, configureMap, configureError};
+    loadMapConfig, loadMapInfo, configureMap, configureError, mapInfoLoaded};

@@ -7,6 +7,13 @@
 */
 
 /**
+ * selects maptype state
+ * @name maptype
+ * @memberof selectors
+ * @static
+ */
+
+/**
  * selects maptype from state
  * @memberof selectors.maptype
  * @param  {object} state the state
@@ -22,8 +29,12 @@ const mapTypeSelector = (state) => state && state.maptype && state.maptype.mapTy
  * @return {boolean}
  */
 const isCesium = state => mapTypeSelector(state) === "cesium";
+const isLeaflet = state => mapTypeSelector(state) === "leaflet";
+const isOpenlayers = state => mapTypeSelector(state) === "openlayers";
 
 module.exports = {
     mapTypeSelector,
-    isCesium
+    isCesium,
+    isLeaflet,
+    isOpenlayers
 };

@@ -19,22 +19,24 @@ const React = require('react');
  *  /></BorderLayout>
  *
  */
-module.exports = ({children, header, footer, columns}) =>
+module.exports = ({children, header, footer, columns, height}) =>
     (<div style={{
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        height: "100%"
+        height: "100%",
+        overflow: "hidden"
         }}>
         {header}
         <div className={"ms2-border-layout-body"} style={{
             display: "flex",
-            flex: 1
+            flex: 1,
+            overflowY: "auto"
             }}>
             <main className="ms2-border-layout-content" style={{flex: 1}}>
-                {children}
+                {height ? <div style={{height}}>{children}</div> : children}
             </main>
-            {columns}
+            {height ? <div style={{height}}>{columns}</div> : columns}
         </div>
         {footer}
     </div>);

@@ -24,6 +24,10 @@ var {
     REFRESH_LAYERS,
     LAYERS_REFRESHED,
     LAYERS_REFRESH_ERROR,
+    BROWSE_DATA,
+    CLEAR_LAYERS,
+    SELECT_NODE,
+    FILTER_LAYERS,
     changeLayerProperties,
     toggleNode,
     sortNode,
@@ -39,7 +43,11 @@ var {
     updateSettings,
     refreshLayers,
     layersRefreshed,
-    layersRefreshError
+    layersRefreshError,
+    browseData,
+    clearLayers,
+    selectNode,
+    filterLayers
 } = require('../layers');
 var {getLayerCapabilities} = require('../layerCapabilities');
 
@@ -146,6 +154,17 @@ describe('Test correctness of the layers actions', () => {
         expect(retval.layerId).toBe(testVal);
     });
 
+    it('a layer is load with error', () => {
+        const testVal = 'layer1';
+        const error = 'error';
+        const retval = layerLoad(testVal, error);
+
+        expect(retval).toExist();
+        expect(retval.type).toBe(LAYER_LOAD);
+        expect(retval.layerId).toBe(testVal);
+        expect(retval.error).toBe(error);
+    });
+
     it('a layer is not loaded with errors', () => {
         const testVal = 'layer1';
         const retval = layerError(testVal);
@@ -222,5 +241,30 @@ describe('Test correctness of the layers actions', () => {
                 done();
             }
         });
+    });
+    it('browseData', () => {
+        const layer = {id: "TEST", name: "test", url: "test"};
+        const action = browseData(layer);
+        expect(action.type).toBe(BROWSE_DATA);
+        expect(action.layer).toBe(layer);
+    });
+
+    it('clear layers', () => {
+        const action = clearLayers();
+        expect(action.type).toBe(CLEAR_LAYERS);
+    });
+
+    it('select node', () => {
+        const action = selectNode('id', 'nodeType', 'ctrlKey');
+        expect(action.type).toBe(SELECT_NODE);
+        expect(action.id).toBe('id');
+        expect(action.nodeType).toBe('nodeType');
+        expect(action.ctrlKey).toBe('ctrlKey');
+    });
+
+    it('filter layers', () => {
+        const action = filterLayers('text');
+        expect(action.type).toBe(FILTER_LAYERS);
+        expect(action.text).toBe('text');
     });
 });

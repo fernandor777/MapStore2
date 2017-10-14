@@ -16,11 +16,12 @@ module.exports = {
                 lng: props.point.latlng.lng
             },
             metadata: {
-                fields: Object.keys(layer.features[0].properties),
+                fields: layer.features && layer.features.length && Object.keys(layer.features[0].properties) || [],
                 title: layer.name,
                 resolution: props.map && props.map && props.map.zoom && MapUtils.getCurrentResolution(props.map.zoom, 0, 21, 96),
                 buffer: props.buffer,
-                units: props.map && props.map.units
+                units: props.map && props.map.units,
+                rowViewer: layer.rowViewer
             },
             url: ""
         };

@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -8,6 +7,7 @@ const PropTypes = require('prop-types');
  */
 
 const React = require('react');
+const PropTypes = require('prop-types');
 const {connect} = require('react-redux');
 const OverlayTrigger = require('../components/misc/OverlayTrigger');
 
@@ -23,6 +23,7 @@ const Section = require('./drawer/Section');
 
 const {partialRight} = require('lodash');
 
+const assign = require('object-assign');
 
 const Menu = connect((state) => ({
     show: state.controls.drawer && state.controls.drawer.enabled,
@@ -48,7 +49,8 @@ require('./drawer/drawer.css');
  * {
  *   "name": "DrawerMenu",
  *   "cfg": {
- *   "hideButton": true
+ *     "hideButton": true
+ *   }
  * }
  */
 class DrawerMenu extends React.Component {
@@ -83,8 +85,14 @@ class DrawerMenu extends React.Component {
         disabled: false
     };
 
+    getTools = () => {
+        const unsorted = this.props.items
+            .map((item, index) => assign({}, item, {position: item.position || index}));
+        return unsorted.sort((a, b) => a.position - b.position);
+    };
+
     renderItems = () => {
-        return this.props.items.map((tool, index) => {
+        return this.getTools().map((tool, index) => {
             const Plugin = tool.panel || tool.plugin;
             const plugin = (<Plugin
                 isPanel
@@ -95,11 +103,13 @@ class DrawerMenu extends React.Component {
                     cursor: "pointer"
                 }}}
                 />);
+            const header = tool.title ? <div className={'drawer-menu-head drawer-menu-head-' + tool.name}><Message msgId={tool.title}/></div> : null;
+
             return this.props.singleSection ?
-                <Panel icon={tool.icon} glyph={tool.glyph} buttonConfig={tool.buttonConfig} key={tool.name} header={<Message msgId={tool.title}/>} eventKey={index + 1 + ""}>
+                <Panel icon={tool.icon} glyph={tool.glyph} buttonConfig={tool.buttonConfig} key={tool.name} eventKey={index + 1 + ""} header={header}>
                     {plugin}
                 </Panel>
-             : <Section key={tool.name} renderInModal={tool.renderInModal || false} eventKey={index + 1 + ""} header={<Message msgId={tool.title} />}>
+             : <Section key={tool.name} renderInModal={tool.renderInModal || false} eventKey={index + 1 + ""} header={header}>
                 {plugin}
             </Section>;
         });
@@ -113,7 +123,6 @@ class DrawerMenu extends React.Component {
                     overlay={tooltip}>
                     <Button id="drawer-menu-button" style={this.props.menuButtonStyle} bsStyle={this.props.buttonStyle} key="menu-button" className={this.props.buttonClassName} onClick={this.props.toggleMenu} disabled={this.props.disabled}><Glyphicon glyph={this.props.glyph}/></Button>
                 </OverlayTrigger>
-
                 <Menu single={this.props.singleSection} {...this.props.menuOptions} title={<Message msgId="menu" />} alignment="left">
                     {this.renderItems()}
                 </Menu>
@@ -128,6 +137,6 @@ module.exports = {
         disabled: state.controls && state.controls.drawer && state.controls.drawer.disabled
     }), {
         toggleMenu: toggleControl.bind(null, 'drawer', null)
-    })(DrawerMenu),
+    })(assign(DrawerMenu, {disablePluginIf: "{state('featuregridmode') === 'EDIT'}"})),
     reducers: {}
 };

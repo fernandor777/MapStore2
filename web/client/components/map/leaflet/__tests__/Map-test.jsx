@@ -11,6 +11,7 @@ var LeafletMap = require('../Map.jsx');
 var LeafLetLayer = require('../Layer.jsx');
 var expect = require('expect');
 var mapUtils = require('../../../../utils/MapUtils');
+require('leaflet-draw');
 
 require('../../../../utils/leaflet/Layers');
 require('../plugins/OSMLayer');
@@ -284,4 +285,25 @@ describe('LeafletMap', () => {
         expect(getCoordinatesFromPixel).toExist();
     });
 
+    it('create attribution with container', () => {
+        let map = ReactDOM.render(<LeafletMap center={{y: 43.9, x: 10.3}} zoom={11} mapOptions={{attribution: {container: 'body'}}}/>, document.getElementById("container"));
+        expect(map).toExist();
+        const domMap = document.getElementById('container');
+        let attributions = domMap.getElementsByClassName('leaflet-control-attribution');
+        expect(attributions.length).toBe(0);
+        attributions = document.body.getElementsByClassName('leaflet-control-attribution');
+        expect(attributions.length).toBe(1);
+    });
+
+    it('remove attribution from container', () => {
+        let map = ReactDOM.render(<LeafletMap center={{y: 43.9, x: 10.3}} zoom={11} mapOptions={{attribution: {container: 'body'}}}/>, document.getElementById("container"));
+        expect(map).toExist();
+        const domMap = document.getElementById('container');
+        let attributions = domMap.getElementsByClassName('leaflet-control-attribution');
+        expect(attributions.length).toBe(0);
+        attributions = document.body.getElementsByClassName('leaflet-control-attribution');
+        document.body.removeChild(attributions[0]);
+        attributions = document.body.getElementsByClassName('leaflet-control-attribution');
+        expect(attributions.length).toBe(0);
+    });
 });

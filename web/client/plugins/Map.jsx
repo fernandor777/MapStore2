@@ -1,12 +1,12 @@
-const PropTypes = require('prop-types');
 /*
  * Copyright 2017, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
- */
+*/
 
+const PropTypes = require('prop-types');
 const React = require('react');
 const {connect} = require('react-redux');
 const {createSelector} = require('reselect');
@@ -17,9 +17,10 @@ require('./map/css/map.css');
 
 const Message = require('../components/I18N/Message');
 const ConfigUtils = require('../utils/ConfigUtils');
+
 const {isString} = require('lodash');
 let plugins;
-const {handleCreationLayerError, handleCreationBackgroundError} = require('../epics/map');
+const {handleCreationLayerError, handleCreationBackgroundError, resetMapOnInit} = require('../epics/map');
 /**
  * The Map plugin allows adding mapping library dependent functionality using support tools.
  * Some are already available for the supported mapping libraries (openlayers, leaflet, cesium), but it's possible to develop new ones.
@@ -127,6 +128,7 @@ class MapPlugin extends React.Component {
         tools: PropTypes.array,
         options: PropTypes.object,
         mapOptions: PropTypes.object,
+        projectionDefs: PropTypes.array,
         toolsOptions: PropTypes.object,
         actions: PropTypes.object,
         features: PropTypes.array
@@ -138,7 +140,7 @@ class MapPlugin extends React.Component {
         zoomControl: false,
         mapLoadingMessage: "map.loading",
         loadingSpinner: true,
-        tools: ["measurement", "locate", "overview", "scalebar", "draw", "highlight"],
+        tools: ["measurement", "locate", "scalebar", "draw", "highlight"],
         options: {},
         mapOptions: {},
         toolsOptions: {
@@ -245,6 +247,7 @@ class MapPlugin extends React.Component {
                 <plugins.Map id="map"
                     {...this.props.options}
                     mapOptions={this.getMapOptions()}
+                    projectionDefs={this.props.projectionDefs}
                     {...this.props.map}
                     zoomControl={this.props.zoomControl}>
                     {this.renderLayers()}
@@ -281,18 +284,18 @@ class MapPlugin extends React.Component {
     };
 }
 
-const {mapSelector} = require('../selectors/map');
+const {mapSelector, projectionDefsSelector} = require('../selectors/map');
 const {layerSelectorWithMarkers} = require('../selectors/layers');
-
-const highlightSelector = (state) => state.highlight && state.highlight.select;
-
+const {selectedFeatures} = require('../selectors/highlight');
 const selector = createSelector(
     [
+        projectionDefsSelector,
         mapSelector,
         layerSelectorWithMarkers,
-        highlightSelector,
+        selectedFeatures,
         (state) => state.mapInitialConfig && state.mapInitialConfig.loadingError && state.mapInitialConfig.loadingError.data
-    ], (map, layers, features, loadingError) => ({
+    ], (projectionDefs, map, layers, features, loadingError) => ({
+        projectionDefs,
         map,
         layers,
         features,
@@ -301,6 +304,9 @@ const selector = createSelector(
 );
 module.exports = {
     MapPlugin: connect(selector)(MapPlugin),
-    reducers: { draw: require('../reducers/draw') },
-    epics: assign({}, {handleCreationLayerError, handleCreationBackgroundError})
+    reducers: {
+        draw: require('../reducers/draw'),
+        highlight: require('../reducers/highlight')
+     },
+    epics: assign({}, {handleCreationLayerError, handleCreationBackgroundError, resetMapOnInit})
 };
