@@ -1,29 +1,22 @@
-## Developing with MapStore2
+# Developing with MapStore
 
-This section is about developing your own application using the MapStore2 framework.
+MapStore is both an application and a framework. This guide is both for developers who want to extend MapStore and for those who want to create their custom application using MapStore as a framework.
 
- * [Project Structure](project-structure)
- * [Front-end Technologies](reactjs-and-redux-introduction)
- * [Developing and Debugging](developing)
- * [Building and Deploying](building-and-deploying)
- * [Code Conventions](code-conventions)
- * [Developers FAQ](dev-faq)
- * [How to customize the Theme](customize-theme.md)
- 
-## Developing using plugins
+## MapStore as an application
 
- * [Plugins architecture](plugins-architecture)
- * [Plugins documentation](plugins-documentation)
- 
-## Useful references
+MapStore is 99% client side, and uses some Java back-end services
 
-If you want to create an application based on MapStore2 you can use the [Project Creation Script](project-creation-script).
+Back-end mainly consists in services included from external projects (GeoStore, MapFish Print, HTTP-Proxy...) plus some small service owned by MapStore, all written in Java.
 
-If you want to learn how to develop a simple MapStore2 based application you can follow the [tutorial](application-tutorial)
+Developing with MapStore as an application means to develop directly on the project. You can add plugins or improve the existing code base and, hopefully, send pull requests on GitHub to include your improvements in the main project.
 
-If you want to learn how to develop a plug-in based MapStore2 based application you can follow the [plugins tutorial](plugins-architecture#building-an-application-using-plugins)
+## MapStore as a Framework
 
-## Other references
+The recommended way to use MapStore as a framework is to create a project that includes MapStore as a sub-folder. For this purpose we created a script that generates the main folder structure and the necessary files [Project Creation Script](project-creation-script.md#create-your-own-mapstore-project).
 
-* [How to use a CDN](how-to-use-a-cdn)
-* [How to add a custom search service](custom-search-service.md)
+This setup allows to create your application or customizations inside the `js` directory and/or add custom back-end services (the set-up allows to create a project that builds a Java WAR package).
+Keeping your customization separated and MapStore as a git sub-modules has the followind advantages:
+
+- **Clear separation between the framework and your customization**
+- **Easy framework update**: updating the git sub-module.
+- **Easy customization of MapStore**: You can fork the project, if you need hard customization. If your customization can be included in MapStore, you can do a pull request to the main project and work on a branch while waiting the pull request merge.

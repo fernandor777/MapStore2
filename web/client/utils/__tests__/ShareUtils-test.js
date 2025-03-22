@@ -5,8 +5,9 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
-var ShareUtils = require('../ShareUtils');
+import expect from 'expect';
+
+import * as ShareUtils from '../ShareUtils';
 
 
 const MAPSTORE_PATH = "/mapstore/";
@@ -18,14 +19,14 @@ const STANDALONE_GEOSTORE_PATH = "/geostore/rest/";
 
 const LOCALURL = "http://localhost:8081";
 const SOMEHOST = "http://somehost.it";
-const DEV_URL = "http://dev.mapstore2.geo-solutions.it";
+const DEV_URL = "http://dev-mapstore.geosolutionsgroup.com";
 
 const LOCALURL_PATH = LOCALURL + MAPSTORE_PATH;
 const DEV_URL_PATH = DEV_URL + MAPSTORE_PATH;
 const DEV_URL_MAP_PATH = DEV_URL_PATH + MAP_HASH_PATH;
 const SOMEHOST_PATH = SOMEHOST + MAPSTORE_PATH;
 const SOMEHOST_PATH_QUERY_STRING = SOMEHOST_PATH + QUERY_STRING;
-const EXTERNAL_GEOSTORE = "http://dev.mapstore2.geo-solutions.it/geostore/rest/";
+const EXTERNAL_GEOSTORE = "http://dev-mapstore.geosolutionsgroup.com/geostore/rest/";
 
 describe('ShareUtils test', () => {
     it('getAbsoluteURL', () => {
@@ -48,5 +49,22 @@ describe('ShareUtils test', () => {
         expect(ShareUtils.getApiUrl(DEV_URL_MAP_PATH)).toBe(DEV_URL_PATH);
         expect(ShareUtils.getApiUrl(LOCALURL_PATH)).toBe(LOCALURL_PATH);
         expect(ShareUtils.getApiUrl(LOCALURL_PATH + MAPSTORE_PATH + QUERY_STRING)).toBe(LOCALURL_PATH + MAPSTORE_PATH);
+    });
+    it('removeQueryFromUrl', () => {
+        const expectedUrl = 'http://my-url/#/viewer/openlayers/1';
+        const urlWithQueries = 'http://my-url/?debug=true#/viewer/openlayers/1?bbox=minx,miny,maxx,maxy';
+        const urlWithoutQueries = ShareUtils.removeQueryFromUrl(urlWithQueries);
+        expect(urlWithoutQueries).toBe(expectedUrl);
+    });
+    it('getSharedGeostoryUrl', () => {
+        const expectedURL = 'http://test-url/#/geostory/shared/111';
+        expect(ShareUtils.getSharedGeostoryUrl(expectedURL)).toBe(expectedURL);
+        expect(ShareUtils.getSharedGeostoryUrl('http://test-url/#/geostory/111')).toBe(expectedURL);
+        expect(ShareUtils.getSharedGeostoryUrl('http://test-url/#/geostory/newgeostory')).toBe('http://test-url/#/geostory/newgeostory');
+        expect(ShareUtils.getSharedGeostoryUrl('http://test-url/#/other')).toBe('http://test-url/#/other');
+        expect(ShareUtils.getSharedGeostoryUrl('http://test-url/#/geostory/111/section/222', true)).toBe(expectedURL);
+        expect(ShareUtils.getSharedGeostoryUrl('http://test-url/#/geostory/111/section/222', false)).toBe(`${expectedURL}/section/222`);
+        expect(ShareUtils.getSharedGeostoryUrl('http://test-url/#/geostory/111/section/222/column/333', true)).toBe(expectedURL);
+        expect(ShareUtils.getSharedGeostoryUrl('http://test-url/#/geostory/111/section/222/column/333', false)).toBe(`${expectedURL}/section/222/column/333`);
     });
 });

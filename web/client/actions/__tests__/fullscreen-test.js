@@ -6,11 +6,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const expect = require('expect');
-const {
-    TOGGLE_FULLSCREEN,
-    toggleFullscreen
-} = require('../fullscreen');
+import expect from 'expect';
+
+import { TOGGLE_FULLSCREEN, toggleFullscreen } from '../fullscreen';
 
 describe('Test correctness of the fullscreen actions', () => {
     it('toggleFullscreen', () => {
@@ -20,6 +18,6 @@ describe('Test correctness of the fullscreen actions', () => {
         expect(retval).toExist();
         expect(retval.type).toBe(TOGGLE_FULLSCREEN);
         expect(retval.enable).toBe(true);
-        expect(retval.elementSelector).toBe(testControl);
+        expect(retval.querySelector).toBe(testControl);
     });
 });

@@ -6,139 +6,192 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const PropTypes = require('prop-types');
-const {FormControl, FormGroup, ControlLabel, InputGroup} = require('react-bootstrap');
-const Message = require('../../../I18N/Message');
-const {SimpleSelect} = require('react-selectize');
-const {isString, isObject} = require('lodash');
-const LocaleUtils = require('../../../../utils/LocaleUtils');
-const assign = require('object-assign');
-require('react-selectize/themes/index.css');
+import { find, includes, isObject, uniqBy } from 'lodash';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Checkbox, Col, ControlLabel, FormControl, FormGroup, Grid } from 'react-bootstrap';
+import LocalizedInput from '../../../misc/LocalizedInput';
 
+import Select from 'react-select';
+import Spinner from 'react-spinkit';
+
+import Message from '../../../I18N/Message';
+import LayerNameEditField from './LayerNameEditField';
+import { getMessageById } from '../../../../utils/LocaleUtils';
+import {
+    isValidNewGroupOption,
+    getLabelName as _getLabelName
+} from '../../../../plugins/TOC/utils/TOCUtils';
+import { supportsFeatureEditing } from "../../../../utils/FeatureGridUtils";
+import { DEFAULT_GROUP_ID, flattenGroups, getTitle as _getTitle } from '../../../../utils/LayersUtils';
 /**
  * General Settings form for layer
  */
 class General extends React.Component {
     static propTypes = {
-        updateSettings: PropTypes.func,
+        onChange: PropTypes.func,
         element: PropTypes.object,
+        settings: PropTypes.object,
         groups: PropTypes.array,
-        nodeType: PropTypes.string
+        nodeType: PropTypes.string,
+        pluginCfg: PropTypes.object,
+        showTooltipOptions: PropTypes.bool,
+        allowNew: PropTypes.bool,
+        enableLayerNameEditFeedback: PropTypes.bool,
+        currentLocale: PropTypes.string,
+        showFeatureEditOption: PropTypes.bool
+    };
+
+    static contextTypes = {
+        messages: PropTypes.object
     };
 
     static defaultProps = {
         element: {},
-        updateSettings: () => {},
-        nodeType: 'layers'
+        onChange: () => { },
+        nodeType: 'layers',
+        showTooltipOptions: true,
+        pluginCfg: {},
+        allowNew: false,
+        currentLocale: 'en-US'
     };
 
-    getGroups = (groups, idx = 0) => {
-        return groups.filter((group) => group.nodes).reduce((acc, g) => {
-            acc.push({label: g.id.replace(/\./g, '/').replace(/\${dot}/g, '.'), value: g.id});
-            if (g.nodes.length > 0) {
-                return acc.concat(this.getGroups(g.nodes, idx + 1));
-            }
-            return acc;
-        }, []);
-    };
-
-    getLabelName = (groupLable = "") => {
-        return groupLable.replace(/\./g, '/').replace(/\${dot}/g, '.');
-    };
+    getTitle = (label) => _getTitle(label, this.props.currentLocale);
+    getLabelName = (label, groups) => _getLabelName(this.getTitle(label), groups);
 
     render() {
-        const locales = LocaleUtils.getSupportedLocales();
-        const translations = isObject(this.props.element.title) ? assign({}, this.props.element.title) : { 'default': this.props.element.title };
-        return (
-            <form ref="settings">
-                <FormGroup>
-                    <ControlLabel><Message msgId="layerProperties.title" /></ControlLabel>
-                    <FormControl
-                        value={translations.default}
-                        key="title"
-                        type="text"
-                        onChange={this.updateTranslation.bind(null, 'default')}/>
-                </FormGroup>
-                <FormGroup>
-                    <ControlLabel><Message msgId="layerProperties.titleTranslations" /></ControlLabel>
-                    {Object.keys(locales).map((a) =>
-                        <InputGroup key={a}>
-                            <InputGroup.Addon><img src={require('../../../I18N/images/flags/' + locales[a].code + '.png')} alt={locales[a].description}/></InputGroup.Addon>
-                            <FormControl
-                                placeholder={locales[a].description}
-                                value={translations[locales[a].code] ? translations[locales[a].code] : ''}
-                                type="text"
-                                onChange={this.updateTranslation.bind(null, locales[a].code)}/>
-                        </InputGroup>
-                    )}
-                </FormGroup>
-                <FormGroup>
-                    <ControlLabel><Message msgId="layerProperties.name" /></ControlLabel>
-                    <FormControl
-                        value={this.props.element.name}
-                        key="name"
-                        type="text"
-                        disabled
-                        onChange={this.updateEntry.bind(null, "name")}/>
-                </FormGroup>
-                { this.props.nodeType === 'layers' ?
-                <div>
-                    <label key="group-label" className="control-label"><Message msgId="layerProperties.group" /></label>
-                    <SimpleSelect
-                        key="group-dropdown"
-                        options={
-                            ((this.props.groups && this.getGroups(this.props.groups)) || (this.props.element && this.props.element.group) || []).map(function(item) {
-                                if (isObject(item)) {
-                                    return item;
-                                }
-                                return {label: this.getLabelName(item), value: item};
-                            })
-                        }
-                        defaultValue={{label: this.getLabelName((this.props.element && this.props.element.group || "Default")), value: this.props.element && this.props.element.group || "Default" }}
-                        placeholder={this.getLabelName((this.props.element && this.props.element.group || "Default"))}
-                        onChange={(value) => {
-                            this.updateEntry("group", {target: {value: value || "Default"}});
-                        }}
-                        theme = "bootstrap3"
-                        createFromSearch={function(options, search) {
-                            // only create an option from search if the length of the search string is > 0 and
-                            // it does no match the label property of an existing option
-                            if (search.length === 0 || (options.map(function(option) {
-                                return option.label;
-                            })).indexOf(search) > -1) {
-                                return null;
-                            }
-                            const val = search.replace(/\./g, '${dot}').replace(/\//g, '.');
-                            return {label: search, value: val};
-                        }}
+        const { hideTitleTranslations = false } = this.props.pluginCfg;
 
-                        onValueChange={function(item) {
-                            // here, we add the selected item to the options array, the "new-option"
-                            // property, added to items created by the "create-from-search" function above,
-                            // helps us ensure that the item doesn't already exist in the options array
-                            if (!!item && !!item.newOption) {
-                                this.options.unshift({label: item.label, value: item.value});
-                            }
-                            this.onChange(item ? item.value : null);
-                        }}/>
-                </div> : null}
-            </form>
+        const tooltipItems = [
+            { value: "title", label: getMessageById(this.context.messages, "layerProperties.tooltip.title") },
+            { value: "description", label: getMessageById(this.context.messages, "layerProperties.tooltip.description") },
+            { value: "both", label: getMessageById(this.context.messages, "layerProperties.tooltip.both") },
+            { value: "none", label: getMessageById(this.context.messages, "layerProperties.tooltip.none") }
+        ];
+        const tooltipPlacementItems = [
+            { value: "top", label: getMessageById(this.context.messages, "layerProperties.tooltip.top") },
+            { value: "right", label: getMessageById(this.context.messages, "layerProperties.tooltip.right") },
+            { value: "bottom", label: getMessageById(this.context.messages, "layerProperties.tooltip.bottom") }
+        ];
+        const groups = this.props.groups && flattenGroups(this.props.groups);
+        const eleGroupLabel = this.findGroupLabel(this.props.element && this.props.element.group || DEFAULT_GROUP_ID);
+
+        const SelectCreatable = this.props.allowNew ? Select.Creatable : Select;
+
+        return (
+            <Grid fluid style={{ paddingTop: 15, paddingBottom: 15 }}>
+                <form ref="settings">
+                    <FormGroup>
+                        <ControlLabel>
+                            <Message msgId="layerProperties.title" />
+                        </ControlLabel>
+                        <LocalizedInput
+                            key="title"
+                            showTranslateTool={!hideTitleTranslations}
+                            value={this.props.element.title}
+                            onChange={this.updateTitle} />
+                    </FormGroup>
+                    {includes(this.supportedNameEditLayerTypes, this.props.element.type) &&
+                    <LayerNameEditField
+                        element={this.props.element}
+                        enableLayerNameEditFeedback={this.props.enableLayerNameEditFeedback}
+                        onUpdateEntry={this.updateEntry.bind(null)}/>}
+                    <FormGroup>
+                        <ControlLabel><Message msgId="layerProperties.description" /></ControlLabel>
+                        {this.props.element.capabilitiesLoading ? <Spinner spinnerName="circle" /> :
+                            <FormControl
+                                defaultValue={this.props.element.description || ''}
+                                key="description"
+                                rows="2"
+                                componentClass="textarea"
+                                style={{ resize: "vertical", minHeight: "33px" }}
+                                onBlur={this.updateEntry.bind(null, "description")} />}
+                    </FormGroup>
+                    {this.props.nodeType === 'layers' ?
+                        <div className={"form-group"}>
+                            <label key="group-label" className="control-label"><Message msgId="layerProperties.group" /></label>
+                            <SelectCreatable
+                                clearable={false}
+                                key="group-dropdown"
+                                options={
+                                    uniqBy([
+                                        { value: DEFAULT_GROUP_ID, label: DEFAULT_GROUP_ID },
+                                        ...(groups || (this.props.element && this.props.element.group) || []).map(item => {
+                                            if (isObject(item)) {
+                                                return {...item, label: this.getLabelName(item.label, groups)};
+                                            }
+                                            return { label: this.getLabelName(item, groups), value: item };
+                                        })
+                                    ], 'value')
+                                }
+                                isValidNewOption={isValidNewGroupOption}
+                                newOptionCreator={function(option) {
+                                    const { valueKey, label, labelKey } = option;
+                                    const value = label.replace(/\./g, '${dot}').replace(/\//g, '.');
+                                    return {
+                                        [valueKey]: value,
+                                        [labelKey]: label,
+                                        className: 'Select-create-option-placeholder'
+                                    };
+                                }}
+                                value={{ label: this.getLabelName(eleGroupLabel, groups), value: eleGroupLabel}}
+                                placeholder={this.getLabelName(eleGroupLabel, groups)}
+                                onChange={(item) => {
+                                    this.updateEntry("group", { target: { value: item.value || DEFAULT_GROUP_ID } });
+                                }}
+                            />
+                        </div> : null}
+                    {   /* Tooltip section */
+                        this.props.showTooltipOptions &&
+                        <div style={{ width: "100%", display: "inline-block" }}>
+                            <Col xs={12} sm={8} className="first-selectize">
+                                <label key="tooltip-label" className="control-label"><Message msgId="layerProperties.tooltip.label" /></label>
+                                <Select
+                                    clearable={false}
+                                    key="tooltips-dropdown"
+                                    options={tooltipItems}
+                                    value={find(tooltipItems, o => o.value === (this.props.element.tooltipOptions || "title"))}
+                                    onChange={(item) => { this.updateEntry("tooltipOptions", { target: { value: item.value || "title" } }); }} />
+                            </Col>
+                            <Col xs={12} sm={4} className="second-selectize">
+                                <label key="tooltip-placement-label" className="control-label"><Message msgId="layerProperties.tooltip.labelPlacement" /></label>
+                                <Select
+                                    clearable={false}
+                                    key="tooltips-placement-dropdown"
+                                    options={tooltipPlacementItems}
+                                    value={find(tooltipPlacementItems, o => o.value === (this.props.element.tooltipPlacement || "top"))}
+                                    onChange={(item) => { this.updateEntry("tooltipPlacement", { target: { value: item.value || "top" } }); }}
+                                />
+                            </Col>
+                        </div>
+                    }
+                    {supportsFeatureEditing(this.props.element) && this.props.showFeatureEditOption && <FormGroup>
+                        <Checkbox
+                            data-qa="general-read-only-attribute"
+                            key="disableFeaturesEditing"
+                            checked={this.props.element?.disableFeaturesEditing === undefined ? false : this.props.element?.disableFeaturesEditing}
+                            onChange={(event) => this.props.onChange("disableFeaturesEditing", event.target.checked)}
+                        >
+                            <Message msgId="layerProperties.disableFeaturesEditing"/>
+                        </Checkbox>
+                    </FormGroup>}
+
+                </form>
+            </Grid>
         );
     }
 
-    updateEntry = (key, event) => {
-        let value = event.target.value;
-        this.props.updateSettings({[key]: value});
-    };
+    supportedNameEditLayerTypes = ['wms'];
 
-    updateTranslation = (key, event) => {
-        if (key === 'default' && isString(this.props.element.title)) {
-            this.props.updateSettings({title: event.target.value});
-        } else {
-            this.props.updateSettings({title: assign({}, isObject(this.props.element.title) ? this.props.element.title : {'default': this.props.element.title || ''}, {[key]: event.target.value})});
-        }
-    };
+    updateEntry = (key, event) => isObject(key) ? this.props.onChange(key) : this.props.onChange(key, event.target.value);
+    updateTitle = (title) => this.props.onChange("title", title);
+
+    findGroupLabel = () => {
+        const wholeGroups = this.props.groups && flattenGroups(this.props.groups, 0, true);
+        const eleGroupName = this.props.element && this.props.element.group || DEFAULT_GROUP_ID;
+        const group = find(wholeGroups, (gp)=> gp.id === eleGroupName) || {};
+        return this.getTitle(group.title);
+    }
 }
 
-module.exports = General;
+export default General;

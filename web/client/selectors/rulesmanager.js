@@ -6,10 +6,12 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const assign = require('object-assign');
-const _ = require('lodash');
+import assign from 'object-assign';
 
-const rulesSelector = (state) => {
+import { uniq } from 'lodash';
+import { createSelector } from 'reselect';
+
+export const rulesSelector = (state) => {
     if (!state.rulesmanager || !state.rulesmanager.rules) {
         return [];
     }
@@ -19,17 +21,23 @@ const rulesSelector = (state) => {
         assign(formattedRule, {'id': rule.id});
         assign(formattedRule, {'priority': rule.priority});
         assign(formattedRule, {'roleName': rule.roleName ? rule.roleName : '*'});
+        assign(formattedRule, {'roleAny': rule.roleAny ? rule.roleAny : '*'});
         assign(formattedRule, {'userName': rule.userName ? rule.userName : '*'});
+        assign(formattedRule, {'userAny': rule.userAny ? rule.userAny : '*'});
         assign(formattedRule, {'service': rule.service ? rule.service : '*'});
+        assign(formattedRule, {'serviceAny': rule.serviceAny ? rule.serviceAny : '*'});
         assign(formattedRule, {'request': rule.request ? rule.request : '*'});
+        assign(formattedRule, {'requestAny': rule.requestAny ? rule.requestAny : '*'});
         assign(formattedRule, {'workspace': rule.workspace ? rule.workspace : '*'});
+        assign(formattedRule, {'workspaceAny': rule.workspaceAny ? rule.workspaceAny : '*'});
         assign(formattedRule, {'layer': rule.layer ? rule.layer : '*'});
+        assign(formattedRule, {'layerAny': rule.layerAny ? rule.layerAny : '*'});
         assign(formattedRule, {'access': rule.access});
         return formattedRule;
     });
 };
 
-const optionsSelector = (state) => {
+export const optionsSelector = (state) => {
     const stateOptions = state.rulesmanager && state.rulesmanager.options || {};
     const options = {};
     options.roles = stateOptions.roles;
@@ -37,13 +45,31 @@ const optionsSelector = (state) => {
     options.workspaces = stateOptions.workspaces
         && stateOptions.workspaces.map(workspace => workspace.name);
     options.layers = stateOptions.layers && stateOptions.layers.records
-        && _.uniq(stateOptions.layers.records.map(layer => layer.dc.identifier.replace(/^.*?:/g, '')));
+        && uniq(stateOptions.layers.records.map(layer => layer.dc.identifier.replace(/^.*?:/g, '')));
     options.layersPage = stateOptions.layersPage || 1;
     options.layersCount = stateOptions.layersCount || 0;
     return options;
 };
-
-module.exports = {
-    rulesSelector,
-    optionsSelector
-};
+export const EMPTY_FILTERS = {};
+export const filterSelector = (state) => state.rulesmanager && state.rulesmanager.filters || EMPTY_FILTERS;
+export const selectedRules = (state) => state.rulesmanager && state.rulesmanager.selectedRules || [];
+export const activeRuleSelector = (state) => state.rulesmanager && state.rulesmanager.activeRule;
+export const servicesConfigSel = (state) => state.rulesmanager && state.rulesmanager.services;
+export const servicesSelector = createSelector(servicesConfigSel, (services) => ( services && Object.keys(services).map(service => ({value: service, label: service}))
+));
+export const targetPositionSelector = (state) => state.rulesmanager && state.rulesmanager.targetPosition || EMPTY_FILTERS;
+export const rulesEditorToolbarSelector = createSelector(selectedRules, targetPositionSelector, (sel, {offsetFromTop}) => {
+    return {
+        showAdd: sel.length === 0,
+        showEdit: sel.length === 1,
+        showInsertBefore: sel.length === 1 && offsetFromTop !== 0,
+        showInsertAfter: sel.length === 1,
+        showDel: sel.length > 0,
+        showCache: sel.length === 0
+    };
+});
+export const isRulesManagerConfigured = state => state.localConfig && state.localConfig.plugins && !!state.localConfig.plugins.rulesmanager;
+export const isEditorActive = state => state.rulesmanager && !!state.rulesmanager.activeRule;
+export const triggerLoadSel = state => state.rulesmanager && state.rulesmanager.triggerLoad;
+export const isLoading = state => state.rulesmanager && state.rulesmanager.loading;
+export const geometryStateSel = state => state.rulesmanager && state.rulesmanager.geometryState;

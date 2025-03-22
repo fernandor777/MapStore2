@@ -1,22 +1,39 @@
-const React = require('react');
-const {Button, Grid, Row, Col, Glyphicon} = require('react-bootstrap');
+/*
+ * Copyright 2018, GeoSolutions Sas.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
-module.exports = (props = {
+import React from 'react';
+import { Glyphicon } from 'react-bootstrap';
+import Button from '../../misc/Button';
+
+
+export default (props = {
     onDownloadToggle: () => {}
 }) => {
-    return (<Grid className="bg-body data-grid-top-toolbar" fluid style={{width: "100%"}}>
-        <Row className="flex-center">
-            <Col xs={4}>
+    return (
+        <div
+            className="data-grid-top-toolbar"
+        >
+            <div className="data-grid-top-toolbar-left">
                 {props.children}
-            </Col>
-            <Col xs={4}>
-                <div className="text-center text-primary"><strong>{props.title}</strong></div>
-            </Col>
-            <Col xs={4}>
-                <Button onClick={props.onClose} style={{"float": "right"}} className="square-button no-border featuregrid-top-toolbar-margin">
+            </div>
+            {!props.hideLayerTitle && <div
+                className="data-grid-top-toolbar-title"
+            >
+                {props.title}
+            </div>}
+            <div className="data-grid-top-toolbar-right">
+                {!props.hideCloseButton && <Button
+                    onClick={props.onClose}
+                    className="square-button-md no-border featuregrid-top-toolbar-margin"
+                >
                     <Glyphicon glyph="1-close"/>
-                </Button>
-            </Col>
-        </Row>
-    </Grid>);
+                </Button>}
+            </div>
+        </div>
+    );
 };

@@ -6,18 +6,18 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const expect = require('expect');
-const requestBuilder = require('../RequestBuilder');
-const {fidFilter} = require('../../Filter/filter');
-const describeStates = require('json-loader!../../../../test-resources/wfs/describe-states.json');
-const describePois = require('json-loader!../../../../test-resources/wfs/describe-pois.json');
-const wyoming = require('json-loader!../../../../test-resources/wfs/Wyoming.json');
-const museam = require('json-loader!../../../../test-resources/wfs/museam.json');
-const expectedInsertWyoming = require('raw-loader!../../../../test-resources/wfst/insert/Wyoming_1_1_0.xml');
-const expectedInsertmuseam = require('raw-loader!../../../../test-resources/wfst/insert/museam_1_1_0.xml');
-const expectedDelete = require('raw-loader!../../../../test-resources/wfst/delete/museam_1_1_0.xml');
-const expectedUpdate = require('raw-loader!../../../../test-resources/wfst/update/museam_1_1_0.xml');
-const doubleMuseamInsert = require('raw-loader!../../../../test-resources/wfst/insert/double_museam_1_1_0.xml');
+import expect from 'expect';
+import requestBuilder from '../RequestBuilder';
+import {fidFilter} from '../../Filter/filter';
+import describeStates from '../../../../test-resources/wfs/describe-states.json';
+import describePois from '../../../../test-resources/wfs/describe-pois.json';
+import wyoming from '../../../../test-resources/wfs/Wyoming.json';
+import museam from '../../../../test-resources/wfs/museam.json';
+import expectedInsertWyoming from 'raw-loader!../../../../test-resources/wfst/insert/Wyoming_1_1_0.xml';
+import expectedInsertmuseam from 'raw-loader!../../../../test-resources/wfst/insert/museam_1_1_0.xml';
+import expectedDelete from 'raw-loader!../../../../test-resources/wfst/delete/museam_1_1_0.xml';
+import expectedUpdate from 'raw-loader!../../../../test-resources/wfst/update/museam_1_1_0.xml';
+import doubleMuseamInsert from 'raw-loader!../../../../test-resources/wfst/insert/double_museam_1_1_0.xml';
 describe('Test WFS-T request bodies generation', () => {
     it('WFS-T insert', () => {
         const {insert} = requestBuilder(describeStates);
@@ -68,15 +68,15 @@ describe('Test WFS-T request bodies generation', () => {
         const result = transaction(
             update(
                 [propertyChange("NAME", "newName"), fidFilter("ogc", "poi.7")])
-            );
+        );
         expect(result).toExist();
         expect(result).toEqual(expectedUpdate.replace(/[\r\n]/g, ''));
     });
     it('WFS-T transaction with update (arg list)', () => {
         const {update, propertyChange, transaction} = requestBuilder(describePois);
         const result = transaction(
-            update(propertyChange("NAME", "newName"), fidFilter("ogc", "poi.7")),
-            );
+            update(propertyChange("NAME", "newName"), fidFilter("ogc", "poi.7"))
+        );
         expect(result).toExist();
         expect(result).toEqual(expectedUpdate.replace(/[\n\r]/g, ''));
     });

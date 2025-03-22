@@ -5,11 +5,13 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const screenfull = require('screenfull');
-const {setControlProperty} = require('../actions/controls');
-const {TOGGLE_FULLSCREEN} = require('../actions/fullscreen');
-const ConfigUtils = require('../utils/ConfigUtils');
-const Rx = require('rxjs');
+import screenfull from 'screenfull';
+
+import { head, last } from 'lodash';
+import { setControlProperty } from '../actions/controls';
+import { TOGGLE_FULLSCREEN } from '../actions/fullscreen';
+import ConfigUtils from '../utils/ConfigUtils';
+import Rx from 'rxjs';
 
 const getFullScreenEvent = () => {
     let candidates = [
@@ -19,7 +21,7 @@ const getFullScreenEvent = () => {
         ['mozCancelFullScreen', 'mozfullscreenchange'],
         ['msExitFullscreen', 'MSFullscreenChange']
     ];
-    return candidates.filter((c) => document[c[0]]).reduce( eventMapping => eventMapping && eventMapping[1] );
+    return last(head(candidates.filter((c) => document[c[0]])));
 };
 /**
  * Gets every `TOGGLE_FULLSCREEN` event.
@@ -30,7 +32,7 @@ const getFullScreenEvent = () => {
  * @memberof epics.fullscreen
  * @return {external:Observable} emitting {@link #actions.controls.setControlProperty} events
  */
-const toggleFullscreenEpic = action$ =>
+export const toggleFullscreenEpic = action$ =>
     action$.ofType(TOGGLE_FULLSCREEN).switchMap(action => {
         const element = document.querySelector(action && action.querySelector || '.' + (ConfigUtils.getConfigProp('themePrefix') || 'ms2') + " > div");
         if (element && action.enable && screenfull.enabled) {
@@ -49,11 +51,12 @@ const toggleFullscreenEpic = action$ =>
                 .map( () => setControlProperty("fullscreen", "enabled", false) )
         );
     });
+
 /**
  * Epics for fullscreen functionality
  * @name epics.fullscreen
  * @type {Object}
  */
-module.exports = {
+export default {
     toggleFullscreenEpic
 };

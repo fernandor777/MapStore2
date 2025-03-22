@@ -1,4 +1,4 @@
-const PropTypes = require('prop-types');
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,10 +7,13 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {Button, Glyphicon, Table, Tooltip} = require('react-bootstrap');
-const OverlayTrigger = require('../../misc/OverlayTrigger');
-const Message = require('../../I18N/Message');
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Glyphicon, Table, Tooltip } from 'react-bootstrap';
+
+import OverlayTrigger from '../../misc/OverlayTrigger';
+import Message from '../../I18N/Message';
+import Button from '../../misc/Button';
 
 class UsersTable extends React.Component {
     static propTypes = {
@@ -29,20 +32,20 @@ class UsersTable extends React.Component {
         return (<Table striped condensed hover><tbody>{this.props.users.map((user) => {
             let tooltip = <Tooltip id="tooltip"><Message msgId={this.props.deleteToolTip} /></Tooltip>;
             return (<tr>
-                      <td><Glyphicon glyph="user" /> {user.name}</td>
-                      <td>
-                          <OverlayTrigger placement="left" overlay={tooltip}>
-                              <Button style={{"float": "right"}} bsSize="xs" onClick={() => {
-                                  this.props.onRemove(user);
-                              }}>
-                                  <Glyphicon glyph="remove-circle"/>
-                              </Button>
-                          </OverlayTrigger>
-                          </td>
-                      </tr>
-                      );
+                <td><Glyphicon glyph="user" /> {user.name}</td>
+                <td>
+                    <OverlayTrigger placement="left" overlay={tooltip}>
+                        <Button style={{"float": "right"}} bsSize="xs" onClick={() => {
+                            this.props.onRemove(user);
+                        }}>
+                            <Glyphicon glyph="remove-circle"/>
+                        </Button>
+                    </OverlayTrigger>
+                </td>
+            </tr>
+            );
         })}</tbody></Table>);
     }
 }
 
-module.exports = UsersTable;
+export default UsersTable;

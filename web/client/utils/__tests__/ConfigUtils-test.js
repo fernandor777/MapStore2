@@ -5,8 +5,9 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
-var ConfigUtils = require('../ConfigUtils');
+import expect from 'expect';
+
+import ConfigUtils from '../ConfigUtils';
 var lconfig = {};
 var testMap = {
     "defaultSourceType": "gxp_wmssource",
@@ -124,7 +125,8 @@ describe('ConfigUtils', () => {
     });
     afterEach((done) => {
         document.body.innerHTML = '';
-
+        ConfigUtils.setConfigProp("configurationFolder", "");
+        ConfigUtils.setLocalConfigurationFile("localConfig.json");
         setTimeout(done);
     });
     it('convert from legacy and check projection conversion', () => {
@@ -200,6 +202,24 @@ describe('ConfigUtils', () => {
         expect(center.y).toExist();
         expect(center.x).toExist();
         expect(center.crs).toBe('EPSG:4326');
+        expect(Math.round(center.x)).toBe(13);
+        expect(Math.round(center.y)).toBe(39);
+
+        center = ConfigUtils.getCenter([1459732, 4786738], 'EPSG:900913');
+        expect(center).toExist();
+        expect(center.y).toExist();
+        expect(center.x).toExist();
+        expect(center.crs).toBe('EPSG:4326');
+        expect(Math.round(center.x)).toBe(13);
+        expect(Math.round(center.y)).toBe(39);
+    });
+
+    it('getConfigurationOptions uses configurationFolder as prefix of configuration files', () => {
+        ConfigUtils.setConfigProp("configurationFolder", "myfolder/");
+        const retval = ConfigUtils.getConfigurationOptions({});
+        expect(retval).toExist();
+        expect(retval.configUrl).toExist();
+        expect(retval.configUrl).toBe('myfolder/config.json');
     });
 
     it('getConfigurationOptions', () => {
@@ -228,7 +248,7 @@ describe('ConfigUtils', () => {
         });
         expect(retval).toExist();
         expect(retval.configUrl).toExist();
-        expect(retval.configUrl).toBe('/mapstore/rest/geostore/data/42');
+        expect(retval.configUrl).toBe('/rest/geostore/data/42');
 
         retval = ConfigUtils.getConfigurationOptions({
             mapId: 42
@@ -266,6 +286,41 @@ describe('ConfigUtils', () => {
     it('loadConfiguration', (done) => {
         var retval = ConfigUtils.loadConfiguration();
         expect(retval).toExist();
+        done();
+    });
+
+    it("loadConfiguration returns a copied config", done => {
+        var retval = ConfigUtils.loadConfiguration();
+        expect(retval).toExist();
+        retval.newProperty = 'newValue';
+        expect(ConfigUtils.getDefaults().newProperty).toNotExist();
+        done();
+    });
+
+    it("loadConfiguration returns a copied config as a promise", done => {
+        ConfigUtils.setLocalConfigurationFile("");
+        ConfigUtils.loadConfiguration().then((retval) => {
+            expect(retval).toExist();
+            retval.newProperty = "newValue";
+            expect(ConfigUtils.getDefaults().newProperty).toNotExist();
+            done();
+        });
+    });
+
+    it("loadConfiguration supports patch files", done => {
+        ConfigUtils.setLocalConfigurationFile(["base/web/client/test-resources/localConfig.json", "base/web/client/test-resources/localConfig.patch.json"]);
+        ConfigUtils.loadConfiguration().then((retval) => {
+            expect(retval.initialState.defaultState).toExist();
+            expect(retval.initialState.defaultState.mobile).toBeFalsy();
+            done();
+        });
+    });
+
+    it("getDefaults returns a copied config", done => {
+        var retval = ConfigUtils.getDefaults();
+        expect(retval).toExist();
+        retval.newProperty = "newValue";
+        expect(ConfigUtils.getDefaults().newProperty).toNotExist();
         done();
     });
 
@@ -307,4 +362,66 @@ describe('ConfigUtils', () => {
         ConfigUtils.removeConfigProp('testProperty');
         expect(ConfigUtils.getConfigProp('testProperty')).toNotExist();
     });
+
+    it('testing cleanDuplicatedQuestionMarks', () => {
+        const urlDoubleQuestionMark = "http.../wms?authkey=...?service=...&otherparam";
+        const match = "http.../wms?authkey=...&service=...&otherparam";
+        const noQuestionMark = "http.../wmsauthkey=...&service=...&otherparam";
+        // with 2 ? it returns the cleanDuplicatedQuestionMarks
+        let normalizedUrl = ConfigUtils.cleanDuplicatedQuestionMarks(urlDoubleQuestionMark);
+        expect(normalizedUrl).toBe(match);
+        // with 1 ? it returns the url passed as argument
+        let normalizedUrl2 = ConfigUtils.cleanDuplicatedQuestionMarks(match);
+        expect(normalizedUrl2).toBe(match);
+        // with 0 ? it returns the url passed as argument
+        let normalizedUrl3 = ConfigUtils.cleanDuplicatedQuestionMarks(noQuestionMark);
+        expect(normalizedUrl3).toBe(noQuestionMark);
+    });
+    it('getUrlWithoutParameters from a normalized url with single ?', () => {
+        const match = "http://somesite.com/geoserver/wms?authkey=someautkeyvalue&service=WMS&otherparam=OTHERVALUE";
+        let shrinkedUrl = ConfigUtils.getUrlWithoutParameters(match, ["authkey"]);
+        expect(shrinkedUrl).toBe("http://somesite.com/geoserver/wms?service=WMS&otherparam=OTHERVALUE");
+    });
+    it('getUrlWithoutParameters from a normalized url with double ??', () => {
+        const match = "http://somesite.com/geoserver/wms??authkey=someautkeyvalue&service=WMS&otherparam=OTHERVALUE";
+        let shrinkedUrl = ConfigUtils.getUrlWithoutParameters(match, ["authkey"]);
+        expect(shrinkedUrl).toBe("http://somesite.com/geoserver/wms?service=WMS&otherparam=OTHERVALUE");
+    });
+    it('getUrlWithoutParameters from a normalized url without passing params ', () => {
+        const match = "http://somesite.com/geoserver/wms?authkey=someautkeyvalue&service=WMS&otherparam=OTHERVALUE";
+        let shrinkedUrl = ConfigUtils.getUrlWithoutParameters(match, []);
+        expect(shrinkedUrl).toBe(match);
+    });
+    it('getUrlWithoutParameters from a normalized url, removing all the params ', () => {
+        const match = "http://somesite.com/geoserver/wms?authkey=someautkeyvalue&service=WMS&otherparam=OTHERVALUE";
+        let shrinkedUrl = ConfigUtils.getUrlWithoutParameters(match, ["authkey", "service", "otherparam"]);
+        expect(shrinkedUrl).toBe("http://somesite.com/geoserver/wms");
+    });
+    it('filterUrlParams with normalized url', () => {
+        const match = "http://somesite.com/geoserver/wms?authkey=someautkeyvalue&service=WMS&otherparam=OTHERVALUE";
+        let shrinkedUrl = ConfigUtils.filterUrlParams(match, ["authkey", "service", "otherparam"]);
+        expect(shrinkedUrl).toBe("http://somesite.com/geoserver/wms");
+    });
+    it('filterUrlParams with non normalized url', () => {
+        const match = "http://somesite.com/geoserver/wms?authkey=someautkeyvalue?service=WMS&otherparam=OTHERVALUE";
+        let shrinkedUrl = ConfigUtils.filterUrlParams(match, ["authkey", "service", "otherparam"]);
+        expect(shrinkedUrl).toBe("http://somesite.com/geoserver/wms");
+    });
+    it('filterUrlParams with empty string as url', () => {
+        const match = "";
+        let shrinkedUrl = ConfigUtils.filterUrlParams(match, ["authkey", "service", "otherparam"]);
+        expect(shrinkedUrl).toBe(null);
+    });
+    it('replacePlaceholders', () => {
+        ConfigUtils.setConfigProp("TEST_PLACEHOLDER", "MY_URL_PARAM");
+        expect(ConfigUtils.replacePlaceholders("{TEST_PLACEHOLDER}")).toBe("MY_URL_PARAM");
+        // do not replace parameters that do not exist (some URL templates should not be replaced)
+        expect(ConfigUtils.replacePlaceholders("{OTHER_PLACEHOLDER}")).toBe("{OTHER_PLACEHOLDER}");
+    });
+    it('miscSettings', () => {
+        ConfigUtils.setConfigProp("miscSettings", {homePath: "/home", loginPage: "/login"});
+        expect(ConfigUtils.getMiscSetting("homePath", '/')).toBe("/home");
+        expect(ConfigUtils.getMiscSetting("loginPage")).toBe("/login");
+    });
+
 });

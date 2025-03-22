@@ -1,5 +1,4 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
@@ -7,16 +6,16 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {connect} = require('react-redux');
+import React from 'react';
 
-require('./toolbar/assets/css/toolbar.css');
-
-const {CSSTransitionGroup} = require('react-transition-group');
-
-const assign = require('object-assign');
-
-const ToolsContainer = require('./containers/ToolsContainer');
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import { CSSTransitionGroup } from 'react-transition-group';
+import { isFeatureGridOpen } from '../selectors/featuregrid';
+import { mapLayoutValuesSelector } from '../selectors/maplayout';
+import { createSelector } from 'reselect';
+import assign from 'object-assign';
+import ToolsContainer from './containers/ToolsContainer';
 
 class AnimatedContainer extends React.Component {
     render() {
@@ -26,15 +25,24 @@ class AnimatedContainer extends React.Component {
         </CSSTransitionGroup>);
     }
 }
+// only for tests
+class NormalContainer extends React.Component {
+    render() {
+        const { children, ...props } = this.props;
+        return (<div {...props}>
+            {children}
+        </div>);
+    }
+}
 
 class Toolbar extends React.Component {
     static propTypes = {
         id: PropTypes.string,
         tools: PropTypes.array,
-        mapType: PropTypes.string,
         style: PropTypes.object,
         panelStyle: PropTypes.object,
         panelClassName: PropTypes.string,
+        disableAnimation: PropTypes.bool,
         active: PropTypes.string,
         items: PropTypes.array,
         allVisible: PropTypes.bool,
@@ -63,6 +71,7 @@ class Toolbar extends React.Component {
             left: "450px"
         },
         panelClassName: "toolbar-panel",
+        disableAnimation: false,
         items: [],
         allVisible: true,
         layout: "vertical",
@@ -89,17 +98,22 @@ class Toolbar extends React.Component {
     };
 
     getTools = () => {
+        const hidableItems = this.props.items.filter((item) => !item.alwaysVisible) || [];
         const unsorted = this.props.items
-            .filter((item) => item.alwaysVisible || this.props.allVisible)
+            .filter((item) =>
+                item.alwaysVisible // items not hidden (by expander)
+                || hidableItems.length === 1 // if the item is only one, the expander will not show, instead we have only the item
+                || this.props.allVisible) // expanded state, all items are visible, no filtering.
+            .filter(item => item.showWhen ? item.showWhen(this.props) : true) // optional display option (used by expander, that depends on other)
             .map((item, index) => assign({}, item, {position: item.position || index}));
         return unsorted.sort((a, b) => a.position - b.position);
     };
 
     render() {
+        const Container = this.props.disableAnimation ? NormalContainer : AnimatedContainer;
         return (<ToolsContainer id={this.props.id} className={"mapToolbar btn-group-" + this.props.layout}
             toolCfg={this.props.btnConfig}
-            container={AnimatedContainer}
-            mapType={this.props.mapType}
+            container={Container}
             toolStyle={this.props.buttonStyle}
             activeStyle={this.props.pressedButtonStyle}
             toolSize={this.props.buttonSize}
@@ -107,18 +121,33 @@ class Toolbar extends React.Component {
             tools={this.getTools()}
             panels={this.getPanels()}
             activePanel={this.props.active}
-            style={this.props.style}
+            style={this.props.layout !== 'vertical' ? {...this.props.style, display: 'flex'} : this.props.style}
             panelStyle={this.props.panelStyle}
             panelClassName={this.props.panelClassName}
-            />);
+        />);
     }
 }
 
-module.exports = {
-    ToolbarPlugin: (stateSelector = 'toolbar') => connect((state) => ({
-        active: state.controls && state.controls[stateSelector] && state.controls[stateSelector].active,
-        allVisible: state.controls && state.controls[stateSelector] && state.controls[stateSelector].expanded,
-        stateSelector
-    }))(Toolbar),
-    reducers: {controls: require('../reducers/controls')}
+const toolbarSelector = stateSelector => createSelector([
+    state => state.controls && state.controls[stateSelector] && state.controls[stateSelector].active,
+    state => state.controls && state.controls[stateSelector] && state.controls[stateSelector].expanded,
+    isFeatureGridOpen,
+    state => mapLayoutValuesSelector(state, {right: true, bottom: true})
+], (active, allVisible, featuregridOpen, style) => ({
+    active,
+    allVisible,
+    stateSelector,
+    layout: featuregridOpen ? 'horizontal' : 'vertical',
+    style
+}));
+
+/**
+ * Container for map tools, rendered in the bottom right corner of the map.
+ * @name Toolbar
+ * @class
+ * @memberof plugins
+ */
+export default {
+    ToolbarPlugin: (stateSelector = 'toolbar') => connect(toolbarSelector(stateSelector))(Toolbar),
+    reducers: {controls: require('../reducers/controls').default}
 };

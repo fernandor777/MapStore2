@@ -5,8 +5,11 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
-var loadLocale = require('../locale').loadLocale;
+import expect from 'expect';
+
+import { loadLocale } from '../locale';
+import { setSupportedLocales, getSupportedLocales } from '../../utils/LocaleUtils';
+
 
 describe('Test locale related actions', () => {
     it('does not load a missing translation file', (done) => {
@@ -29,6 +32,33 @@ describe('Test locale related actions', () => {
                 expect(e.messages).toExist();
                 expect(e.messages.a).toExist();
                 expect(e.messages.b).toExist();
+                done();
+            } catch (ex) {
+                done(ex);
+            }
+        });
+    });
+
+    it('does load translation files from multiple folders, if at least one exists', (done) => {
+        loadLocale(['base/web/client/test-resources/a', 'base/web/client/test-resources/missing'], 'it-IT')((e) => {
+            try {
+                expect(e).toExist();
+                expect(e.type).toBe('CHANGE_LOCALE');
+                expect(e.messages).toExist();
+                expect(e.messages.a).toExist();
+                expect(e.messages.b).toNotExist();
+                done();
+            } catch (ex) {
+                done(ex);
+            }
+        });
+    });
+
+    it('errors out  if no translations path exist', (done) => {
+        loadLocale(['base/web/client/test-resources/missing1', 'base/web/client/test-resources/missing2'], 'it-IT')((e) => {
+            try {
+                expect(e).toExist();
+                expect(e.type).toBe('LOCALE_LOAD_ERROR');
                 done();
             } catch (ex) {
                 done(ex);
@@ -96,6 +126,18 @@ describe('Test locale related actions', () => {
         });
     });
 
+    it('loads an existing nl-NL translation file', (done) => {
+        loadLocale('base/web/client/translations', 'nl-NL')((e) => {
+            try {
+                expect(e).toExist();
+                expect(e.type).toBe('CHANGE_LOCALE');
+                done();
+            } catch (ex) {
+                done(ex);
+            }
+        });
+    });
+
     it('loads an existing translation file', (done) => {
         loadLocale('base/web/client/test-resources', 'it-IT')((e) => {
             try {
@@ -108,11 +150,33 @@ describe('Test locale related actions', () => {
         });
     });
 
-    it('loads an existing translation file', (done) => {
+    it('loads an existing translation file by default', (done) => {
+        const locales = {
+            "en": {
+                code: "en-US",
+                description: "English"
+            }
+        };
+        const oldLocales = getSupportedLocales();
+        setSupportedLocales(locales);
         loadLocale('base/web/client/test-resources')((e) => {
             try {
                 expect(e).toExist();
                 expect(e.type).toBe('CHANGE_LOCALE');
+                done();
+            } catch (ex) {
+                done(ex);
+            } finally {
+                setSupportedLocales(oldLocales);
+            }
+        });
+    });
+
+    it('loads an existing broken translation file', (done) => {
+        loadLocale('base/web/client/test-resources', 'it-IT-broken')((e) => {
+            try {
+                expect(e).toExist();
+                expect(e.type).toBe('LOCALE_LOAD_ERROR');
                 done();
             } catch (ex) {
                 done(ex);
@@ -121,7 +185,7 @@ describe('Test locale related actions', () => {
     });
 
     it('loads an existing broken translation file', (done) => {
-        loadLocale('base/web/client/test-resources', 'it-IT-broken')((e) => {
+        loadLocale('base/web/client/test-resources', 'nl-NL-broken')((e) => {
             try {
                 expect(e).toExist();
                 expect(e.type).toBe('LOCALE_LOAD_ERROR');

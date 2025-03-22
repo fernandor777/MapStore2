@@ -6,9 +6,11 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const expect = require('expect');
-const assign = require('object-assign');
-const {
+import expect from 'expect';
+
+import assign from 'object-assign';
+
+import {
     isFeatureGridOpen,
     hasChangesSelector,
     getTitleSelector,
@@ -22,12 +24,26 @@ const {
     changesSelector,
     isDrawingSelector,
     isSimpleGeomSelector,
+    editingAllowedRolesSelector,
     getCustomizedAttributes,
     isSavingSelector,
     isSavedSelector,
     canEditSelector,
-    hasSupportedGeometry
-} = require('../featuregrid');
+    showAgainSelector,
+    hasSupportedGeometry,
+    getDockSize,
+    selectedLayerNameSelector,
+    queryOptionsSelector,
+    showTimeSync,
+    timeSyncActive,
+    multiSelect,
+    isViewportFilterActive,
+    viewportFilter,
+    isFilterByViewportSupported,
+    selectedLayerFieldsSelector,
+    editingAllowedGroupsSelector,
+    isEditingAllowedSelector
+} from '../featuregrid';
 
 const idFt1 = "idFt1";
 const idFt2 = "idFt2";
@@ -54,251 +70,256 @@ let feature2 = {
         someProp: "someValue"
     }
 };
+import featuregrid from '../../reducers/featuregrid';
+import { setUp, setTimeSync } from '../../actions/featuregrid';
+import dimension from '../../reducers/dimension';
+import { updateLayerDimensionData } from '../../actions/dimension';
 
 let initialState = {
-        query: {
+    query: {
         featureTypes: {
-          'editing:polygons': {
-            geometry: [
-              {
-                label: 'geometry',
-                attribute: 'geometry',
-                type: 'geometry',
-                valueId: 'id',
-                valueLabel: 'name',
-                values: []
-              }
-            ],
-            original: {
-              elementFormDefault: 'qualified',
-              targetNamespace: 'http://geoserver.org/editing',
-              targetPrefix: 'editing',
-              featureTypes: [
-                {
-                  typeName: 'poligoni',
-                  properties: [
+            // use name with chars ":" and "."
+            'editing:polygons.test': {
+                geometry: [
                     {
-                      name: 'name',
-                      maxOccurs: 1,
-                      minOccurs: 0,
-                      nillable: true,
-                      type: 'xsd:string',
-                      localType: 'string'
-                    },
-                    {
-                      name: 'geometry',
-                      maxOccurs: 1,
-                      minOccurs: 0,
-                      nillable: true,
-                      type: 'gml:Polygon',
-                      localType: 'Polygon'
+                        label: 'geometry',
+                        attribute: 'geometry',
+                        type: 'geometry',
+                        valueId: 'id',
+                        valueLabel: 'name',
+                        values: []
                     }
-                  ]
-                }
-              ]
-            },
-            attributes: [
-              {
-                label: 'name',
-                attribute: 'name',
-                type: 'string',
-                valueId: 'id',
-                valueLabel: 'name',
-                values: []
-              }
-            ]
-          }
+                ],
+                original: {
+                    elementFormDefault: 'qualified',
+                    targetNamespace: 'http://geoserver.org/editing',
+                    targetPrefix: 'editing',
+                    featureTypes: [
+                        {
+                            typeName: 'poligoni',
+                            properties: [
+                                {
+                                    name: 'name',
+                                    maxOccurs: 1,
+                                    minOccurs: 0,
+                                    nillable: true,
+                                    type: 'xsd:string',
+                                    localType: 'string'
+                                },
+                                {
+                                    name: 'geometry',
+                                    maxOccurs: 1,
+                                    minOccurs: 0,
+                                    nillable: true,
+                                    type: 'gml:Polygon',
+                                    localType: 'Polygon'
+                                }
+                            ]
+                        }
+                    ]
+                },
+                attributes: [
+                    {
+                        label: 'name',
+                        attribute: 'name',
+                        type: 'string',
+                        valueId: 'id',
+                        valueLabel: 'name',
+                        values: []
+                    }
+                ]
+            }
         },
         data: {},
         result: {
-          type: 'FeatureCollection',
-          totalFeatures: 4,
-          features: [
-            {
-              type: 'Feature',
-              id: 'poligoni.1',
-              geometry: {
-                type: 'Polygon',
-                coordinates: [
-                  [
-                    [
-                      -39,
-                      39
-                    ],
-                    [
-                      -39,
-                      38
-                    ],
-                    [
-                      -40,
-                      38
-                    ],
-                    [
-                      -39,
-                      39
-                    ]
-                  ]
-                ]
-              },
-              geometry_name: 'geometry',
-              properties: {
-                name: 'test'
-              }
-            },
-            {
-              type: 'Feature',
-              id: 'poligoni.2',
-              geometry: {
-                type: 'Polygon',
-                coordinates: [
-                  [
-                    [
-                      -48.77929687,
-                      37.54457732
-                    ],
-                    [
-                      -49.43847656,
-                      36.06686213
-                    ],
-                    [
-                      -46.31835937,
-                      35.53222623
-                    ],
-                    [
-                      -44.47265625,
-                      37.40507375
-                    ],
-                    [
-                      -48.77929687,
-                      37.54457732
-                    ]
-                  ]
-                ]
-              },
-              geometry_name: 'geometry',
-              properties: {
-                name: 'poly2'
-              }
-            },
-            {
-              type: 'Feature',
-              id: 'poligoni.6',
-              geometry: {
-                type: 'Polygon',
-                coordinates: [
-                  [
-                    [
-                      -50.16357422,
-                      28.90239723
-                    ],
-                    [
-                      -49.69116211,
-                      28.24632797
-                    ],
-                    [
-                      -48.2409668,
-                      28.56522549
-                    ],
-                    [
-                      -50.16357422,
-                      28.90239723
-                    ]
-                  ]
-                ]
-              },
-              geometry_name: 'geometry',
-              properties: {
-                name: 'ads'
-              }
-            },
-            {
-              type: 'Feature',
-              id: 'poligoni.7',
-              geometry: {
-                type: 'Polygon',
-                coordinates: [
-                  [
-                    [
-                      -64.46777344,
-                      33.90689555
-                    ],
-                    [
-                      -66.22558594,
-                      31.95216224
-                    ],
-                    [
-                      -63.32519531,
-                      30.97760909
-                    ],
-                    [
-                      -64.46777344,
-                      33.90689555
-                    ]
-                  ]
-                ]
-              },
-              geometry_name: 'geometry',
-              properties: {
-                name: 'vvvv'
-              }
+            type: 'FeatureCollection',
+            totalFeatures: 4,
+            features: [
+                {
+                    type: 'Feature',
+                    id: 'poligoni.1',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [
+                            [
+                                [
+                                    -39,
+                                    39
+                                ],
+                                [
+                                    -39,
+                                    38
+                                ],
+                                [
+                                    -40,
+                                    38
+                                ],
+                                [
+                                    -39,
+                                    39
+                                ]
+                            ]
+                        ]
+                    },
+                    geometry_name: 'geometry',
+                    properties: {
+                        name: 'test'
+                    }
+                },
+                {
+                    type: 'Feature',
+                    id: 'poligoni.2',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [
+                            [
+                                [
+                                    -48.77929687,
+                                    37.54457732
+                                ],
+                                [
+                                    -49.43847656,
+                                    36.06686213
+                                ],
+                                [
+                                    -46.31835937,
+                                    35.53222623
+                                ],
+                                [
+                                    -44.47265625,
+                                    37.40507375
+                                ],
+                                [
+                                    -48.77929687,
+                                    37.54457732
+                                ]
+                            ]
+                        ]
+                    },
+                    geometry_name: 'geometry',
+                    properties: {
+                        name: 'poly2'
+                    }
+                },
+                {
+                    type: 'Feature',
+                    id: 'poligoni.6',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [
+                            [
+                                [
+                                    -50.16357422,
+                                    28.90239723
+                                ],
+                                [
+                                    -49.69116211,
+                                    28.24632797
+                                ],
+                                [
+                                    -48.2409668,
+                                    28.56522549
+                                ],
+                                [
+                                    -50.16357422,
+                                    28.90239723
+                                ]
+                            ]
+                        ]
+                    },
+                    geometry_name: 'geometry',
+                    properties: {
+                        name: 'ads'
+                    }
+                },
+                {
+                    type: 'Feature',
+                    id: 'poligoni.7',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [
+                            [
+                                [
+                                    -64.46777344,
+                                    33.90689555
+                                ],
+                                [
+                                    -66.22558594,
+                                    31.95216224
+                                ],
+                                [
+                                    -63.32519531,
+                                    30.97760909
+                                ],
+                                [
+                                    -64.46777344,
+                                    33.90689555
+                                ]
+                            ]
+                        ]
+                    },
+                    geometry_name: 'geometry',
+                    properties: {
+                        name: 'vvvv'
+                    }
+                }
+            ],
+            crs: {
+                type: 'name',
+                properties: {
+                    name: 'urn:ogc:def:crs:EPSG::4326'
+                }
             }
-          ],
-          crs: {
-            type: 'name',
-            properties: {
-              name: 'urn:ogc:def:crs:EPSG::4326'
-            }
-          }
         },
         resultError: null,
         isNew: false,
         filterObj: {
-          featureTypeName: 'editing:polygons',
-          groupFields: [
-            {
-              id: 1,
-              logic: 'OR',
-              index: 0
-            }
-          ],
-          filterFields: [],
-          spatialField: {
-            method: null,
-            attribute: 'geometry',
-            operation: 'INTERSECTS',
-            geometry: null
-          },
-          pagination: {
-            startIndex: 0,
-            maxFeatures: 20
-          },
-          filterType: 'OGC',
-          ogcVersion: '1.1.0',
-          sortOptions: null,
-          hits: false
+            featureTypeName: 'editing:polygons.test',
+            groupFields: [
+                {
+                    id: 1,
+                    logic: 'OR',
+                    index: 0
+                }
+            ],
+            filterFields: [],
+            spatialField: {
+                method: null,
+                attribute: 'geometry',
+                operation: 'INTERSECTS',
+                geometry: null
+            },
+            pagination: {
+                startIndex: 0,
+                maxFeatures: 20
+            },
+            filterType: 'OGC',
+            ogcVersion: '1.1.0',
+            sortOptions: null,
+            hits: false
         },
         searchUrl: 'http://localhost:8081/geoserver/wfs?',
-        typeName: 'editing:polygons',
+        typeName: 'editing:polygons.test',
         url: 'http://localhost:8081/geoserver/wfs?',
         featureLoading: false
-      },
-      featuregrid: {
-          open: true,
-          selectedLayer: "TEST_LAYER",
-          mode: modeEdit,
-          select: [feature1, feature2],
-          changes: [{id: feature2.id, updated: {geometry: null}}]
-      },
-      layers: {
-          flat: [{
-              id: "TEST_LAYER",
-              title: "Test Layer"
-          }]
-      },
-        highlight: {
-            featuresPath: "featuregrid.select"
-        }
-    };
+    },
+    featuregrid: {
+        open: true,
+        selectedLayer: "TEST_LAYER",
+        mode: modeEdit,
+        select: [feature1, feature2],
+        changes: [{id: feature2.id, updated: {geometry: null}}]
+    },
+    layers: {
+        flat: [{
+            id: "TEST_LAYER",
+            title: "Test Layer"
+        }]
+    },
+    highlight: {
+        featuresPath: "featuregrid.select"
+    }
+};
 
 
 describe('Test featuregrid selectors', () => {
@@ -314,10 +335,10 @@ describe('Test featuregrid selectors', () => {
                 select: [feature1, feature2],
                 changes: [{id: feature2.id, updated: {geometry: null}}],
                 attributes: {
-                name: {
-                  hide: true
+                    name: {
+                        hide: true
+                    }
                 }
-              }
             }
         });
     });
@@ -379,6 +400,14 @@ describe('Test featuregrid selectors', () => {
         expect(feature).toExist();
         expect(feature.id).toBe(idFt1);
     });
+    it('test showAgainSelector default ', () => {
+        const val = showAgainSelector(initialState);
+        expect(val).toBe(false);
+    });
+    it('test showAgainSelector ', () => {
+        const val = showAgainSelector({featuregrid: {showAgain: false}});
+        expect(val).toBe(false);
+    });
     it('test selectedFeaturesSelector ', () => {
         const features = selectedFeaturesSelector(initialState);
         expect(features).toExist();
@@ -418,6 +447,11 @@ describe('Test featuregrid selectors', () => {
         expect(isSavingSelector(initialState)).toBe(false);
         expect(isSavingSelector({...initialState, featuregrid: { saving: true}})).toBe(true);
     });
+    it('test editingAllowedRolesSelector', () => {
+        expect(editingAllowedRolesSelector(initialState).length).toBe(1);
+        expect(editingAllowedRolesSelector(initialState)[0]).toBe("ADMIN");
+        expect(editingAllowedRolesSelector({...initialState, featuregrid: { editingAllowedRoles: ["USER", "ADMIN"]}}).length).toBe(2);
+    });
     it('test isSavedSelector', () => {
         expect(isSavedSelector(initialState)).toBe(false);
         expect(isSavedSelector({...initialState, featuregrid: { saved: true}})).toBe(true);
@@ -430,8 +464,336 @@ describe('Test featuregrid selectors', () => {
     it('test hasSupportedGeometry', () => {
         expect(hasSupportedGeometry(initialState)).toBe(true);
         let initialStateWithGmlGeometry = assign({}, initialState);
-        initialStateWithGmlGeometry.query.featureTypes['editing:polygons'].original.featureTypes[0].properties[1].type = 'gml:Geometry';
-        initialStateWithGmlGeometry.query.featureTypes['editing:polygons'].original.featureTypes[0].properties[1].localType = 'Geometry';
+        initialStateWithGmlGeometry.query.featureTypes['editing:polygons.test'].original.featureTypes[0].properties[1].type = 'gml:Geometry';
+        initialStateWithGmlGeometry.query.featureTypes['editing:polygons.test'].original.featureTypes[0].properties[1].localType = 'Geometry';
         expect(hasSupportedGeometry(initialStateWithGmlGeometry)).toBe(false);
+        initialStateWithGmlGeometry.query.featureTypes['editing:polygons.test'].original.featureTypes[0].properties[1].type = 'gml:GeometryCollection';
+        initialStateWithGmlGeometry.query.featureTypes['editing:polygons.test'].original.featureTypes[0].properties[1].localType = 'GeometryCollection';
+        expect(hasSupportedGeometry(initialStateWithGmlGeometry)).toBe(false);
+        initialStateWithGmlGeometry.query.featureTypes['editing:polygons.test'].original.featureTypes[0].properties[1].type = 'gml:Polygon';
+        initialStateWithGmlGeometry.query.featureTypes['editing:polygons.test'].original.featureTypes[0].properties[1].localType = 'Polygon';
+        expect(hasSupportedGeometry(initialStateWithGmlGeometry)).toBe(true);
+
+    });
+
+    it('test getDockSize', () => {
+        expect(getDockSize({ featuregrid: {dockSize: 0.5} })).toBe(0.5);
+        expect(getDockSize({})).toBe(undefined);
+    });
+
+    it('showTimeSync', () => {
+        expect(showTimeSync({featuregrid: initialState.featuregrid})).toBeFalsy();
+        const state = {
+            ...initialState,
+            featuregrid: featuregrid(initialState.featuregrid, setUp({ showTimeSync: true })),
+            dimension: dimension({}, updateLayerDimensionData('TEST_LAYER', 'time', {
+                source: { // describes the source of dimension
+                    type: 'multidim-extension',
+                    url: 'http://domain.com:80/geoserver/wms'
+                },
+                name: 'time',
+                domain: '2016-09-01T00:00:00.000Z--2017-04-11T00:00:00.000Z'
+            }))
+        };
+        expect(showTimeSync(state)).toBeTruthy();
+    });
+    it('syncTimeActive', () => {
+        expect(timeSyncActive({ featuregrid: initialState.featuregrid })).toBeFalsy();
+        const state = {
+            featuregrid: featuregrid(initialState.featureGrid, setTimeSync(true))
+        };
+        expect(timeSyncActive(state)).toBe(true);
+    });
+    it('test selectedLayerNameSelector', () => {
+        const state = {...initialState, layers: {
+            flat: [{
+                id: "TEST_LAYER",
+                title: "Test Layer",
+                name: 'editing:polygons.test'
+            }]
+        }, featuregrid: {
+            open: true,
+            selectedLayer: "TEST_LAYER",
+            mode: modeEdit,
+            select: [feature1, feature2],
+            changes: [{id: feature2.id, updated: {geometry: null}}]
+        }};
+        expect(selectedLayerNameSelector(state)).toBe('editing:polygons.test');
+        expect(selectedLayerNameSelector({})).toBe('');
+    });
+    it('queryOptionsSelector gets viewParams', () => {
+        const state = {
+            ...initialState, layers: {
+                flat: [{
+                    id: "TEST_LAYER",
+                    title: "Test Layer",
+                    name: 'editing:polygons.test',
+                    params: {
+                        viewParams: "a:b"
+                    }
+                }]
+            }, featuregrid: {
+                open: true,
+                selectedLayer: "TEST_LAYER",
+                mode: modeEdit,
+                select: [feature1, feature2],
+                changes: [{ id: feature2.id, updated: { geometry: null } }]
+            }
+        };
+        expect(queryOptionsSelector(state).viewParams).toBe("a:b");
+    });
+    it('queryOptionsSelector gets CQL_FILTER', () => {
+        const state = {
+            ...initialState, layers: {
+                flat: [{
+                    id: "TEST_LAYER",
+                    title: "Test Layer",
+                    name: 'editing:polygons.test',
+                    params: {
+                        CQL_FILTER: "a:b"
+                    }
+                }]
+            }, featuregrid: {
+                open: true,
+                selectedLayer: "TEST_LAYER",
+                mode: modeEdit,
+                select: [feature1, feature2],
+                changes: [{ id: feature2.id, updated: { geometry: null } }]
+            }
+        };
+        expect(queryOptionsSelector(state).cqlFilter).toBe("a:b");
+    });
+    it('multiSelect', () => {
+        const state = {
+            featuregrid: {
+                multiselect: true
+            }
+        };
+        expect(multiSelect(state)).toBe(true);
+    });
+    it('isViewportFilterActive', () => {
+        const state = {
+            featuregrid: {
+                viewportFilter: true
+            }
+        };
+        expect(isViewportFilterActive(state)).toBe(true);
+    });
+    it('viewportFilter', () => {
+        const state = {
+            featuregrid: {
+                viewportFilter: true
+            },
+            map: {
+                present: {
+                    projection: 'EPSG:3857',
+                    bbox: {
+                        bounds: [0, 0, 1, 1]
+                    }
+                }
+            }
+        };
+        const filter = viewportFilter(state);
+        expect(filter.spatialField.length).toBe(1);
+        expect(filter.spatialField[0].geometry.projection).toBe('EPSG:3857');
+        expect(filter.spatialField[0].method).toBe('Rectangle');
+        expect(filter.spatialField[0].operation).toBe('INTERSECTS');
+    });
+    it('viewportFilter - cesium', () => {
+        const state = {
+            featuregrid: {
+                viewportFilter: true
+            },
+            map: {
+                present: {
+                    projection: 'EPSG:3857',
+                    bbox: {
+                        bounds: [0, 0, 1, 1]
+                    }
+                }
+            },
+            maptype: {
+                mapType: 'cesium'
+            }
+        };
+        const filter = viewportFilter(state);
+        expect(filter).toEqual({});
+    });
+    it('isViewportFilterSupported', () => {
+        const state = {
+            featuregrid: {
+                viewportFilter: true
+            },
+            maptype: {
+                mapType: 'openlayers'
+            }
+        };
+        expect(isFilterByViewportSupported(state)).toBe(true);
+    });
+    it('isViewportFilterSupported - cesium', () => {
+        const state = {
+            featuregrid: {
+                viewportFilter: true
+            },
+            maptype: {
+                mapType: 'cesium'
+            }
+        };
+        expect(isFilterByViewportSupported(state)).toBe(false);
+    });
+    it('selectedLayerFieldsSelector', () => {
+        const FIELD = {
+            name: 'name',
+            type: 'string',
+            alias: 'Name'
+        };
+        const state = {
+            featuregrid: {
+                selectedLayer: 'TEST_LAYER'
+            },
+            layers: {
+                flat: [{
+                    id: "TEST_LAYER",
+                    title: "Test Layer",
+                    name: 'editing:polygons.test',
+                    fields: [FIELD]
+                }]
+            }
+        };
+        expect(selectedLayerFieldsSelector(state)).toEqual([FIELD]);
+        // check that fields are memoized when applying defaults
+        const stateEmptyFields = {
+            featuregrid: {
+                selectedLayer: 'TEST_LAYER'
+            },
+            layers: {
+                flat: [{
+                    id: "TEST_LAYER",
+                    title: "Test Layer",
+                    name: 'editing:polygons.test'
+                }]
+            }
+        };
+        expect(selectedLayerFieldsSelector(stateEmptyFields)).toBe(selectedLayerFieldsSelector(stateEmptyFields));
+    });
+    it('editingAllowedGroupsSelector', () => {
+        const editingAllowedGroups = ['test'];
+        expect(editingAllowedGroupsSelector({
+            featuregrid: {
+                editingAllowedGroups
+            }
+        })).toEqual(editingAllowedGroups);
+    });
+    describe('isEditingAllowedSelector', () => {
+        const state = {
+            featuregrid: {
+                canEdit: false,
+                editingAllowedRoles: ['USER'],
+                editingAllowedGroups: ['test']
+            },
+            security: {
+                user: {
+                    role: 'USER',
+                    groups: {
+                        group: {
+                            enabled: true,
+                            groupName: 'test'
+                        }
+                    }
+                }
+            }
+        };
+        it('test isEditingAllowedSelector with canEdit', () => {
+            expect(isEditingAllowedSelector({
+                ...state,
+                featuregrid: {
+                    canEdit: true
+                }
+            })).toBeTruthy();
+        });
+        it('test isEditingAllowedSelector with ALL role', () => {
+            expect(isEditingAllowedSelector({
+                ...state,
+                featuregrid: {
+                    editingAllowedRoles: ["ALL"]
+                }
+            })).toBeTruthy();
+        });
+        it('test isEditingAllowedSelector with defaults', () => {
+            expect(isEditingAllowedSelector({
+                featuregrid: {
+                    editingAllowedRoles: ["ADMIN"],
+                    editingAllowedGroups: []
+                },
+                security: {
+                    user: {
+                        role: 'ADMIN',
+                        groups: {
+                            group: {
+                                enabled: true,
+                                groupName: 'test'
+                            }
+                        }
+                    }
+                }
+            })).toBeTruthy();
+        });
+        it('test isEditingAllowedSelector with ADMIN user matching allowedGroups', () => {
+            expect(isEditingAllowedSelector({
+                featuregrid: {
+                    editingAllowedGroups: ['test']
+                },
+                security: {
+                    user: {
+                        role: 'ADMIN',
+                        groups: {
+                            group: {
+                                enabled: true,
+                                groupName: 'test'
+                            }
+                        }
+                    }
+                }
+            })).toBeTruthy();
+        });
+        it('test isEditingAllowedSelector with non-admin user matching allowed roles', () => {
+            expect(isEditingAllowedSelector({
+                ...state,
+                featuregrid: {
+                    editingAllowedRoles: ['USER']
+                }
+            })).toBeTruthy();
+        });
+        it('test isEditingAllowedSelector with non-admin user with non-allowed groups', () => {
+            expect(isEditingAllowedSelector({
+                ...state,
+                featuregrid: {
+                    editingAllowedRoles: ['USER1'],
+                    editingAllowedGroups: ['some']
+                }
+            })).toBeFalsy();
+        });
+        it('test isEditingAllowedSelector with non-admin user and with default editingAllowedRoles', () => {
+            expect(isEditingAllowedSelector({
+                ...state,
+                featuregrid: {}
+            })).toBeFalsy();
+        });
+        it('test isEditingAllowedSelector with ADMIN user and with default editingAllowedRoles', () => {
+            expect(isEditingAllowedSelector({
+                featuregrid: {},
+                security: {
+                    user: {
+                        role: 'ADMIN',
+                        groups: {
+                            group: {
+                                enabled: true,
+                                groupName: 'test'
+                            }
+                        }
+                    }
+                }
+            })).toBeTruthy();
+        });
     });
 });

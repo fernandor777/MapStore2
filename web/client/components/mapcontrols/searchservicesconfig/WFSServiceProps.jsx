@@ -5,11 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const {FormGroup, ControlLabel, FormControl} = require('react-bootstrap');
-const Message = require('../../I18N/Message');
-const assign = require('object-assign');
-const PropTypes = require('prop-types');
+import React from 'react';
+
+import { FormGroup, ControlLabel, FormControl } from 'react-bootstrap';
+import Message from '../../I18N/Message';
+import assign from 'object-assign';
+import PropTypes from 'prop-types';
 
 // const weburl = new RegExp(/((([A-Za-z]{3,9}:(?:\/\/)?)(?:[\-;:&=\+\$,\w]+@)?[A-Za-z0-9\.\-]+|(?:www\.|[\-;:&=\+\$,\w]+@)[A-Za-z0-9\.\-]+)((?:\/[\+~%\/\.\w\-_]*)?\??(?:[\-\+=&;%@\.\w_]*)#?(?:[\.\!\/\\\w]*))?)/);
 function validate(service = {}) {
@@ -35,7 +36,7 @@ class WFSServiceProps extends React.Component {
         const {options = {}} = service;
         return (
             <form>
-              <span className="wfs-required-props-title"><Message msgId="search.s_wfs_props_label" /></span>
+                <span className="wfs-required-props-title"><Message msgId="search.s_wfs_props_label" /></span>
                 <FormGroup>
                     <ControlLabel>
                         <Message msgId="search.s_name" />
@@ -51,30 +52,30 @@ class WFSServiceProps extends React.Component {
                         <Message msgId="search.s_url" />
                     </ControlLabel>
                     <FormControl
-                    value={options.url}
-                    key="url"
-                    type="text"
-                    onChange={this.updateProp.bind(null, "url")}/>
+                        value={options.url}
+                        key="url"
+                        type="text"
+                        onChange={this.updateProp.bind(null, "url")}/>
                 </FormGroup>
                 <FormGroup>
                     <ControlLabel>
                         <Message msgId="search.s_layer" />
                     </ControlLabel>
                     <FormControl
-                    value={options.typeName}
-                    key="typeName"
-                    type="text"
-                    onChange={this.updateProp.bind(null, "typeName")}/>
+                        value={options.typeName}
+                        key="typeName"
+                        type="text"
+                        onChange={this.updateProp.bind(null, "typeName")}/>
                 </FormGroup>
                 <FormGroup>
                     <ControlLabel>
                         <Message msgId="search.s_attributes" />
                     </ControlLabel>
                     <FormControl
-                    value={([options.queriableAttributes] || []).join(",")}
-                    key="queriableAttributes"
-                    type="text"
-                    onChange={this.updateProp.bind(null, "queriableAttributes")}/>
+                        value={([options.queriableAttributes] || []).join(",")}
+                        key="queriableAttributes"
+                        type="text"
+                        onChange={this.updateProp.bind(null, "queriableAttributes")}/>
                 </FormGroup>
             </form>);
     }
@@ -99,4 +100,4 @@ class WFSServiceProps extends React.Component {
     };
 }
 
-module.exports = { Element: WFSServiceProps, validate};
+export default { Element: WFSServiceProps, validate};

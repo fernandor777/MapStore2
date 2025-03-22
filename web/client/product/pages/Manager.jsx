@@ -1,32 +1,36 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const {connect} = require('react-redux');
-const Page = require('../../containers/Page');
-// const seepThumb = require('../../assets/img/seepexplorer.png');
-// const emptyThumb = require('../../assets/img/empty.png');
 
-const {loadMapConfig} = require('../../actions/config');
-const {resetControls} = require('../../actions/controls');
-const ConfigUtils = require('../../utils/ConfigUtils');
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
 
+import {resetControls} from '../../actions/controls';
+import Page from '../../containers/Page';
 
-require('../assets/css/manager.css');
+import('../assets/css/manager.css');
 
-class Home extends React.Component {
+/**
+  * @name Manager
+  * @memberof pages
+  * @class
+  * @classdesc
+  * This is the main container page for user administration page.
+  * it is a container for the Manager plugins.
+  *
+  */
+class Manager extends React.Component {
     static propTypes = {
-        name: PropTypes.string,
         mode: PropTypes.string,
         match: PropTypes.object,
-        loadMaps: PropTypes.func,
         reset: PropTypes.func,
-        plugins: PropTypes.object
+        plugins: PropTypes.object,
+        loaderComponent: PropTypes.func
     };
 
     static contextTypes = {
@@ -34,44 +38,30 @@ class Home extends React.Component {
     };
 
     static defaultProps = {
-        name: "manager",
         mode: 'desktop',
-        loadMaps: () => {},
         reset: () => {}
     };
 
     componentDidMount() {
         this.props.reset();
-        this.props.loadMaps(ConfigUtils.getDefaults().geoStoreUrl);
     }
 
     render() {
-        let plugins = ConfigUtils.getConfigProp("plugins") || {};
-        let pagePlugins = {
-            "desktop": plugins.common || [], // TODO mesh page plugins with other plugins
-            "mobile": plugins.common || []
-        };
-        let pluginsConfig = {
-            "desktop": plugins[this.props.name] || [], // TODO mesh page plugins with other plugins
-            "mobile": plugins[this.props.name] || []
-        };
-
         return (<Page
             id="manager"
-            pagePluginsConfig={pagePlugins}
-            pluginsConfig={pluginsConfig}
+            className="manager"
             plugins={this.props.plugins}
             params={this.props.match.params}
-            />);
+            loaderComponent={this.props.loaderComponent}
+        />);
     }
 }
 
-module.exports = connect((state) => {
+export default connect((state) => {
     return {
         mode: 'desktop',
         messages: state.locale && state.locale.messages || {}
     };
 }, {
-    loadMapConfig,
     reset: resetControls
-})(Home);
+})(Manager);

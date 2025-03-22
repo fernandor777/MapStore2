@@ -5,11 +5,24 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const expect = require('expect');
-const security = require('../security');
-const {LOGIN_SUCCESS, LOGIN_FAIL, RESET_ERROR, LOGOUT, CHANGE_PASSWORD_SUCCESS, CHANGE_PASSWORD_FAIL, REFRESH_SUCCESS, SESSION_VALID} = require('../../actions/security');
-const { SET_CONTROL_PROPERTY } = require('../../actions/controls');
-const {USERMANAGER_UPDATE_USER} = require('../../actions/users');
+import expect from 'expect';
+
+import security from '../security';
+
+import {
+    LOGIN_SUCCESS,
+    LOGIN_FAIL,
+    RESET_ERROR,
+    LOGOUT,
+    CHANGE_PASSWORD_SUCCESS,
+    CHANGE_PASSWORD_FAIL,
+    REFRESH_SUCCESS,
+    SESSION_VALID,
+    CHANGE_PASSWORD
+} from '../../actions/security';
+
+import { SET_CONTROL_PROPERTY } from '../../actions/controls';
+import { USERMANAGER_UPDATE_USER } from '../../actions/users';
 
 describe('Test the security reducer', () => {
     const testToken = "260a670e-4dc0-4719-8bc9-85555d7dcbe1";
@@ -49,10 +62,10 @@ describe('Test the security reducer', () => {
     const userWithSecurityToken = {
         "User": {
             "attribute": [
-               {
-                  "name": "UUID",
-                  "value": testToken
-               }
+                {
+                    "name": "UUID",
+                    "value": testToken
+                }
             ],
             "enabled": true,
             "groups": {},
@@ -88,10 +101,20 @@ describe('Test the security reducer', () => {
     it('login state when bearer is used', () => {
         let state = security(undefined, {type: LOGIN_SUCCESS, userDetails: userWithSecurityToken});
         expect(state).toExist()
-        .toIncludeKey("authHeader");
+            .toIncludeKey("authHeader");
         expect(state.user.name).toBe("secured");
         expect(state.token).toBe("1234567890");
         expect(state.authHeader).toBe(undefined);
+    });
+
+    it('login state when bearer is used', () => {
+        let state = security(undefined, {type: LOGIN_SUCCESS, userDetails: {...userWithSecurityToken, authProvider: "TEST"}});
+        expect(state).toExist()
+            .toIncludeKey("authHeader");
+        expect(state.user.name).toBe("secured");
+        expect(state.token).toBe("1234567890");
+        expect(state.authHeader).toBe(undefined);
+        expect(state.authProvider).toBe("TEST");
     });
 
     it('login fail', () => {
@@ -106,6 +129,11 @@ describe('Test the security reducer', () => {
         expect(state).toExist();
     });
     it('logout', () => {
+        let state = security({authProvider: "TEST"}, {type: LOGOUT});
+        expect(state).toExist();
+        expect(state.authProvider).toBeFalsy();
+    });
+    it('logout resets auth provider', () => {
         let state = security({}, {type: LOGOUT});
         expect(state).toExist();
         expect(!state.user).toBe(true);
@@ -128,6 +156,13 @@ describe('Test the security reducer', () => {
         expect(state.user.name).toBe("user");
     });
 
+    it('change password start set changePasswordLoading', () => {
+        let state = security({user: testUser.User}, {type: CHANGE_PASSWORD});
+        expect(state).toExist();
+        expect(state.changePasswordLoading).toBeTruthy();
+        expect(state.passwordError).toBe(null);
+    });
+
     it('change password success', () => {
         let state = security({user: testUser.User}, {type: CHANGE_PASSWORD_SUCCESS, user: {
             id: 6,
@@ -136,12 +171,15 @@ describe('Test the security reducer', () => {
         expect(state).toExist();
         expect(state.user.password).toBe("newpassword");
         expect(state.passwordChanged).toBe(true);
+        expect(state.changePasswordLoading).toBeFalsy();
+
     });
 
     it('change password fail', () => {
         let state = security({user: testUser.User}, {type: CHANGE_PASSWORD_FAIL, error: {message: 'error'}});
         expect(state).toExist();
         expect(state.passwordError).toExist();
+        expect(state.changePasswordLoading).toBeFalsy();
     });
 
     it('reset password error', () => {
@@ -152,8 +190,8 @@ describe('Test the security reducer', () => {
                 passwordError: "what an error!"
             }, {type: SET_CONTROL_PROPERTY, control: "AnotherControl", property: "enabled"});
         expect(state).toExist()
-        .toIncludeKey("passwordError")
-        .toNotIncludeKey("passwordChanged");
+            .toIncludeKey("passwordError")
+            .toNotIncludeKey("passwordChanged");
         // Actually reset the control
         state = security(
             {
@@ -161,8 +199,8 @@ describe('Test the security reducer', () => {
                 passwordError: "what an error!"
             }, {type: SET_CONTROL_PROPERTY, control: "ResetPassword", property: "enabled"});
         expect(state).toExist()
-        .toIncludeKey("passwordError")
-        .toIncludeKey("passwordChanged");
+            .toIncludeKey("passwordError")
+            .toIncludeKey("passwordChanged");
         expect(state.passwordError).toBe(null);
         expect(state.passwordChanged).toBe(false);
     });
@@ -176,7 +214,7 @@ describe('Test the security reducer', () => {
         const now = new Date() / 1000 | 0;
         let state = security(undefined, {type: REFRESH_SUCCESS, userDetails: userWithSecurityToken});
         expect(state).toExist()
-        .toIncludeKey("token");
+            .toIncludeKey("token");
         expect(state.token).toBe("1234567890");
         expect(state.expires).toBeGreaterThanOrEqualTo(now + 86400);
         expect(state.refresh_token).toBe("abcdef");
@@ -186,7 +224,7 @@ describe('Test the security reducer', () => {
         const now = new Date() / 1000 | 0;
         let state = security(undefined, {type: REFRESH_SUCCESS, userDetails: securityTokenState});
         expect(state).toExist()
-        .toIncludeKey("token");
+            .toIncludeKey("token");
         expect(state.token).toBe("1234567890");
         expect(state.expires).toBeGreaterThanOrEqualTo(now + 48 * 60 * 60);
         expect(state.refresh_token).toBe("abcdef");
@@ -198,7 +236,7 @@ describe('Test the security reducer', () => {
             {type: SESSION_VALID, userDetails: securityTokenState}
         );
         expect(state).toExist()
-        .toIncludeKey("token");
+            .toIncludeKey("token");
         expect(state.token).toBe("aaa");
         expect(state.refresh_token).toBe("bbb");
         expect(state.user.name).toBe("sec2");

@@ -1,5 +1,4 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
@@ -12,66 +11,122 @@ const PropTypes = require('prop-types');
     to the clipboard
 */
 
-// components required
-const React = require('react');
-const CopyToClipboard = require('react-copy-to-clipboard');
-const Message = require('../../components/I18N/Message');
-const {Glyphicon, Col, Grid, Row, Tooltip, Button, Checkbox} = require('react-bootstrap');
-const OverlayTrigger = require('../misc/OverlayTrigger');
+import React from 'react';
+import PropTypes from 'prop-types';
+import Select from 'react-select';
+import isEqual from 'lodash/isEqual';
+import Message from '../../components/I18N/Message';
+import { Checkbox, Row, Col, FormControl } from 'react-bootstrap';
+import ShareCopyToClipboard from './ShareCopyToClipboard';
+import url from 'url';
+import localizeProps from '../misc/enhancers/localizedProps';
 
-const url = require('url');
-// css required
-require('./share.css');
-
+const Input = localizeProps('placeholder')(FormControl);
 class ShareEmbed extends React.Component {
     static propTypes = {
         shareUrl: PropTypes.string,
-        showTOCToggle: PropTypes.bool
+        showTOCToggle: PropTypes.bool,
+        showConnectionsParamToggle: PropTypes.bool,
+        sizeOptions: PropTypes.object,
+        selectedOption: PropTypes.string,
+        allowFullScreen: PropTypes.bool
     };
 
     static defaultProps = {
-        showTOCToggle: true
+        showTOCToggle: true,
+        shareUrl: '',
+        allowFullScreen: true
     };
 
-    state = {copied: false, forceDrawer: false};
+    state = {
+        copied: false,
+        forceDrawer: false,
+        connections: false,
+        sizeOptions: {
+            Small: { width: 600, height: 500 },
+            Medium: { width: 800, height: 600},
+            Large: { width: 1000, height: 800},
+            Custom: {width: 0, height: 0}
+        },
+        selectedOption: 'Small'
+    };
+
+    componentDidMount() {
+        if (this.props.sizeOptions && !isEqual(this.state.sizeOptions)) {
+            this.setState({sizeOptions: this.props.sizeOptions, selectedOption: this.props.selectedOption || 'Small'});  // eslint-disable-line -- TODO: need to be fixed
+        }
+    }
 
     renderTools = () => {
-        if (this.props.showTOCToggle) {
-            return (<Checkbox checked={this.state.forceDrawer} onChange={() => this.setState({forceDrawer: !this.state.forceDrawer})}>
-                  <Message msgId="share.forceDrawer"/>
-               </Checkbox>);
-        }
+        return (<>
+            {this.props.showTOCToggle && <Checkbox
+                checked={this.state.forceDrawer}
+                onChange={() => this.setState({forceDrawer: !this.state.forceDrawer})}
+            >
+                <Message msgId="share.forceDrawer"/>
+            </Checkbox>}
+            {this.props.showConnectionsParamToggle && <Checkbox
+                checked={this.state.connections}
+                onChange={() => this.setState({
+                    connections: !this.state.connections
+                })}
+            >
+                <Message msgId="share.showConnections"/>
+            </Checkbox>}
+        </>);
     };
 
     render() {
-
-        const codeEmbedded = "<iframe style=\"border: none;\" height=\"400\" width=\"600\" src=\"" + this.generateUrl(this.props.shareUrl) + "\"></iframe>";
-        const tooltip = (<Tooltip placement="bottom" className="in" id="tooltip-bottom" style={{zIndex: 2001}}>
-                             {this.state.copied ? <Message msgId="share.msgCopiedUrl"/> : <Message msgId="share.msgToCopyUrl"/>}
-                         </Tooltip>);
-        const copyTo = (<OverlayTrigger placement="bottom" overlay={tooltip}>
-                            <CopyToClipboard text={codeEmbedded} onCopy={ () => this.setState({copied: true}) } >
-                                <Button className="buttonCopyTextArea" bsStyle="info" bsSize="large">
-                                    <Glyphicon glyph="copy" onMouseLeave={() => {this.setState({copied: false}); }} />
-                                </Button>
-                            </CopyToClipboard>
-                        </OverlayTrigger>);
+        const {sizeOptions, selectedOption} = this.state;
+        const height = selectedOption === "Custom" ? sizeOptions.Custom.height : sizeOptions[selectedOption]?.height;
+        const width = selectedOption === "Custom" ? sizeOptions.Custom.width : sizeOptions[selectedOption]?.width;
+        const codeEmbedded = `<iframe ${this.props.allowFullScreen ? 'allowFullScreen' : ''} style=\"border: none;\" height=\"${height || 0}\" width=\"${width || 0}\" src=\"${this.generateUrl(this.props.shareUrl)}\"></iframe>`;
         return (
             <div className="input-link">
-                <Grid className="embed-box" fluid>
-                    <Row key="title">
-                          <h4>
-                             <Message msgId="share.embeddedLinkTitle"/>
-                          </h4>
-                          {this.renderTools()}
-                      </Row>
-                      <Row key="data" className="row-button">
-                          <Col key="textarea" xs={10} sm={10} md={10}><textarea name="description" rows="6" value={codeEmbedded} enabled="false" readOnly /></Col>
-                          <Col key="button" xs={2} sm={2} md={2}>
-                              {copyTo}
-                          </Col>
-                      </Row>
-                  </Grid>
+                <div className="input-link-head">
+                    <h4>
+                        <Message msgId="share.embeddedLinkTitle"/>
+                    </h4>
+                    <ShareCopyToClipboard
+                        copied={this.state.copied}
+                        shareUrl={codeEmbedded}
+                        onCopy={() => this.setState({ copied: true })}
+                        onMouseLeave={() => this.setState({ copied: false })}/>
+                </div>
+                <div className="input-link-tools">
+                    {this.renderTools()}
+                </div>
+                <Row className="size-options-row">
+                    <Col md={4}>
+                        <Select
+                            clearable={false}
+                            value={{value: sizeOptions[selectedOption], label: selectedOption}}
+                            options={Object.keys(sizeOptions).map((key) => ({value: key, label: key}))}
+                            onChange={(option) => this.setState({selectedOption: option?.value || ""})}
+                        />
+                    </Col>
+
+                    {selectedOption === "Custom" &&  (<>
+                        <Col md={4}>
+                            <Input type="number" onChange={(event) => this.setState({sizeOptions: {
+                                ...sizeOptions,
+                                Custom: {...this.state.sizeOptions.Custom, width: event.target.value}
+                            }})} placeholder="share.sizeOptions.width"/>
+                        </Col>
+
+                        <Col md={4}>
+                            <Input type="number" onChange={(event) => this.setState({sizeOptions: {
+                                ...sizeOptions,
+                                Custom: {...this.state.sizeOptions.Custom, height: event.target.value}
+                            }})} placeholder="share.sizeOptions.height"/>
+                        </Col>
+                    </>)}
+                </Row>
+                <pre>
+                    <code>
+                        {codeEmbedded}
+                    </code>
+                </pre>
             </div>
         );
     }
@@ -81,9 +136,12 @@ class ShareEmbed extends React.Component {
         if (this.state.forceDrawer) {
             parsed.query.forceDrawer = true;
         }
+        if (this.state.connections) {
+            parsed.query.connections = true;
+        }
         return url.format(parsed);
 
     };
 }
 
-module.exports = ShareEmbed;
+export default ShareEmbed;

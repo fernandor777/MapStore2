@@ -5,14 +5,16 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const PropTypes = require('prop-types');
-const React = require('react');
-const Joyride = require('react-joyride').default;
-const I18N = require('../I18N/I18N');
-const assign = require('object-assign');
+import PropTypes from 'prop-types';
 
-require('react-joyride/lib/react-joyride-compiled.css');
-require('./style/tutorial.css');
+import React from 'react';
+import Joyride from 'react-joyride';
+import I18N from '../I18N/I18N';
+import assign from 'object-assign';
+import { head } from 'lodash';
+import Portal from '../misc/Portal';
+import 'react-joyride/lib/react-joyride-compiled.css';
+import './style/tutorial.css';
 
 const defaultIntroStyle = {
     backgroundColor: 'transparent',
@@ -44,35 +46,36 @@ const defaultIntroStyle = {
 
 class Tutorial extends React.Component {
     static propTypes = {
-        toggle: PropTypes.bool,
-        status: PropTypes.string,
-        preset: PropTypes.string,
-        presetList: PropTypes.object,
+        actions: PropTypes.object,
+        allowClicksThruHole: PropTypes.bool,
+        autoStart: PropTypes.bool,
+        defaultStep: PropTypes.object,
+        disableOverlay: PropTypes.bool,
+        holePadding: PropTypes.number,
         intro: PropTypes.bool,
         introPosition: PropTypes.number,
-        showCheckbox: PropTypes.bool,
-        defaultStep: PropTypes.object,
         introStyle: PropTypes.object,
-        tourAction: PropTypes.string,
-        stepIndex: PropTypes.number,
-        steps: PropTypes.array,
-        run: PropTypes.bool,
-        autoStart: PropTypes.bool,
         keyboardNavigation: PropTypes.bool,
+        preset: PropTypes.string,
+        presetList: PropTypes.object,
+        run: PropTypes.bool,
         resizeDebounce: PropTypes.bool,
         resizeDebounceDelay: PropTypes.number,
-        holePadding: PropTypes.number,
+        scrollIntoViewOptions: PropTypes.object,
         scrollOffset: PropTypes.number,
-        scrollToSteps: PropTypes.bool,
         scrollToFirstStep: PropTypes.bool,
+        scrollToSteps: PropTypes.bool,
         showBackButton: PropTypes.bool,
+        showCheckbox: PropTypes.bool,
         showOverlay: PropTypes.bool,
-        allowClicksThruHole: PropTypes.bool,
         showSkipButton: PropTypes.bool,
         showStepsProgress: PropTypes.bool,
+        status: PropTypes.string,
+        steps: PropTypes.array,
+        stepIndex: PropTypes.number,
+        toggle: PropTypes.bool,
         tooltipOffset: PropTypes.number,
-        disableOverlay: PropTypes.bool,
-        actions: PropTypes.object
+        tourAction: PropTypes.string
     };
 
     static defaultProps = {
@@ -94,7 +97,7 @@ class Tutorial extends React.Component {
         steps: [],
         run: true,
         autoStart: true,
-        keyboardNavigation: true,
+        keyboardNavigation: false,
         resizeDebounce: false,
         resizeDebounceDelay: 200,
         holePadding: 0,
@@ -115,38 +118,48 @@ class Tutorial extends React.Component {
             onDisable: () => {},
             onReset: () => {},
             onClose: () => {}
+        },
+        scrollIntoViewOptions: {
+            block: "end"
         }
     };
 
-    componentWillMount() {
+    state = {
+        checkAction: {}
+    }
+
+    componentDidMount() {
         let defaultSteps = this.props.presetList[this.props.preset] || [];
         let checkbox = this.props.showCheckbox ? <div id="tutorial-intro-checkbox-container"><input type="checkbox" id="tutorial-intro-checkbox" className="tutorial-tooltip-intro-checkbox" onChange={this.props.actions.onDisable}/><span><I18N.Message msgId={"tutorial.checkbox"}/></span></div> : <div id="tutorial-intro-checkbox-container"/>;
         this.props.actions.onSetup('default', defaultSteps, this.props.introStyle, checkbox, this.props.defaultStep, assign({}, this.props.presetList, {default_tutorial: defaultSteps}));
     }
 
-    componentWillUpdate(newProps) {
+    UNSAFE_componentWillUpdate(newProps, newState) {
         if (this.props.steps.length > 0) {
             if (!this.props.toggle && newProps.toggle) {
                 this.props.actions.onStart();
-            } else if (this.props.status === 'run' && newProps.status === 'error'
-            || this.props.status === 'error' && newProps.status === 'error') {
+                this.setState({checkAction: {}});
+            } else if (!this.state.checkAction[newProps.stepIndex] &&
+                (this.props.status === 'run' && newProps.status === 'error'
+            || this.props.status === 'error' && newProps.status === 'error')) {
 
-                const index = this.checkFirstValidStep(newProps.stepIndex, newProps.tourAction);
-
-                if (index === -1) {
-                    this.closeTour();
-                } else {
-                    this.joyride.setState({
-                        index,
-                        isRunning: true,
-                        shouldRedraw: true,
-                        shouldRenderTooltip: true
-                    });
-                    this.props.actions.onStart();
-                }
+                const newStep = newProps.steps && head(newProps.steps.filter((step, id) => id === newProps.stepIndex));
+                const isActionStep = newStep && newStep.action && !this.state.checkAction[newProps.stepIndex] ? newProps.stepIndex : null;
+                const index = isActionStep || this.checkFirstValidStep(newProps.stepIndex, newProps.tourAction);
+                this.restartTour(index, {[index]: true});
 
             } else if (this.props.status === 'run' && newProps.status === 'close') {
                 this.closeTour();
+                this.setState({checkAction: {}});
+            }
+            if (this.state.checkAction && newState.checkAction && !this.state.checkAction[newProps.stepIndex] && newState.checkAction[newProps.stepIndex]) {
+                // retry to find a valid step when it has action
+                const newStep = head(newProps.steps.filter((step, id) => id === newProps.stepIndex));
+                const isValid = newStep && newStep.selector && document.querySelector(newStep.selector) ? true : false;
+                if (!isValid) {
+                    const firstValidStep = this.checkFirstValidStep(newProps.stepIndex, newProps.tourAction);
+                    this.restartTour(firstValidStep, {});
+                }
             }
         }
     }
@@ -158,6 +171,7 @@ class Tutorial extends React.Component {
 
     onTour = (tour) => {
         if (this.props.steps.length > 0 && tour && tour.type) {
+            document.querySelector(tour?.step?.selector)?.scrollIntoView(this.props.scrollIntoViewOptions);
             const type = tour.type.split(':');
             if (type[0] !== 'tooltip' && type[1] === 'before'
             || tour.action === 'start'
@@ -209,10 +223,12 @@ class Tutorial extends React.Component {
             joy = <div className="tutorial-joyride-placeholder" />;
         }
         return (
-            <div>
-                {joy}
-                <div id="intro-tutorial" className="tutorial-presentation-position" style={{top: this.props.introPosition}}></div>
-            </div>
+            <Portal>
+                <div>
+                    {joy}
+                    <div id="intro-tutorial" className="tutorial-presentation-position" style={{top: this.props.introPosition}}></div>
+                </div>
+            </Portal>
 
         );
     }
@@ -251,6 +267,21 @@ class Tutorial extends React.Component {
 
         this.props.actions.onClose();
     }
+
+    restartTour(index, checkAction) {
+        if (index === -1) {
+            this.closeTour();
+        } else {
+            this.joyride.setState({
+                index,
+                isRunning: true,
+                shouldRedraw: true,
+                shouldRenderTooltip: true
+            });
+            this.props.actions.onStart();
+            this.setState({checkAction});
+        }
+    }
 }
 
-module.exports = Tutorial;
+export default Tutorial;

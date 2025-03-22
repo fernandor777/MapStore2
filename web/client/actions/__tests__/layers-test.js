@@ -6,8 +6,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var expect = require('expect');
-var {
+import expect from 'expect';
+
+import {
     TOGGLE_NODE,
     SORT_NODE,
     REMOVE_NODE,
@@ -19,15 +20,22 @@ var {
     ADD_LAYER,
     REMOVE_LAYER,
     SHOW_SETTINGS,
+    replaceLayers,
+    REPLACE_LAYERS,
     HIDE_SETTINGS,
     UPDATE_SETTINGS,
     REFRESH_LAYERS,
+    UPDATE_LAYERS_DIMENSION,
     LAYERS_REFRESHED,
     LAYERS_REFRESH_ERROR,
     BROWSE_DATA,
     CLEAR_LAYERS,
     SELECT_NODE,
     FILTER_LAYERS,
+    SHOW_LAYER_METADATA,
+    HIDE_LAYER_METADATA,
+    UPDATE_SETTINGS_PARAMS,
+    ADD_GROUP,
     changeLayerProperties,
     toggleNode,
     sortNode,
@@ -42,14 +50,20 @@ var {
     hideSettings,
     updateSettings,
     refreshLayers,
+    updateLayerDimension,
     layersRefreshed,
     layersRefreshError,
     browseData,
     clearLayers,
     selectNode,
-    filterLayers
-} = require('../layers');
-var {getLayerCapabilities} = require('../layerCapabilities');
+    filterLayers,
+    showLayerMetadata,
+    hideLayerMetadata,
+    updateSettingsParams,
+    addGroup
+} from '../layers';
+
+import { getLayerCapabilities } from '../layerCapabilities';
 
 describe('Test correctness of the layers actions', () => {
     it('test layer properties change action', (done) => {
@@ -107,6 +121,14 @@ describe('Test correctness of the layers actions', () => {
         expect(retval.error).toBe('err');
     });
 
+    it('updateLayerDimension', () => {
+        const retval = updateLayerDimension( "time", "2016-02-24T03:00:00.000Z", null, "A");
+        expect(retval).toExist();
+        expect(retval.type).toBe(UPDATE_LAYERS_DIMENSION);
+        expect(retval.layers).toBe("A");
+        expect(retval.dimension).toBe("time");
+        expect(retval.value).toBe("2016-02-24T03:00:00.000Z");
+    });
     it('toggleNode', () => {
         var retval = toggleNode('sample', 'groups', true);
 
@@ -124,6 +146,17 @@ describe('Test correctness of the layers actions', () => {
         expect(retval.type).toBe(REMOVE_NODE);
         expect(retval.node).toBe('sampleNode');
         expect(retval.nodeType).toBe('sampleType');
+        expect(retval.removeEmpty).toBe(false);
+    });
+
+    it('removeNode with removeEmpty', () => {
+        var retval = removeNode('sampleNode', 'sampleType', true);
+
+        expect(retval).toExist();
+        expect(retval.type).toBe(REMOVE_NODE);
+        expect(retval.node).toBe('sampleNode');
+        expect(retval.nodeType).toBe('sampleType');
+        expect(retval.removeEmpty).toBe(true);
     });
 
     it('updateNode', () => {
@@ -209,6 +242,14 @@ describe('Test correctness of the layers actions', () => {
         expect(action.options).toEqual({opacity: 0.5});
     });
 
+    it('replaceLayers', () => {
+        const layers = [{}];
+        const action = replaceLayers(layers);
+        expect(action).toExist();
+        expect(action.type).toBe(REPLACE_LAYERS);
+        expect(action.layers).toEqual(layers);
+    });
+
     it('hide settings', () => {
         const action = hideSettings();
         expect(action).toExist();
@@ -266,5 +307,53 @@ describe('Test correctness of the layers actions', () => {
         const action = filterLayers('text');
         expect(action.type).toBe(FILTER_LAYERS);
         expect(action.text).toBe('text');
+    });
+
+    it('show layer metadata', () => {
+        const action = showLayerMetadata({'identifier': '1'}, true);
+        expect(action.type).toBe(SHOW_LAYER_METADATA);
+        expect(action.metadataRecord).toEqual({'identifier': '1'});
+        expect(action.maskLoading).toBe(true);
+    });
+
+    it('hide layer metadata', () => {
+        const action = hideLayerMetadata();
+        expect(action.type).toBe(HIDE_LAYER_METADATA);
+    });
+
+    it('update settings params', () => {
+        const newParams = { style: 'new_style' };
+        const update = true;
+        const action = updateSettingsParams(newParams, update);
+        expect(action.type).toBe(UPDATE_SETTINGS_PARAMS);
+        expect(action.newParams).toBe(newParams);
+        expect(action.update).toBe(update);
+    });
+
+    it('add root group', () => {
+        const action = addGroup('newgroup');
+        expect(action.type).toBe(ADD_GROUP);
+        expect(action.group).toBe('newgroup');
+        expect(action.parent).toNotExist();
+    });
+
+    it('add nested group', () => {
+        const action = addGroup('newgroup', 'group1.group2');
+        expect(action.type).toBe(ADD_GROUP);
+        expect(action.group).toBe('newgroup');
+        expect(action.parent).toBe('group1.group2');
+    });
+
+    it('add group with options', () => {
+        const options = {
+            id: 'uuid',
+            title: 'My title',
+            expanded: true
+        };
+        const action = addGroup(options.id, undefined, options);
+        expect(action.type).toBe(ADD_GROUP);
+        expect(action.group).toBe(options.id);
+        expect(action.parent).toBeFalsy();
+        expect(action.options).toEqual(options);
     });
 });

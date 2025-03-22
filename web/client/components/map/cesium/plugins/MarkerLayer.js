@@ -6,26 +6,36 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var Layers = require('../../../../utils/cesium/Layers');
-var Cesium = require('../../../../libs/cesium');
+import Layers from '../../../../utils/cesium/Layers';
+import * as Cesium from 'cesium';
 
-const {isEqual} = require('lodash');
-const assign = require('object-assign');
+import { isEqual } from 'lodash';
 
+/**
+ * @deprecated
+ */
 Layers.registerType('marker', {
     create: (options, map) => {
-        const style = assign({}, {
+        if (!options.visibility) {
+            return {
+                detached: true,
+                point: undefined,
+                remove: () => {}
+            };
+        }
+        const style = {
             point: {
                 pixelSize: 5,
                 color: Cesium.Color.RED,
                 outlineColor: Cesium.Color.WHITE,
                 outlineWidth: 2
-            }
-        }, options.style);
-
-        const point = map.entities.add(assign({
-            position: Cesium.Cartesian3.fromDegrees(options.point.lng, options.point.lat)
-        }, style));
+            },
+            ...options.style
+        };
+        const point = map.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(options?.point?.lng || 0, options?.point?.lat || 0),
+            ...style
+        });
         return {
             detached: true,
             point: point,
@@ -36,8 +46,8 @@ Layers.registerType('marker', {
     },
     update: function(layer, newOptions, oldOptions, map) {
         if (!isEqual(newOptions.point, oldOptions.point)) {
-            layer.remove();
             return this.create(newOptions, map);
         }
+        return null;
     }
 });

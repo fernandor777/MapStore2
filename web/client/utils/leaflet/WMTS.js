@@ -5,7 +5,20 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const L = require('leaflet');
+import L from 'leaflet';
+import {getScales} from '../MapUtils';
+import {parseString} from '../CoordinatesUtils';
+import {head, isNumber} from 'lodash';
+
+const isInRange = function(col, row, ranges) {
+    if (col < ranges.cols.min || col > ranges.cols.max) {
+        return false;
+    }
+    if (row < ranges.rows.min || row > ranges.rows.max) {
+        return false;
+    }
+    return true;
+};
 
 var WMTS = L.TileLayer.extend({
     defaultWmtsParams: {
@@ -29,24 +42,70 @@ var WMTS = L.TileLayer.extend({
             wmtsParams.width = wmtsParams.height = tileSize;
         }
         for (let i in options) {
-            // all keys that are not TileLayer options go to WMS params
-            if (!this.options.hasOwnProperty(i) && i !== 'crs') {
+            // all keys that are not TileLayer options go to WMTS params
+            // skip attribution parameter, html content of it make requests fail
+            if (!this.options.hasOwnProperty(i) && i !== 'crs' && i !== 'attribution') {
                 wmtsParams[i] = options[i];
             }
         }
         this.wmtsParams = wmtsParams;
         this.matrixIds = matrixOptions.matrixIds && this.getMatrix(matrixOptions.matrixIds, matrixOptions) || this.getDefaultMatrix(matrixOptions);
+        this.matrixSet = matrixOptions.matrixSet && matrixOptions.matrixSet.TileMatrix || [];
         this.ignoreErrors = matrixOptions.ignoreErrors || false;
         L.setOptions(this, options);
     },
-    isInRange: function(col, row, ranges) {
-        if (col < ranges.cols.min || col > ranges.cols.max) {
-            return false;
+    getWMTSParams: (matrixSet, matrixIds, zoom, nw, tilewidth) => {
+        const currentScale = getScales()[zoom];
+
+        const matrix = head(matrixSet.map((s, i) => {
+            if (i === matrixSet.length - 1) {
+                return null;
+            }
+            const top = parseFloat(s.ScaleDenominator);
+            const bottom = parseFloat(matrixSet[i + 1].ScaleDenominator);
+            const isBetween = top >= currentScale && bottom < currentScale;
+            if (isBetween) {
+                const delta = currentScale - bottom;
+                return delta > (top - bottom) / 2 ? {id: i, data: s} : {id: i + 1, data: matrixSet[i + 1]};
+            }
+            return null;
+        }).filter(v => v));
+
+        const id = matrix && isNumber(matrix.id) && matrix.id + '' || matrixSet.length === 0 && zoom || null;
+
+        if (!matrixIds[id]) {
+            return null;
         }
-        if (row < ranges.rows.min || row > ranges.rows.max) {
-            return false;
+
+        const ident = matrixIds[id].identifier;
+        const topLeftCorner = matrix.data && matrix.data.TopLeftCorner && parseString(matrix.data.TopLeftCorner) || matrixIds[id].topLeftCorner;
+
+        const X0 = topLeftCorner.lng || topLeftCorner.x;
+        const Y0 = topLeftCorner.lat || topLeftCorner.y;
+
+        const tilecol = Math.round((nw.x - X0) / tilewidth);
+        const tilerow = -Math.round((nw.y - Y0) / tilewidth);
+
+        const matrixRanges = matrix.data && matrix.data.MatrixWidth && matrix.data.MatrixHeight && {
+            cols: {
+                min: 0,
+                max: matrix.data.MatrixWidth - 1
+            },
+            rows: {
+                min: 0,
+                max: matrix.data.MatrixHeight - 1
+            }
+        };
+
+        const ranges = matrixIds[id].ranges || matrixRanges;
+
+        if (ranges) {
+            if (!isInRange(tilecol, tilerow, ranges)) {
+                return null;
+            }
         }
-        return true;
+
+        return {ident, tilecol, tilerow};
     },
     getTileUrl: function(tilePoint) { // (Point, Number) -> String
         let map = this._map;
@@ -59,23 +118,30 @@ var WMTS = L.TileLayer.extend({
         let nw = crs.project(map.unproject(nwPoint, tilePoint.z));
         let se = crs.project(map.unproject(sePoint, tilePoint.z));
         let tilewidth = se.x - nw.x;
-        let t = map.getZoom();
-        let ident = this.matrixIds[t].identifier;
-        let X0 = this.matrixIds[t].topLeftCorner.lng;
-        let Y0 = this.matrixIds[t].topLeftCorner.lat;
-        let tilecol = Math.floor((nw.x - X0) / tilewidth);
-        let tilerow = -Math.floor((nw.y - Y0) / tilewidth);
-        if (this.matrixIds[t].ranges) {
-            if (!this.isInRange(tilecol, tilerow, this.matrixIds[t].ranges)) {
-                return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            }
+
+        const params = this.getWMTSParams([...this.matrixSet], [...this.matrixIds], tilePoint.z, nw, tilewidth);
+
+        if (!params) {
+            return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
         }
+
+
         this._urlsIndex++;
         if (this._urlsIndex === this._urls.length) {
             this._urlsIndex = 0;
         }
-        const url = L.Util.template(this._urls[this._urlsIndex], {s: this._getSubdomain(tilePoint)});
-        return url + L.Util.getParamString(this.wmtsParams, url, true) + "&tilematrix=" + ident + "&tilerow=" + tilerow + "&tilecol=" + tilecol;
+        const url = L.Util.template(this._urls[this._urlsIndex], {
+            s: this._getSubdomain(tilePoint),
+            TileRow: params.tilerow,
+            TileCol: params.tilecol,
+            TileMatrixSet: this.options.tileMatrixSet,
+            TileMatrix: params.ident,
+            Style: this.options.style
+        });
+        if (this.options.requestEncoding === "RESTful") {
+            return url;
+        }
+        return url + L.Util.getParamString(this.wmtsParams, url, true) + "&tilematrix=" + params.ident + "&tilerow=" + params.tilerow + "&tilecol=" + params.tilecol;
     },
     getMatrix: function(matrix, options) {
         return matrix.map((el) => {
@@ -102,4 +168,4 @@ var WMTS = L.TileLayer.extend({
         return !this.ignoreErrors;
     }
 });
-module.exports = WMTS;
+export default WMTS;

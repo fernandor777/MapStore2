@@ -8,7 +8,7 @@ function NodeProcessor(options) {
 
 NodeProcessor.prototype = {
     process: function(src, extra) {
-        const basePath = extra.fileInfo.currentDirectory.replace(this.options.path, '');
+        const [basePath] = extra.fileInfo.currentDirectory.split(this.options.path);
         return src.replace(/\"~(.*)\"/g, '"' + basePath + 'dist/$1"');
     }
 };
@@ -28,17 +28,15 @@ LessNodeResolve.prototype = {
 
 const less = require('less');
 
-module.exports = {
-    renderFromLess: (theme, container, path, callback) => {
-        less.render(theme, {
-            plugins: [new LessNodeResolve({path: path})],
-            filename: 'custom.theme.less',
-            compress: true
-        }, (e, output) => {
-            document.getElementById(container).innerText = output.css;
-            if (callback) {
-                callback();
-            }
-        });
-    }
+export const renderFromLess = (theme, container, path, callback) => {
+    less.render(theme, {
+        plugins: [new LessNodeResolve({path: path})],
+        filename: 'custom.theme.less',
+        compress: true
+    }, (e, output) => {
+        document.getElementById(container).innerText = output.css;
+        if (callback) {
+            callback();
+        }
+    });
 };

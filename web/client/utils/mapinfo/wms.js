@@ -6,68 +6,98 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const MapUtils = require('../MapUtils');
-const CoordinatesUtils = require('../CoordinatesUtils');
-const {isArray, isObject, head} = require('lodash');
-const FilterUtils = require('../FilterUtils');
-const assign = require('object-assign');
-
-module.exports = {
-    buildRequest: (layer, props) => {
+import {Observable} from "rxjs";
+import {getCurrentResolution} from '../MapUtils';
+import {reproject, getProjectedBBox, normalizeSRS} from '../CoordinatesUtils';
+import {getLayerUrl} from '../LayersUtils';
+import {isObject, isNil} from 'lodash';
+import { optionsToVendorParams } from '../VendorParamsUtils';
+import { generateEnvString } from '../LayerLocalizationUtils';
+import axios from "../../libs/ajax";
+// import {parseString} from "xml2js";
+// import {stripPrefix} from "xml2js/lib/processors";
+import {addAuthenticationToSLD} from '../SecurityUtils';
+import assign from 'object-assign';
+import { interceptOGCError } from '../ObservableUtils';
+export default {
+    /**
+     * Creates the request object and it's metadata for WMS GetFeatureInfo.
+     * @param {object} layer
+     * @param {object} options
+     * @param {string} infoFormat
+     * @param {string} viewer
+     * @return {object} an object with `request`, containing request paarams, `metadata` with some info about the layer and the request, and `url` to send the request to.
+     */
+    buildRequest: (layer, { sizeBBox, map = {}, point, currentLocale, params: defaultParams, maxItems = 10, env } = {}, infoFormat, viewer, featureInfo) => {
         /* In order to create a valid feature info request
          * we create a bbox of 101x101 pixel that wrap the point.
-         * center point is repojected then is built a box of 101x101pixel around it
+         * center point is re-projected then is built a box of 101x101pixel around it
          */
-        const heightBBox = props && props.sizeBBox && props.sizeBBox.height || 101;
-        const widthBBox = props && props.sizeBBox && props.sizeBBox.width || 101;
+        const heightBBox = sizeBBox && sizeBBox.height || 101;
+        const widthBBox = sizeBBox && sizeBBox.width || 101;
         const size = [heightBBox, widthBBox];
         const rotation = 0;
-        const resolution = MapUtils.getCurrentResolution(Math.ceil(props.map.zoom), 0, 21, 96);
-        let wrongLng = props.point.latlng.lng;
+        const resolution = isNil(map.resolution)
+            ? getCurrentResolution(Math.ceil(map.zoom), 0, 21, 96)
+            : map.resolution;
+        let wrongLng = point.latlng.lng;
         // longitude restricted to the [-180°,+180°] range
         let lngCorrected = wrongLng - 360 * Math.floor(wrongLng / 360 + 0.5);
-        const center = {x: lngCorrected, y: props.point.latlng.lat};
-        let centerProjected = CoordinatesUtils.reproject(center, 'EPSG:4326', props.map.projection);
-        let bounds = CoordinatesUtils.getProjectedBBox(centerProjected, resolution, rotation, size, null);
+        const center = {x: lngCorrected, y: point.latlng.lat};
+        let centerProjected = reproject(center, 'EPSG:4326', map.projection);
+        let bounds = getProjectedBBox(centerProjected, resolution, rotation, size, null);
         let queryLayers = layer.name;
         if (layer.queryLayers) {
             queryLayers = layer.queryLayers.join(",");
         }
 
-        const locale = props.currentLocale ? head(props.currentLocale.split('-')) : null;
-        const ENV = locale ? 'locale:' + locale : '';
-        const CQL_FILTER = FilterUtils.isFilterValid(layer.filterObj) && FilterUtils.toCQLFilter(layer.filterObj);
+        const ENV = generateEnvString(env);
+        const params = optionsToVendorParams({
+            layerFilter: layer.layerFilter,
+            filterObj: layer.filterObj,
+            params: assign({}, layer.baseParams, layer.params, defaultParams)
+        });
         return {
-            request: {
+            request: addAuthenticationToSLD({
                 service: 'WMS',
                 version: '1.1.1',
                 request: 'GetFeatureInfo',
-                exceptions: 'application/json',
                 id: layer.id,
                 layers: layer.name,
                 query_layers: queryLayers,
-                styles: layer.style,
+                styles: (layer.style ? layer.style : ''),
                 x: widthBBox % 2 === 1 ? Math.ceil(widthBBox / 2) : widthBBox / 2,
                 y: widthBBox % 2 === 1 ? Math.ceil(widthBBox / 2) : widthBBox / 2,
                 height: heightBBox,
                 width: widthBBox,
-                srs: CoordinatesUtils.normalizeSRS(props.map.projection) || 'EPSG:4326',
+                srs: normalizeSRS(map.projection) || 'EPSG:4326',
                 bbox: bounds.minx + "," +
                       bounds.miny + "," +
                       bounds.maxx + "," +
                       bounds.maxy,
-                feature_count: props.maxItems,
-                info_format: props.format || 'application/json',
+                feature_count: maxItems,
+                info_format: infoFormat,
+                format: layer.format,
                 ENV,
-                ...assign({}, (CQL_FILTER ? {CQL_FILTER} : {}), layer.baseParams, layer.params, props.params)
-            },
+                ...assign({}, params)
+            }, layer),
             metadata: {
-                title: isObject(layer.title) ? layer.title[props.currentLocale] || layer.title.default : layer.title,
-                regex: layer.featureInfoRegex
+                title: isObject(layer.title) ? layer.title[currentLocale] || layer.title.default : layer.title,
+                regex: layer.featureInfoRegex,
+                viewer,
+                fields: layer.fields,
+                featureInfo
             },
-            url: isArray(layer.url) ?
-                layer.url[0] :
-                layer.url.replace(/[?].*$/g, '')
+            url: getLayerUrl(layer).replace(/[?].*$/g, '')
         };
-    }
+    },
+    /**
+     * Returns an Observable that emits the response when ready.
+     * @param {object} layer the layer
+     * @param {string} baseURL the URL for the request
+     * @param {object} params for the request
+     */
+    getIdentifyFlow: (layer, basePath, params) =>
+        Observable.defer(() => axios.get(basePath, { params }))
+            .let(interceptOGCError)
 };

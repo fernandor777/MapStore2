@@ -6,17 +6,55 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const expect = require('expect');
-const {mapSelector, projectionSelector, mapVersionSelector, mapIdSelector, projectionDefsSelector, mapNameSelector} = require('../map');
+import expect from 'expect';
+
+import {
+    mapSelector,
+    projectionSelector,
+    mapVersionSelector,
+    mapIdSelector,
+    projectionDefsSelector,
+    mapNameSelector,
+    mapInfoSelector,
+    mapInfoDetailsUriFromIdSelector,
+    configuredRestrictedExtentSelector,
+    configuredExtentCrsSelector,
+    configuredMinZoomSelector,
+    mapIsEditableSelector,
+    mouseMoveListenerSelector,
+    isMouseMoveActiveSelector,
+    isMouseMoveCoordinatesActiveSelector,
+    isMouseMoveIdentifyActiveSelector,
+    identifyFloatingToolSelector,
+    mapInfoAttributesSelector,
+    showEditableFeatureCheckboxSelector
+} from '../map';
+
 const center = {x: 1, y: 1};
 let state = {
-        map: {center: center},
-        mapInitialConfig: {
-            mapId: 123
-        }
-    };
+    map: {center: center},
+    mapInitialConfig: {
+        mapId: 123
+    }
+};
 
 describe('Test map selectors', () => {
+    it('test mapInfoDetailsUriFromIdSelector from config', () => {
+        const details = "rest%2Fgeostore%2Fdata%2F3495%2Fraw%3Fdecode%3Ddatauri";
+        const props = mapInfoDetailsUriFromIdSelector({
+            map: {
+                present: {
+                    info: {
+                        attributes: {
+                            details
+                        }
+                    }
+                }
+            }});
+
+        expect(props).toExist();
+        expect(props).toBe(details);
+    });
     it('test mapSelector from config', () => {
         const props = mapSelector({config: state});
 
@@ -61,6 +99,8 @@ describe('Test map selectors', () => {
     it('test mapIdSelector', () => {
         const props = mapIdSelector(state);
         expect(props).toBe(123);
+        const propsEmpty = mapIdSelector({});
+        expect(propsEmpty).toBe(null);
     });
 
     it('test mapVersionSelector', () => {
@@ -76,5 +116,123 @@ describe('Test map selectors', () => {
     it('test mapNameSelector no state', () => {
         const props = mapNameSelector({});
         expect(props).toBe('');
+    });
+    it('test mapNameSelector with title', () => {
+        const props = mapNameSelector({map: {present: {info: { name: 'map name', attributes: {title: "map title"} }}}});
+        expect(props).toBe('map title');
+    });
+    it('test configuredExtentSelectorCrs', () => {
+        const props = configuredExtentCrsSelector({localConfig: {mapConstraints: {crs: 'EPSG:4326'}}});
+        expect(props).toBe('EPSG:4326');
+    });
+    it('test configuredExtentSelector', () => {
+        const props = configuredRestrictedExtentSelector({localConfig: {mapConstraints: {restrictedExtent: [12, 12, 12, 12]}}});
+        expect(props.length).toBe(4);
+    });
+    it('test configuredMinZoomSelector', () => {
+        const minZoom = configuredMinZoomSelector({ localConfig: { mapConstraints: { minZoom: 12 } } });
+        expect(minZoom).toBe(12);
+    });
+    it('test configuredMinZoomSelector with different projection', () => {
+        const minZoom = configuredMinZoomSelector({
+            localConfig: {
+                mapConstraints: {
+                    minZoom: 12,
+                    projectionsConstraints: {
+                        "EPSG:1234": {
+                            minZoom: 14
+                        }
+                    }
+                }
+            },
+            map: {
+                present: {
+                    projection: "EPSG:1234"
+                }
+            }
+        });
+        expect(minZoom).toBe(14);
+    });
+    it('test mapIsEditableSelector for map', () => {
+        const mapIsEditable = mapIsEditableSelector({map: {present: {info: {canEdit: true}}}});
+        expect(mapIsEditable).toBe(true);
+    });
+    it('test mapIsEditableSelector for context', () => {
+        const mapIsEditable = mapIsEditableSelector({context: {resource: {canEdit: true}}});
+        expect(mapIsEditable).toBe(true);
+    });
+    it('test mouseMoveListenerSelector', () => {
+        const identifyFloatingTool = ['identifyFloatingTool'];
+        const mouseMoveListener = mouseMoveListenerSelector({map: {present: {eventListeners: {mousemove: identifyFloatingTool}}}});
+        expect(mouseMoveListener).toBe(identifyFloatingTool);
+    });
+    it('test isMouseMoveActiveSelector', () => {
+        const isMouseMoveActive = isMouseMoveActiveSelector({map: {present: {eventListeners: {mousemove: ['identifyFloatingTool']}}}});
+        expect(isMouseMoveActive).toBe(true);
+    });
+    it('test isMouseMoveCoordinatesActiveSelector', () => {
+        const isMouseMoveCoordinatesActive = isMouseMoveCoordinatesActiveSelector({map: {present: {eventListeners: {mousemove: ['mouseposition']}}}});
+        expect(isMouseMoveCoordinatesActive).toBe(true);
+    });
+    it('test isMouseMoveIdentifyActiveSelector', () => {
+        const isMouseMoveIdentifyActive = isMouseMoveIdentifyActiveSelector({map: {present: {eventListeners: {mousemove: ['identifyFloatingTool']}}}});
+        expect(isMouseMoveIdentifyActive).toBe(true);
+    });
+    it('test identifyFloatingToolSelector', () => {
+        const renderValidOnly = identifyFloatingToolSelector({mode: "embedded"});
+        expect(renderValidOnly).toBe(true);
+    });
+    it('test identifyFloatingToolSelector should display mapPopUp data if identify is enabled for pop up maps', () => {
+        const renderValidOnly = identifyFloatingToolSelector({mapPopups: {popups: [{component: 'identify'}]}});
+        expect(renderValidOnly).toBe(true);
+    });
+    it('test identifyFloatingToolSelector should non display mapPopUp data if identify is not enabled for pop up maps', () => {
+        const renderValidOnly = identifyFloatingToolSelector({mapPopups: {popups: [{component: 'sampleComponent'}]}});
+        expect(renderValidOnly).toBe(false);
+    });
+    it('test mapInfoSelector', () => {
+        const mapInfo = mapInfoSelector({map: {present: {info: {name: "test"}}}});
+        expect(mapInfo).toBeTruthy();
+        expect(mapInfo.name).toBe("test");
+    });
+    it('test mapInfoAttributesSelector', () => {
+        const attributes = {title: "test"};
+        const mapInfoAttributes = mapInfoAttributesSelector({map: {present: {info: {attributes}}}});
+        expect(mapInfoAttributes).toBeTruthy();
+        expect(mapInfoAttributes).toEqual(attributes);
+    });
+    describe('showEditableFeatureCheckboxSelector', () =>{
+        it('test with user not logged in - map', () => {
+            const _state = {map: {present: {info: {id: 1, canEdit: false}}}};
+            expect(showEditableFeatureCheckboxSelector(_state)).toBeFalsy();
+        });
+        it('test with user not logged in - context with map', () => {
+            const _state = {map: {present: {info: {id: 1, canEdit: true}}}, context: {resource: {id: 1, canEdit: true}}};
+            expect(showEditableFeatureCheckboxSelector(_state)).toBeFalsy();
+        });
+        it('test with user not logged in - context', () => {
+            const _state = {map: {present: {info: {id: 1, canEdit: true}}}, context: {resource: {id: 1, canEdit: true}}};
+            expect(showEditableFeatureCheckboxSelector(_state)).toBeFalsy();
+        });
+        it('test with user logged in - context', () => {
+            const _state = {map: {present: {info: null}}, context: {resource: {id: 1, canEdit: true}}, security: {user: {name: "Test"}}};
+            expect(showEditableFeatureCheckboxSelector(_state)).toBeFalsy();
+        });
+        it('test with user logged in - context map', () => {
+            const _state = {map: {present: {info: {id: 1, canEdit: true}}}, context: {resource: {id: 1, canEdit: true}}, security: {user: {name: "Test"}}};
+            expect(showEditableFeatureCheckboxSelector(_state)).toBeTruthy();
+        });
+        it('test with user logged in - map with only view permission', () => {
+            const _state = {map: {present: {info: {id: 1, canEdit: false}}}, security: {user: {name: "Test"}}};
+            expect(showEditableFeatureCheckboxSelector(_state)).toBeFalsy();
+        });
+        it('test with user logged in - new map', () => {
+            const _state = {map: {present: {info: undefined}}, security: {user: {name: "Test"}}};
+            expect(showEditableFeatureCheckboxSelector(_state)).toBeTruthy();
+        });
+        it('test with user logged in - context creator', () => {
+            const _state = {map: {present: {info: undefined}}, security: {user: {name: "Test"}}};
+            expect(showEditableFeatureCheckboxSelector(_state)).toBeTruthy();
+        });
     });
 });

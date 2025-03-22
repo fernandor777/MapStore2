@@ -6,41 +6,91 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const {createSelector} = require('reselect');
+import { createSelector } from 'reselect';
 
-const MapInfoUtils = require('../utils/MapInfoUtils');
-const LayersUtils = require('../utils/LayersUtils');
-const {head, isEmpty} = require('lodash');
+import { getCurrentResolution } from '../utils/MapUtils';
+import {getMarkerLayer, defaultQueryableFilter} from '../utils/MapInfoUtils';
+import { denormalizeGroups, isInsideResolutionsLimits, getDerivedLayersVisibility, flattenGroups, getTitle } from '../utils/LayersUtils';
+import { defaultIconStyle } from '../utils/SearchUtils';
+import { getNormalizedLatLon } from '../utils/CoordinatesUtils';
+import { clickedPointWithFeaturesSelector } from './mapInfo';
+import { get, head, isEmpty, find, isObject, isArray, castArray, isNil } from 'lodash';
+import { mapSelector } from './map';
+import { getSelectedMapView } from './mapviews';
+import { mergeViewLayers } from '../utils/MapViewsUtils';
+import { currentLocaleSelector } from "../selectors/locale";
 
-const layersSelector = state => state.layers && state.layers.flat || state.layers || state.config && state.config.layers || [];
-const currentBackgroundLayerSelector = state => head(layersSelector(state).filter(l => l && l.visibility && l.group === "background"));
-const getLayerFromId = (state, id) => head(layersSelector(state).filter(l => l.id === id));
-const allBackgroundLayerSelector = state => layersSelector(state).filter(l => l.group === "background");
-const markerSelector = state => state.mapInfo && state.mapInfo.showMarker && state.mapInfo.clickPoint;
-const geoColderSelector = state => state.search && state.search;
+
+export const layersSelector = state => state.layers && !isArray(state.layers) && state.layers.flat || isArray(state.layers) && state.layers || state.config && state.config.layers || [];
+
+export const currentBackgroundLayerSelector = state => head(layersSelector(state).filter(l => l && l.visibility && l.group === "background"));
+export const getLayerFromId = (state, id) => head(layersSelector(state).filter(l => l.id === id));
+export const getLayerFromName = (state, name) => head(layersSelector(state).filter(l => l.name === name));
+export const allBackgroundLayerSelector = state => layersSelector(state).filter(l => l.group === "background");
+export const highlightPointSelector = state => state.annotations && state.annotations.showMarker && state.annotations.clickPoint;
+export const geoColderSelector = state => state.search && state.search;
 
 // TODO currently loading flag causes a re-creation of the selector on any pan
 // to avoid this separate loading from the layer object
 
-const layerSelectorWithMarkers = createSelector(
-    [layersSelector, markerSelector, geoColderSelector],
-    (layers = [], markerPosition, geocoder) => {
-        let newLayers = [...layers];
+export const centerToMarkerSelector = (state) => get(state, "mapInfo.centerToMarker", '');
+export const additionalLayersSelector = state => get(state, "additionallayers", []);
+export const getAdditionalLayerFromId = (state, id) => head(additionalLayersSelector(state).filter(l => l.id === id))?.options;
+
+export const rawGroupsSelector = (state) => state.layers && state.layers.flat && state.layers.groups || [];
+export const groupsSelector = (state) => state.layers && state.layers.flat && state.layers.groups && denormalizeGroups(state.layers.flat, state.layers.groups).groups || [];
+
+export const layerSelectorWithMarkers = createSelector(
+    [
+        layersSelector,
+        rawGroupsSelector,
+        clickedPointWithFeaturesSelector,
+        geoColderSelector,
+        centerToMarkerSelector,
+        additionalLayersSelector,
+        highlightPointSelector
+    ],
+    (layers = [], groups, markerPosition, geocoder, centerToMarker, additionalLayers, highlightPoint) => {
+
+        // Perform an override action on the layers using options retrieved from additional layers
+        const overrideLayers = additionalLayers.filter(({actionType}) => actionType === 'override');
+        const overlayLayers = additionalLayers.filter(({actionType}) => actionType === 'overlay').map(l => l.options);
+        let newLayers = getDerivedLayersVisibility(layers, groups).map(layer => {
+            const { options } = head(overrideLayers.filter(overrideLayer => overrideLayer.id === layer.id)) || {};
+            return options ? {...layer, ...options} : {...layer};
+        });
+        newLayers = newLayers.concat(overlayLayers);
         if ( markerPosition ) {
-            newLayers.push(MapInfoUtils.getMarkerLayer("GetFeatureInfo", markerPosition.latlng));
+            // A separate layer for feature highlight is required because the SRS is different
+            newLayers.push(getMarkerLayer("GetFeatureInfoHighLight", { features: markerPosition.features }, undefined, {
+                overrideOLStyle: true,
+                featuresCrs: markerPosition.featuresCrs,
+                style: { ...defaultIconStyle, ...{
+                    color: '#3388ff',
+                    weight: 4,
+                    dashArray: '',
+                    fillColor: '#3388ff',
+                    fillOpacity: 0.2
+                }}
+            }));
+            const coords = centerToMarker === 'enabled' ? getNormalizedLatLon(markerPosition.latlng) : markerPosition.latlng;
+            newLayers.push(getMarkerLayer("GetFeatureInfo", { ...coords, height: markerPosition.height }));
         }
+        if ( highlightPoint ) {
+            const coords = centerToMarker === 'enabled' ? getNormalizedLatLon(highlightPoint.latlng) : highlightPoint.latlng;
+            newLayers.push(getMarkerLayer("Annotations", coords));
+            newLayers.push(getMarkerLayer("GetFeatureInfo", {
+                ...coords
+
+            }));
+        }
+
         if (geocoder && geocoder.markerPosition) {
-            newLayers.push(MapInfoUtils.getMarkerLayer("GeoCoder", geocoder.markerPosition, "marker",
+            let geocoderStyle = isObject(geocoder.style) && geocoder.style || {};
+            newLayers.push(getMarkerLayer("GeoCoder", geocoder.markerPosition, "marker",
                 {
                     overrideOLStyle: true,
-                    style: {
-                        iconUrl: "https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41],
-                        popupAnchor: [1, -34],
-                        shadowSize: [41, 41]
-                    }
+                    style: {...defaultIconStyle, ...geocoderStyle}
                 }, geocoder.markerLabel
             ));
         }
@@ -49,35 +99,91 @@ const layerSelectorWithMarkers = createSelector(
     }
 );
 
-const groupsSelector = (state) => state.layers && state.layers.flat && state.layers.groups && LayersUtils.denormalizeGroups(state.layers.flat, state.layers.groups).groups || [];
+export const selectedNodesSelector = (state) => state.layers && state.layers.selected || [];
 
-const selectedNodesSelector = (state) => state.layers && state.layers.selected || [];
-const layerFilterSelector = (state) => state.layers && state.layers.filter || '';
-const layerSettingSelector = (state) => state.layers && state.layers.settings || {expanded: false, options: {opacity: 1}};
+/**
+* Layers selected by the user on the TOC
+* @param {object} state the state
+* @return {array} array with the selected layers data obects
+*/
+export const getSelectedLayers = state => {
+    const selectedIds = selectedNodesSelector(state);
+    // We need to exclude undefined values from the result
+    return selectedIds.map((id) => find(layersSelector(state), {id})).filter(l => l !== undefined);
+};
 
-const backgroundControlsSelector = (state) => (state.controls && state.controls.backgroundSelector) || {};
-const currentBackgroundSelector = (state) => {
+export const getSelectedLayer = state => {
+    const selected = getSelectedLayers(state) || [];
+    return selected && selected[0];
+};
+export const layerFilterSelector = (state) => state.layers && state.layers.filter || '';
+export const layerSettingSelector = (state) => state.layers && state.layers.settings || {expanded: false, options: {opacity: 1}};
+export const layerMetadataSelector = (state) => state.layers && state.layers.layerMetadata || {expanded: false, metadataRecord: {}, maskLoading: false};
+export const wfsDownloadSelector = (state) => state.controls && state.controls.layerdownload ? { expanded: state.controls.layerdownload.enabled } : {expanded: false};
+
+export const backgroundControlsSelector = (state) => (state.controls && state.controls.backgroundSelector) || {};
+export const currentBackgroundSelector = (state) => {
     const controls = backgroundControlsSelector(state);
     const layers = allBackgroundLayerSelector(state) || [];
     return controls.currentLayer && !isEmpty(controls.currentLayer) ? controls.currentLayer : head(layers.filter((l) => l.visibility)) || {};
 };
-const tempBackgroundSelector = (state) => {
+export const tempBackgroundSelector = (state) => {
     const controls = backgroundControlsSelector(state);
     const layers = allBackgroundLayerSelector(state) || [];
     return controls.tempLayer && !isEmpty(controls.tempLayer) ? controls.tempLayer : head(layers.filter((l) => l.visibility)) || {};
 };
+export const getLayersWithDimension = (state, dimension) =>
+    (layersSelector(state) || [])
+        .filter(l =>
+            l
+            && l.dimensions
+            && find(castArray(l.dimensions), {name: dimension}));
 
-module.exports = {
-    layersSelector,
-    layerSelectorWithMarkers,
-    groupsSelector,
-    currentBackgroundLayerSelector,
-    allBackgroundLayerSelector,
-    getLayerFromId,
-    selectedNodesSelector,
-    layerFilterSelector,
-    layerSettingSelector,
-    backgroundControlsSelector,
-    currentBackgroundSelector,
-    tempBackgroundSelector
+/**
+ * gets the actual node opened in settings modal
+*/
+export const elementSelector = (state) => {
+    const settings = layerSettingSelector(state);
+    const layers = layersSelector(state);
+    const groups = groupsSelector(state);
+    return settings.nodeType === 'layers' && isArray(layers) && head(layers.filter(layer => layer.id === settings.node)) ||
+    settings.nodeType === 'groups' && isArray(groups) && head(flattenGroups(groups, 0, true).filter(group => group.id === settings.node)) || {};
+};
+
+const isLayerQueryable = (state, layer) => {
+    const map = mapSelector(state) || {};
+    const currentResolution = isNil(map.resolution)
+        ? getCurrentResolution(Math.round(map.zoom), 0, 21, 96)
+        : map.resolution;
+    return isInsideResolutionsLimits(layer, currentResolution)
+        && defaultQueryableFilter(layer);
+};
+/**
+* Select queriable layers
+* @param {object} state the state
+* @return {array} the queriable layers
+*/
+export const queryableLayersSelector = state => mergeViewLayers(layersSelector(state), getSelectedMapView(state)).filter((layer) => isLayerQueryable(state, layer));
+/**
+ * Return loading error state for selected layer
+ * @param {object} state the state
+ * @return {boolean} true if selected layer has error
+ */
+export const selectedLayerLoadingErrorSelector = state => (getSelectedLayer(state) || {}).loadingError === 'Error';
+/**
+ * Return queriable selected layers
+ * @param {object} state the state
+ * @return {array} the queriable selected layers
+ */
+export const queryableSelectedLayersSelector = state => getSelectedLayers(state).filter((layer) => isLayerQueryable(state, layer));
+
+/**
+ * Get the title of the layer
+ * @param  {object} state the application's state
+ * @param {string} id layer id for which the title has to be obtained
+ * @returns {string} title of the layer
+ */
+export const getTitleSelector = (state, id) => {
+    const locale = currentLocaleSelector(state);
+    return getTitle(get(getLayerFromId(state, id), 'title', ''), locale);
 };

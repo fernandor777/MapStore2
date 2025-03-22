@@ -5,12 +5,13 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
+import expect from 'expect';
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var I18N = require('../I18N');
-var Localized = require('../Localized');
+import TestUtils from 'react-dom/test-utils';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import I18N from '../I18N';
+import Localized from '../Localized';
 
 var ita = {
     "locale": "it-IT",
@@ -64,5 +65,15 @@ describe('This test for I18N.Message', () => {
         const cmpDom = ReactDOM.findDOMNode(cmp);
         expect(cmpDom).toExist();
         expect(cmpDom.innerHTML).toBe(testMsg);
+    });
+
+    it('should be able to render functional children', () => {
+        const currentData = data["en-US"];
+        var testMsg = currentData.messages[msgId];
+
+        const cmp = ReactDOM.render(<Localized messages={eng.messages} locale="en-US"><I18N.Message msgId={msgId}>{msg => <option>{msg}</option>}</I18N.Message></Localized>, document.getElementById("container"));
+        const option = TestUtils.findRenderedDOMComponentWithTag(cmp, 'option');
+        expect(option).toExist();
+        expect(option.innerHTML).toBe(testMsg);
     });
 });

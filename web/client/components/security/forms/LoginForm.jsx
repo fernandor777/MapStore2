@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2017, GeoSolutions Sas.
  * All rights reserved.
@@ -7,28 +6,32 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {FormControl, FormGroup, ControlLabel, Button, Alert} = require('react-bootstrap');
-const Spinner = require('react-spinkit');
-const Message = require('../../I18N/Message');
-const LocaleUtils = require('../../../utils/LocaleUtils');
+import React from 'react';
+import { FormControl, FormGroup, ControlLabel, Alert } from 'react-bootstrap';
+import Spinner from "../../layout/Spinner";
+import PropTypes from 'prop-types';
+
+
+import Message from '../../I18N/Message';
+import { getMessageById } from '../../../utils/LocaleUtils';
+import Button from '../../misc/Button';
 
 /**
  * A Form to login menu for user details:
  */
 class LoginForm extends React.Component {
     static propTypes = {
-      // props
+        // props
         user: PropTypes.object,
         onLoginSuccess: PropTypes.func,
         showSubmitButton: PropTypes.bool,
         loginError: PropTypes.object,
 
-      // actions
+        // actions
         onSubmit: PropTypes.func,
         onError: PropTypes.func,
 
-      // localization
+        // localization
         userNameText: PropTypes.node,
         passwordText: PropTypes.node,
         loginFailedStatusMessages: PropTypes.object,
@@ -59,7 +62,7 @@ class LoginForm extends React.Component {
         password: ''
     };
 
-    componentWillReceiveProps(nextProps) {
+    UNSAFE_componentWillReceiveProps(nextProps) {
         let newUser = nextProps.user;
         let oldUser = this.props.user;
         let userChange = newUser !== oldUser;
@@ -88,11 +91,11 @@ class LoginForm extends React.Component {
     };
 
     renderLoading = () => {
-        return this.state.loading ? <Spinner spinnerName="circle" key="loadingSpinner" noFadeIn overrideSpinnerClassName="spinner"/> : null;
+        return this.state.loading ? <Spinner /> : null;
     };
 
     renderSubmit = () => {
-        let submitText = LocaleUtils.getMessageById(this.context.messages, "user.signIn");
+        let submitText = getMessageById(this.context.messages, "user.signIn");
         if (this.props.showSubmitButton) {
             return (<Button
                 type="submit"
@@ -100,6 +103,7 @@ class LoginForm extends React.Component {
                 bsStyle="primary"
                 key="submit" onClick={this.handleSubmit}>{submitText}</Button>);
         }
+        return null;
     };
 
     render() {
@@ -111,7 +115,7 @@ class LoginForm extends React.Component {
                         key="username"
                         type="text"
                         value={this.state.username}
-                        placeholder={LocaleUtils.getMessageById(this.context.messages, "user.username")}
+                        placeholder={getMessageById(this.context.messages, "user.username")}
                         onChange={this.setUser} />
                 </FormGroup>
                 <FormGroup>
@@ -121,7 +125,7 @@ class LoginForm extends React.Component {
                         type="password"
                         value={this.state.password}
                         onKeyPress={this.handleKeyPress}
-                        placeholder={LocaleUtils.getMessageById(this.context.messages, "user.password")}
+                        placeholder={getMessageById(this.context.messages, "user.password")}
                         onChange={this.setPassword} />
                 </FormGroup>
                 {this.renderSubmit()}
@@ -166,4 +170,4 @@ class LoginForm extends React.Component {
     };
 }
 
-module.exports = LoginForm;
+export default LoginForm;

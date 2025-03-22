@@ -1,4 +1,5 @@
-const PropTypes = require('prop-types');
+import PropTypes from 'prop-types';
+
 /*
  * Copyright 2017, GeoSolutions Sas.
  * All rights reserved.
@@ -6,9 +7,10 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
 */
-const React = require('react');
-const {Grid, Row, Col} = require('react-bootstrap');
-const ToolsContainer = require('./containers/ToolsContainer');
+import React from 'react';
+
+import { Grid, Row, Col } from 'react-bootstrap';
+import ToolsContainer from './containers/ToolsContainer';
 
 /**
  * GridContainerPlugin. This is a plugin that works as container
@@ -19,16 +21,14 @@ class GridContainer extends React.Component {
         className: PropTypes.string,
         style: PropTypes.object,
         items: PropTypes.array,
-        id: PropTypes.string,
-        mapType: PropTypes.string
+        id: PropTypes.string
     };
 
     static defaultProps = {
         items: [],
         className: "grid-home-container",
         style: {},
-        id: "mapstore-grid-home",
-        mapType: "leaflet"
+        id: "mapstore-grid-home"
     };
 
     getPanels = () => {
@@ -52,10 +52,9 @@ class GridContainer extends React.Component {
             id={this.props.id}
             style={this.props.style}
             className={this.props.className}
-            mapType={this.props.mapType}
             container={(props) => (<Grid fluid><Row>
-                        {props.children.map( (item, idx) => <Col key={idx} xs={12} xsOffset={0} sm={6} smOffset={3} smOffset={0}>{item}</Col>)}
-                </Row></Grid>)}
+                {props.children.map( (item, idx) => <Col key={idx} xs={12} xsOffset={0} sm={6} smOffset={3}>{item}</Col>)}
+            </Row></Grid>)}
             toolStyle="primary"
             activeStyle="default"
             stateSelector="omnibar"
@@ -66,7 +65,7 @@ class GridContainer extends React.Component {
     }
 }
 
-module.exports = {
+export default {
     GridContainerPlugin: GridContainer,
     reducers: {}
 };

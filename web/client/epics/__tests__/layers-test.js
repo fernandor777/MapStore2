@@ -6,13 +6,26 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var expect = require('expect');
+import expect from 'expect';
 
-const configureMockStore = require('redux-mock-store').default;
-const { createEpicMiddleware, combineEpics } = require('redux-observable');
-const {refreshLayers, LAYERS_REFRESHED, LAYERS_REFRESH_ERROR, UPDATE_NODE} = require('../../actions/layers');
+import configureMockStore from 'redux-mock-store';
+import { createEpicMiddleware, combineEpics } from 'redux-observable';
 
-const {refresh } = require('../layers');
+import {
+    refreshLayers,
+    LAYERS_REFRESHED,
+    LAYERS_REFRESH_ERROR,
+    UPDATE_NODE,
+    updateLayerDimension,
+    CHANGE_LAYER_PARAMS,
+    updateSettingsParams,
+    UPDATE_SETTINGS,
+    layerLoad
+} from '../../actions/layers';
+
+import { SHOW_NOTIFICATION } from '../../actions/notifications';
+import { testEpic } from './epicTestUtils';
+import { refresh, updateDimension, updateSettingsParamsEpic } from '../layers';
 const rootEpic = combineEpics(refresh);
 const epicMiddleware = createEpicMiddleware(rootEpic);
 const mockStore = configureMockStore([epicMiddleware]);
@@ -76,5 +89,212 @@ describe('layers Epics', () => {
                 done();
             }
         });
+    });
+    it('test update dimension', done => {
+        const state = {
+            layers: {
+                flat: [{
+                    group: 'test',
+                    id: 'layer001',
+                    visibility: true,
+                    dimensions: [{
+                        name: 'time'
+                    }]
+                },
+                {
+                    group: 'test',
+                    id: 'layer002',
+                    visibility: true,
+                    dimensions: [{
+                        name: 'time'
+                    }, {
+                        name: 'elevation'
+                    }]
+                }]
+            }
+        };
+        testEpic(
+            updateDimension,
+            1,
+            updateLayerDimension('time', "2016-02-24T03:00:00.000Z"),
+            actions => {
+                expect(actions.length).toBe(1);
+                actions.map((action) => {
+                    switch (action.type) {
+                    case CHANGE_LAYER_PARAMS:
+                        expect(action.layer.length).toBe(2);
+                        expect(action.params.time).toBe("2016-02-24T03:00:00.000Z");
+                        break;
+                    default:
+                        expect(true).toBe(false);
+
+                    }
+                });
+                done();
+            }, state);
+    });
+
+    it('test updateSettingsParamsEpic with update to false', done => {
+
+        const state = {
+            controls: {
+                layersettings: {
+                    initialSettings: {
+                        id: 'layerid',
+                        name: 'layerName',
+                        style: ''
+                    }
+                }
+            }
+        };
+
+        testEpic(
+            updateSettingsParamsEpic,
+            1,
+            updateSettingsParams({style: 'generic'}),
+            actions => {
+                expect(actions.length).toBe(1);
+                actions.map((action) => {
+                    switch (action.type) {
+                    case UPDATE_SETTINGS:
+                        expect(action.options).toEqual({style: 'generic'});
+                        break;
+                    default:
+                        expect(true).toBe(false);
+                    }
+                });
+                done();
+            }, state);
+    });
+
+    it('test updateSettingsParamsEpic with update to true', done => {
+
+        const state = {
+            controls: {
+                layersettings: {
+                    initialSettings: {
+                        id: 'layerId',
+                        name: 'layerName',
+                        style: ''
+                    }
+                }
+            },
+            layers: {
+                settings: {
+                    expanded: true,
+                    node: 'layerId',
+                    nodeType: 'layers',
+                    options: { opacity: 1 }
+                }
+            }
+        };
+
+        testEpic(
+            updateSettingsParamsEpic,
+            2,
+            updateSettingsParams({style: 'generic'}, true),
+            actions => {
+                expect(actions.length).toBe(2);
+                actions.map((action) => {
+                    switch (action.type) {
+                    case UPDATE_SETTINGS:
+                        expect(action.options).toEqual({style: 'generic'});
+                        break;
+                    case UPDATE_NODE:
+                        expect(action.node).toEqual('layerId');
+                        expect(action.nodeType).toEqual('layers');
+                        expect(action.options).toEqual({opacity: 1, style: 'generic'});
+                        break;
+                    default:
+                        expect(true).toBe(false);
+                    }
+                });
+                done();
+            }, state);
+    });
+
+    it('test updateSettingsParamsEpic with layer name', done => {
+        const state = {
+            controls: {
+                layersettings: {
+                    initialSettings: {
+                        id: 'layerId',
+                        name: 'layerName',
+                        style: ''
+                    }
+                }
+            },
+            layers: {
+                settings: {
+                    expanded: true,
+                    node: 'layerId',
+                    nodeType: 'layers',
+                    options: { opacity: 1 }
+                },
+                flat: [{
+                    id: 'layerId',
+                    name: 'layerName',
+                    opacity: 1
+                }]
+            }
+        };
+
+        testEpic(
+            updateSettingsParamsEpic,
+            2,
+            [updateSettingsParams({name: 'layerName_changed'}, true), layerLoad('layerId')],
+            actions => {
+                expect(actions.length).toBe(2);
+                expect(actions[0].type).toBe(UPDATE_SETTINGS);
+                expect(actions[0].options).toEqual({name: 'layerName_changed'});
+                expect(actions[1].type).toBe(UPDATE_NODE);
+                expect(actions[1].node).toEqual('layerId');
+                expect(actions[1].nodeType).toEqual('layers');
+                expect(actions[1].options).toEqual({opacity: 1, name: 'layerName_changed'});
+            }, state, done);
+    });
+
+    it('test updateSettingsParamsEpic with layer name with layer load error', done => {
+        const state = {
+            controls: {
+                layersettings: {
+                    initialSettings: {
+                        id: 'layerId',
+                        name: 'layerName',
+                        style: ''
+                    }
+                }
+            },
+            layers: {
+                settings: {
+                    expanded: true,
+                    node: 'layerId',
+                    nodeType: 'layers',
+                    options: { opacity: 1 }
+                },
+                flat: [{
+                    id: 'layerId',
+                    name: 'layerName',
+                    opacity: 1
+                }]
+            }
+        };
+
+        testEpic(
+            updateSettingsParamsEpic,
+            3,
+            [updateSettingsParams({name: 'layerName_changed'}, true), layerLoad('layerId', true)],
+            actions => {
+                expect(actions.length).toBe(3);
+                expect(actions[0].type).toBe(UPDATE_SETTINGS);
+                expect(actions[0].options).toEqual({name: 'layerName_changed'});
+
+                expect(actions[1].type).toBe(UPDATE_NODE);
+                expect(actions[1].node).toEqual('layerId');
+                expect(actions[1].nodeType).toEqual('layers');
+                expect(actions[1].options).toEqual({opacity: 1, name: 'layerName_changed'});
+                expect(actions[2].type).toBe(SHOW_NOTIFICATION);
+                expect(actions[2].level).toBe('error');
+            }, state, done);
     });
 });

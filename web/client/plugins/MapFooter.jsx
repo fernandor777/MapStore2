@@ -5,10 +5,43 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const PropTypes = require('prop-types');
-const ToolsContainer = require('./containers/ToolsContainer');
+import React from 'react';
 
+import PropTypes from 'prop-types';
+import ToolsContainer from './containers/ToolsContainer';
+import { lifecycle } from 'recompose';
+
+let fixedElements = {};
+const fix = lifecycle({
+    componentDidMount() {
+        if (fixedElements[this.props.id]) {
+            const el = document.getElementById(this.props.id);
+            if (el && el.parentNode && !el.hasChildNodes()) {
+                el.parentNode.replaceChild(fixedElements[this.props.id], el);
+            }
+        }
+    },
+    shouldComponentUpdate() { return false; },
+    componentWillUnmount() {
+        fixedElements[this.props.id] = document.getElementById(this.props.id);
+    }
+});
+const FixedContainer = fix(({ id }) => <div id={id}></div>);
+
+// these two elements are retained in fixedElementObject and reused when unmount/re-mount
+// this prevents the div to be re-rendered so the component can be connected with map attribution tool.
+const fixedTools = [
+    {element: <FixedContainer key="attribution" id="footer-attribution-container" />},
+    {element: <FixedContainer key="scalebar" id="footer-scalebar-container" />}
+];
+
+
+/**
+ * Footer for MapViewer. Can contain several plugins.
+ * @name MapFooter
+ * @class
+ * @memberof plugins
+ */
 class MapFooter extends React.Component {
     static propTypes = {
         className: PropTypes.string,
@@ -22,13 +55,8 @@ class MapFooter extends React.Component {
         items: [],
         className: "mapstore-map-footer",
         style: {},
-        id: "mapstore-map-footer",
-        mapType: "leaflet"
+        id: "mapstore-map-footer"
     };
-
-    shouldComponentUpdate() {
-        return false;
-    }
 
     getPanels = () => {
         return this.props.items.filter((item) => item.tools).reduce((previous, current) => {
@@ -44,7 +72,7 @@ class MapFooter extends React.Component {
     };
 
     getTools = () => {
-        return this.props.items.sort((a, b) => b.position - a.position);
+        return [fixedTools[0], ...this.props.items.sort((a, b) => b.position - a.position), fixedTools[1]];
     };
 
     render() {
@@ -52,7 +80,6 @@ class MapFooter extends React.Component {
             <ToolsContainer id={this.props.id}
                 style={this.props.style}
                 className={this.props.className}
-                mapType={this.props.mapType}
                 container={(props) => <div {...props}>{props.children}</div>}
                 toolStyle="primary"
                 activeStyle="default"
@@ -64,7 +91,7 @@ class MapFooter extends React.Component {
     }
 }
 
-module.exports = {
+export default {
     MapFooterPlugin: MapFooter,
     reducers: {}
 };

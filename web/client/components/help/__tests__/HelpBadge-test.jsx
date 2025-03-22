@@ -5,11 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var React = require('react');
-var ReactDOM = require('react-dom');
-var HelpBadge = require('../HelpBadge');
-var expect = require('expect');
-const TestUtils = require('react-dom/test-utils');
+import React from 'react';
+
+import ReactDOM from 'react-dom';
+import HelpBadge from '../HelpBadge';
+import expect from 'expect';
+import TestUtils from 'react-dom/test-utils';
 
 describe('Test for HelpBadge', () => {
     beforeEach((done) => {
@@ -37,10 +38,10 @@ describe('Test for HelpBadge', () => {
 
     it('creates the component with custom props', () => {
         const helpBadge = ReactDOM.render(<HelpBadge
-                        id="fooid"
-                        isVisible
-                        className="foofoo"
-                        />, document.getElementById("container"));
+            id="fooid"
+            isVisible
+            className="foofoo"
+        />, document.getElementById("container"));
         expect(helpBadge).toExist();
 
         const helpBadgeDom = ReactDOM.findDOMNode(helpBadge);

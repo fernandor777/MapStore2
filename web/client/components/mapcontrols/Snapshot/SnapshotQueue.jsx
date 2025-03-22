@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -7,10 +6,13 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
+import './css/snapshot.css';
 
-require("./css/snapshot.css");
+import PropTypes from 'prop-types';
+import React from 'react';
 
+import snapshotSupportComp from './SnapshotSupport';
+import { MapLibraries } from '../../../utils/MapTypeUtils';
 
 let SnapshotSupport;
 
@@ -36,16 +38,16 @@ class SnapshotQueue extends React.Component {
     static defaultProps = {
         onRemoveSnapshot: () => {},
         onSnapshotError: () => {},
-        mapType: 'leaflet'
+        mapType: MapLibraries.OPENLAYERS
     };
 
-    componentWillMount() {
-        SnapshotSupport = require('./SnapshotSupport')(this.props.mapType);
+    UNSAFE_componentWillMount() {
+        SnapshotSupport = snapshotSupportComp(this.props.mapType);
     }
 
-    componentWillReceiveProps(newProps) {
+    UNSAFE_componentWillReceiveProps(newProps) {
         if (newProps.mapType !== this.props.mapType) {
-            SnapshotSupport = require('./SnapshotSupport')(newProps.mapType);
+            SnapshotSupport = snapshotSupportComp(newProps.mapType);
         }
     }
 
@@ -68,7 +70,7 @@ class SnapshotQueue extends React.Component {
                 <div
                     key="hiddenGrabMaps"
                     style={{zIndex: -9999}}
-                    >
+                >
                     {this.renderGrabMaps(this.props.queue)}
                 </div>
             </div>);
@@ -91,4 +93,4 @@ class SnapshotQueue extends React.Component {
     };
 }
 
-module.exports = SnapshotQueue;
+export default SnapshotQueue;

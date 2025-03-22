@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,75 +5,110 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
 
-const GroupField = require('./GroupField');
-const SpatialFilter = require('./SpatialFilter');
-const QueryToolbar = require('./QueryToolbar');
+import './queryform.css';
 
-const Spinner = require('react-spinkit');
+import PropTypes from 'prop-types';
+import React from 'react';
+import Spinner from 'react-spinkit';
 
-require('./queryform.css');
+import BorderLayout from '../../layout/BorderLayout';
+import QueryToolbar from './QueryToolbar';
+import QueryPanelHeader from './QueryPanelHeader';
+import {upperFirst} from "lodash/string";
+
+
+function overrideItem(item, overrides = [], layerName) {
+    let replacement;
+    replacement = overrides.find(i => i.target === item.id);
+    if (replacement?.layerNameRegex) {
+        const regexp = new RegExp(replacement.layerNameRegex);
+        if (!regexp.test(layerName)) replacement = null;
+    }
+    return replacement ?? item;
+}
+
+const EmptyComponent = () => {
+    return null;
+};
+
+function handleRemoved(item) {
+    return item.plugin ? item : {
+        ...item,
+        plugin: EmptyComponent
+    };
+}
+
+function mergeItems(standard = [], overrides, layerName) {
+    return standard
+        .map(item => overrideItem(item, overrides, layerName))
+        .map(handleRemoved);
+}
 
 class QueryBuilder extends React.Component {
     static propTypes = {
         params: PropTypes.object,
-        featureTypeConfigUrl: PropTypes.string,
-        useMapProjection: PropTypes.bool,
         attributes: PropTypes.array,
         featureTypeError: PropTypes.string,
         featureTypeErrorText: PropTypes.node,
-        groupLevels: PropTypes.number,
-        maxFeaturesWPS: PropTypes.number,
         filterFields: PropTypes.array,
         groupFields: PropTypes.array,
         spatialField: PropTypes.object,
-        removeButtonIcon: PropTypes.string,
-        addButtonIcon: PropTypes.string,
         attributePanelExpanded: PropTypes.bool,
         spatialPanelExpanded: PropTypes.bool,
-        showDetailsPanel: PropTypes.bool,
+        crossLayerExpanded: PropTypes.bool,
         toolbarEnabled: PropTypes.bool,
         searchUrl: PropTypes.string,
         showGeneratedFilter: PropTypes.oneOfType([
             PropTypes.bool,
             PropTypes.string
         ]),
+        filters: PropTypes.array,
         filterType: PropTypes.string,
         featureTypeName: PropTypes.string,
         ogcVersion: PropTypes.string,
-        attributeFilterActions: PropTypes.object,
-        spatialFilterActions: PropTypes.object,
         queryToolbarActions: PropTypes.object,
         resultTitle: PropTypes.string,
         pagination: PropTypes.object,
         sortOptions: PropTypes.object,
         spatialOperations: PropTypes.array,
         spatialMethodOptions: PropTypes.array,
+        crossLayerFilterOptions: PropTypes.object,
         hits: PropTypes.bool,
+        buttonStyle: PropTypes.string,
         maxHeight: PropTypes.number,
         allowEmptyFilter: PropTypes.bool,
-        autocompleteEnabled: PropTypes.bool,
-        emptyFilterWarning: PropTypes.bool
+        emptyFilterWarning: PropTypes.bool,
+        header: PropTypes.node,
+        zoom: PropTypes.number,
+        projection: PropTypes.string,
+        toolsOptions: PropTypes.object,
+        appliedFilter: PropTypes.object,
+        storedFilter: PropTypes.object,
+        advancedToolbar: PropTypes.bool,
+        loadingError: PropTypes.bool,
+        controlActions: PropTypes.object,
+        standardItems: PropTypes.object,
+        items: PropTypes.array,
+        selectedLayer: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
+        style: PropTypes.object
     };
 
     static defaultProps = {
         params: {},
-        featureTypeConfigUrl: null,
-        useMapProjection: true,
-        groupLevels: 1,
+        buttonStyle: "default",
+        removeGroupButtonIcon: "trash",
         groupFields: [],
         filterFields: [],
+        filters: [],
         attributes: [],
         spatialMethodOptions: [],
         spatialOperations: [],
         featureTypeError: "",
         spatialField: {},
-        removeButtonIcon: "glyphicon glyphicon-remove",
-        addButtonIcon: "glyphicon glyphicon-plus",
+        crossLayerFilter: null,
         attributePanelExpanded: true,
         spatialPanelExpanded: true,
-        showDetailsPanel: false,
         toolbarEnabled: true,
         searchUrl: "",
         showGeneratedFilter: false,
@@ -84,86 +118,117 @@ class QueryBuilder extends React.Component {
         hits: false,
         maxHeight: 830,
         allowEmptyFilter: false,
-        autocompleteEnabled: true,
         emptyFilterWarning: false,
-        attributeFilterActions: {
-            onAddGroupField: () => {},
-            onAddFilterField: () => {},
-            onRemoveFilterField: () => {},
-            onUpdateFilterField: () => {},
-            onUpdateExceptionField: () => {},
-            onUpdateLogicCombo: () => {},
-            onRemoveGroupField: () => {},
-            onChangeCascadingValue: () => {},
-            onExpandAttributeFilterPanel: () => {}
-        },
-        spatialFilterActions: {
-            onExpandSpatialFilterPanel: () => {},
-            onSelectSpatialMethod: () => {},
-            onSelectSpatialOperation: () => {},
-            onChangeDrawingStatus: () => {},
-            onRemoveSpatialSelection: () => {},
-            onShowSpatialSelectionDetails: () => {},
-            onSelectViewportSpatialMethod: () => {},
-            onEndDrawing: () => {},
-            onChangeDwithinValue: () => {}
-        },
+        advancedToolbar: false,
+        loadingError: false,
+        crossLayerFilterOptions: {},
         queryToolbarActions: {
             onQuery: () => {},
             onReset: () => {},
-            onChangeDrawingStatus: () => {}
-        }
+            onChangeDrawingStatus: () => {},
+            onSaveFilter: () => {},
+            onRestoreFilter: () => {}
+        },
+        toolsOptions: {},
+        controlActions: {
+            onToggleQuery: () => {}
+        },
+        items: [],
+        selectedLayer: false,
+        standardItems: {},
+        style: {}
+    };
+
+    getItems = (target) => {
+        const layerName = this.props.selectedLayer;
+        const filtered = this.props.items.filter(this.filterItem(target, layerName));
+        const merged = mergeItems(this.props.standardItems[target], this.props.items, layerName)
+            .map(item => ({
+                ...item,
+                target
+            }));
+        return [...merged, ...filtered]
+            .sort((i1, i2) => (i1.position ?? 0) - (i2.position ?? 0));
+    };
+
+    renderItem = (item, opts) => {
+        const {validations, ...options } = opts;
+        const Comp = item.component ?? item.plugin;
+        const {style, ...other} = this.props;
+        const itemOptions = this.props[item.id + "Options"];
+        // this allows "hideSpatialFilter", "hideCrossLayer" options
+        const hideItem = options[`hide${upperFirst(item.id)}`] === true;
+        return hideItem ? null : <Comp role="body" {...other} {...item.cfg} {...options} {...itemOptions} validation={validations?.[item.id ?? item.name]}/>;
+    };
+
+    renderItems = (target, options) => {
+        return this.getItems(target)
+            .map(item => this.renderItem(item, options));
     };
 
     render() {
         if (this.props.featureTypeError !== "") {
-            return <div style={{margin: "0 auto", "text-align": "center"}}>{this.props.featureTypeErrorText}</div>;
+            return (<div>
+                <QueryPanelHeader onToggleQuery={this.props.controlActions.onToggleQuery}/>
+                <div style={{margin: "0 auto", "text-align": "center"}}>{this.props.featureTypeErrorText}</div>
+            </div>);
         }
+
+        const header = (<div className="m-header">{this.props.header}
+            <QueryToolbar
+                sendFilters={{
+                    attributeFilter: this.props.attributePanelExpanded,
+                    spatialFilter: this.props.spatialPanelExpanded,
+                    crossLayerFilter: this.props.crossLayerExpanded
+                }}
+                filters={this.props.filters}
+                params={this.props.params}
+                filterFields={this.props.filterFields}
+                groupFields={this.props.groupFields}
+                spatialField={this.props.spatialField}
+                toolbarEnabled={this.props.toolbarEnabled}
+                searchUrl={this.props.searchUrl}
+                showGeneratedFilter={this.props.showGeneratedFilter}
+                featureTypeName={this.props.featureTypeName}
+                ogcVersion={this.props.ogcVersion}
+                filterType={this.props.filterType}
+                actions={this.props.queryToolbarActions}
+                resultTitle={this.props.resultTitle}
+                pagination={this.props.pagination}
+                sortOptions={this.props.sortOptions}
+                crossLayerFilter={this.props.crossLayerFilterOptions.crossLayerFilter}
+                hits={this.props.hits}
+                allowEmptyFilter={this.props.allowEmptyFilter}
+                emptyFilterWarning={this.props.emptyFilterWarning}
+                appliedFilter={this.props.appliedFilter}
+                storedFilter={this.props.storedFilter}
+                advancedToolbar={this.props.advancedToolbar}
+                loadingError={this.props.loadingError}
+            /></div>);
+        const { spatialMethodOptions, toolsOptions, spatialOperations} = this.props;
         return this.props.attributes.length > 0 ?
-            <div id="query-form-panel">
-                <QueryToolbar
-                    params={this.props.params}
-                    filterFields={this.props.filterFields}
-                    groupFields={this.props.groupFields}
-                    spatialField={this.props.spatialField}
-                    toolbarEnabled={this.props.toolbarEnabled}
-                    searchUrl={this.props.searchUrl}
-                    showGeneratedFilter={this.props.showGeneratedFilter}
-                    featureTypeName={this.props.featureTypeName}
-                    ogcVersion={this.props.ogcVersion}
-                    filterType={this.props.filterType}
-                    actions={this.props.queryToolbarActions}
-                    resultTitle={this.props.resultTitle}
-                    pagination={this.props.pagination}
-                    sortOptions={this.props.sortOptions}
-                    hits={this.props.hits}
-                    allowEmptyFilter={this.props.allowEmptyFilter}
-                    emptyFilterWarning={this.props.emptyFilterWarning}
-                    />
-                <div className="querypanel" style={{maxHeight: this.props.maxHeight - 170}}>
-                    <GroupField
-                        autocompleteEnabled={this.props.autocompleteEnabled}
-                        maxFeaturesWPS={this.props.maxFeaturesWPS}
-                        attributes={this.props.attributes}
-                        groupLevels={this.props.groupLevels}
-                        filterFields={this.props.filterFields}
-                        groupFields={this.props.groupFields}
-                        removeButtonIcon={this.props.removeButtonIcon}
-                        addButtonIcon={this.props.addButtonIcon}
-                        attributePanelExpanded={this.props.attributePanelExpanded}
-                        actions={this.props.attributeFilterActions}/>
-                    <SpatialFilter
-                        useMapProjection={this.props.useMapProjection}
-                        spatialField={this.props.spatialField}
-                        spatialOperations={this.props.spatialOperations}
-                        spatialMethodOptions={this.props.spatialMethodOptions}
-                        spatialPanelExpanded={this.props.spatialPanelExpanded}
-                        showDetailsPanel={this.props.showDetailsPanel}
-                        actions={this.props.spatialFilterActions}/>
-                </div>
-            </div>
-         : <div style={{margin: "0 auto", width: "60px"}}><Spinner spinnerName="three-bounce" overrideSpinnerClassName="spinner"/></div>;
+            <>
+                <BorderLayout header={header} className="mapstore-query-builder" id="query-form-panel">
+                    {this.renderItems('start', { spatialOperations, spatialMethodOptions, ...toolsOptions })}
+                    {this.renderItems('attributes', { spatialOperations, spatialMethodOptions, ...toolsOptions })}
+                    {this.renderItems('afterAttributes', { spatialOperations, spatialMethodOptions, ...toolsOptions })}
+                    {this.renderItems('spatial', { spatialOperations, spatialMethodOptions, ...toolsOptions })}
+                    {this.renderItems('afterSpatial', { spatialOperations, spatialMethodOptions, ...toolsOptions })}
+                    {this.renderItems('layers', { spatialOperations, spatialMethodOptions, ...toolsOptions })}
+                    {this.renderItems('end', { spatialOperations, spatialMethodOptions, ...toolsOptions })}
+                </BorderLayout>
+                {this.renderItems('map', { spatialOperations, spatialMethodOptions, ...toolsOptions })}
+            </>
+            : <div className="spinner-panel" style={{margin: "0 auto", width: "60px"}}><Spinner spinnerName="three-bounce" overrideSpinnerClassName="spinner"/></div>;
+    }
+
+    filterItem = (target, layerName) => (el) => {
+        if (el.layerNameRegex) {
+            const regexp = new RegExp(el.layerNameRegex);
+            return (!target || el.target === target) && regexp.test(layerName);
+        }
+        return (!target || el.target === target);
     }
 }
 
-module.exports = QueryBuilder;
+export default QueryBuilder;

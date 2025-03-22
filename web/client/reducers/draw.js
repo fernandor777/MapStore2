@@ -6,9 +6,18 @@
  * LICENSE file in the root directory of this source tree.
 */
 
-const {CHANGE_DRAWING_STATUS, SET_CURRENT_STYLE, GEOMETRY_CHANGED, DRAW_SUPPORT_STOPPED} = require('../actions/draw');
+import {
+    CHANGE_DRAWING_STATUS,
+    SET_CURRENT_STYLE,
+    GEOMETRY_CHANGED,
+    DRAW_SUPPORT_STOPPED,
+    TOGGLE_SNAPPING,
+    SET_SNAPPING_LAYER,
+    SNAPPING_IS_LOADING,
+    SET_SNAPPING_CONFIG
+} from '../actions/draw';
 
-const assign = require('object-assign');
+import assign from 'object-assign';
 
 const initialState = {
     drawStatus: null,
@@ -16,31 +25,61 @@ const initialState = {
     drawMethod: null,
     options: {},
     features: [],
-    tempFeatures: []
+    tempFeatures: [],
+    snapping: false,
+    snappingIsLoading: false,
+    snappingLayer: false
 };
+
+export const defaultSnappingConfig = { edge: true, vertex: true, pixelTolerance: 10, strategy: 'bbox'};
 
 function draw(state = initialState, action) {
     switch (action.type) {
-        case CHANGE_DRAWING_STATUS:
-            return assign({}, state, {
-                drawStatus: action.status,
-                drawOwner: action.owner,
-                drawMethod: action.method,
-                options: action.options,
-                features: action.features,
-                style: action.style
-            });
-        case SET_CURRENT_STYLE:
-            return assign({}, state, {
-                currentStyle: action.currentStyle
-            });
-        case GEOMETRY_CHANGED:
-            return assign({}, state, {tempFeatures: action.features});
-        case DRAW_SUPPORT_STOPPED:
-            return assign({}, state, {tempFeatures: []});
-        default:
-            return state;
+    case CHANGE_DRAWING_STATUS:
+        return assign({}, state, {
+            drawStatus: action.status,
+            drawOwner: action.owner,
+            drawMethod: action.method,
+            options: action.options,
+            features: action.features,
+            style: action.style
+        });
+    case SET_CURRENT_STYLE:
+        return assign({}, state, {
+            currentStyle: action.currentStyle
+        });
+    case GEOMETRY_CHANGED:
+        return assign({}, state, {tempFeatures: action.features});
+    case DRAW_SUPPORT_STOPPED:
+        return assign({}, state, {tempFeatures: []});
+    case TOGGLE_SNAPPING:
+        return {
+            ...state,
+            snapping: !state.snapping
+        };
+    case SET_SNAPPING_LAYER:
+        return {
+            ...state,
+            snappingLayer: action.snappingLayer,
+            snappingIsLoading: false
+        };
+    case SNAPPING_IS_LOADING:
+        return {
+            ...state,
+            snappingIsLoading: !state.snappingIsLoading
+        };
+    case SET_SNAPPING_CONFIG:
+        return {
+            ...state,
+            snapConfig: {
+                ...({...defaultSnappingConfig, ...(action.pluginCfg?.snapConfig || {})}),
+                ...(state?.snapConfig ?? {}),
+                ...(action.prop && typeof action.value !== 'undefined' ? {[action.prop]: action.value} : {})
+            }
+        };
+    default:
+        return state;
     }
 }
 
-module.exports = draw;
+export default draw;

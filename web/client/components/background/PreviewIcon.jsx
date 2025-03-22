@@ -6,10 +6,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const PropTypes = require('prop-types');
+import React from 'react';
 
-require('./css/previewicon.css');
+import PropTypes from 'prop-types';
+import { indexOf, has, includes } from 'lodash';
+import './css/previewicon.css';
 
 class PreviewIcon extends React.Component {
     static propTypes = {
@@ -22,7 +23,9 @@ class PreviewIcon extends React.Component {
         currentLayer: PropTypes.object,
         onPropertiesChange: PropTypes.func,
         onToggle: PropTypes.func,
-        onLayerChange: PropTypes.func
+        onLayerChange: PropTypes.func,
+        setCurrentBackgroundLayer: PropTypes.func,
+        projection: PropTypes.string
     };
 
     static defaultProps = {
@@ -39,13 +42,20 @@ class PreviewIcon extends React.Component {
     };
 
     render() {
+        const compatibleCrs = ['EPSG:4326', 'EPSG:3857', 'EPSG:900913'];
+        const validCrs = indexOf(compatibleCrs, this.props.projection) > -1;
+        const compatibleWmts = this.props.layer.type === "wmts" && has(this.props.layer.allowedSRS, this.props.projection);
         const containerClass = this.props.vertical ? 'background-preview-icon-container-vertical' : 'background-preview-icon-container-horizontal';
         const type = this.props.layer.visibility ? ' bg-primary' : ' bg-body';
-        const invalid = this.props.layer.invalid ? ' disabled-icon' : '';
+        const valid = ((validCrs || compatibleWmts || includes(["wms", "empty", "osm", "tileprovider"], this.props.layer.type)) && !this.props.layer.invalid );
 
-        const click = this.props.layer.invalid ? () => {} : () => { this.props.onToggle(); this.props.onPropertiesChange(this.props.layer.id, {visibility: true}); this.props.onLayerChange('currentLayer', this.props.layer); };
+        const click = !valid ? () => {} : () => {
+            this.props.onToggle();
+            this.props.onPropertiesChange(this.props.layer.id, {visibility: true});
+            this.props.setCurrentBackgroundLayer(this.props.layer.id);
+        };
         return (
-            <div className={containerClass + type + invalid} style={{padding: this.props.frame / 2, marginLeft: this.props.vertical ? this.props.margin : 0, marginRight: this.props.vertical ? 0 : this.props.margin, marginBottom: this.props.margin, width: this.props.side + this.props.frame, height: this.props.side + this.props.frame}}>
+            <div className={containerClass + type + (valid ? '' : ' disabled-icon')} style={{padding: this.props.frame / 2, marginLeft: this.props.vertical ? this.props.margin : 0, marginRight: this.props.vertical ? 0 : this.props.margin, marginBottom: this.props.margin, width: this.props.side + this.props.frame, height: this.props.side + this.props.frame}}>
                 <div className="background-preview-icon-frame" style={{width: this.props.side, height: this.props.side}}>
                     <img
                         onMouseOver={() => { this.props.onLayerChange('tempLayer', this.props.layer); }}
@@ -57,4 +67,4 @@ class PreviewIcon extends React.Component {
     }
 }
 
-module.exports = PreviewIcon;
+export default PreviewIcon;

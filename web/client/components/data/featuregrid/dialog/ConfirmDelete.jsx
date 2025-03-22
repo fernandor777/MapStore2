@@ -1,18 +1,22 @@
-const React = require('react');
-const Confirm = require('../../../misc/ConfirmDialog');
-const Message = require('../../../I18N/Message');
-module.exports = ({
+import React from 'react';
+import Confirm from '../../../layout/ConfirmDialog';
+import Portal from '../../../misc/Portal';
+
+
+export default ({
     onClose = () => {},
     saving = false,
     count,
     onConfirm = () => {}
-} = {}) => (<Confirm
+} = {}) => (<Portal><Confirm
     show
-    onClose={onClose}
+    onCancel={onClose}
     onConfirm={onConfirm}
-    confirmButtonBSStyle="default"
-    closeGlyph="1-close"
-    confirmButtonContent={<Message msgId="featuregrid.deleteButton" />}
-    confirmButtonDisabled={saving}>
-    <Message msgId="featuregrid.delete" msgParams={{count: count}}/>
-</Confirm>);
+    variant="danger"
+    confirmId={`featuregrid.deleteButton`}
+    cancelId={`featuregrid.noButton`}
+    preventHide
+    titleId={"featuregrid.delete"}
+    titleParams={{count: count}}
+    disabled={saving}>
+</Confirm></Portal>);

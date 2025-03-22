@@ -6,8 +6,15 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const currentLocaleSelector = (state) => state.locale && state.locale.current || 'en-US';
+import { createSelector } from 'reselect';
 
-module.exports = {
+import { head } from 'lodash';
+
+export const currentLocaleSelector = (state) => state.locale && state.locale.current || 'en-US';
+export const currentMessagesSelector = (state) => state.locale && state.locale.messages || {};
+
+export const currentLocaleLanguageSelector = createSelector([
     currentLocaleSelector
-};
+], (currentLocale) => head(currentLocale.split('-')));
+
+

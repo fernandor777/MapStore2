@@ -1,70 +1,115 @@
-[![Stories in Ready](https://badge.waffle.io/geosolutions-it/MapStore2.png?label=ready&title=Ready)](https://waffle.io/geosolutions-it/MapStore2)
-[![Build Status](https://travis-ci.org/geosolutions-it/MapStore2.svg?branch=master)](https://travis-ci.org/geosolutions-it/MapStore2)
-[![Coverage Status](https://coveralls.io/repos/geosolutions-it/MapStore2/badge.svg?branch=master&service=github)](https://coveralls.io/github/geosolutions-it/MapStore2?branch=master)
-[![Codacy Badge](https://www.codacy.com/project/badge/1648d484427346e2877006dc287379b6)](https://www.codacy.com/app/simone-giannecchini/MapStore2)
-[![Inline docs](http://inch-ci.org/github/geosolutions-it/MapStore2.svg?branch=master)](http://inch-ci.org/github/geosolutions-it/MapStore2)
+# MapStore
+
+![Build Checks](https://github.com/geosolutions-it/MapStore2/actions/workflows/CI.yml/badge.svg?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/geosolutions-it/MapStore2/badge.svg?branch=master)](https://coveralls.io/github/geosolutions-it/MapStore2?branch=master)
+[![Master Documentation Status](https://readthedocs.org/projects/mapstore/badge/?version=latest)](https://docs.mapstore.geosolutionsgroup.com/en/latest/?badge=master)
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fold_left.svg?style=social&label=Follow%20%40mapstore2)](https://twitter.com/mapstore2)
 
-MapStore 2
-==========
-MapStore 2 is a framework to build *web mapping* applications using standard mapping libraries, such as [OpenLayers 3](http://openlayers.org/) and [Leaflet](http://leafletjs.com/).
+MapStore is an open-source web mapping framework that enables users to create, share, and embed maps and dashboards with ease, drawing from a broad range of geospatial data sources. Designed for flexibility and scalability, MapStore integrates seamlessly with **OpenLayers**, **Leaflet**, and **Cesium** for both **2D** and **3D** visualization, allowing users to explore maps in a dynamic, real-time environment.
 
-MapStore 2 has several example applications:
- * MapViewer is a simple viewer of preconfigured maps (optionally stored in a database using GeoStore)
- * MapPublisher has been developed to create, save and share in a simple and intuitive way maps and mashups created selecting contents by server like OpenStreetMap, Google Maps, MapQuest or specific servers provided by your organization or third party.
+With built-in support for **OGC** **standards** (such as **WMS**, **WMTS**, **WFS**, **3DTiles** and **CSW**), MapStore caters to the needs of professional GIS users while maintaining an intuitive interface for casual users. It supports rich feature configurations like layer styling, spatial analysis tools, and collaborative editing, making it a robust solution for diverse industries—from urban planning to environmental monitoring.
 
-For more information check the [MapStore documentation](https://dev.mapstore2.geo-solutions.it/mapstore/docs/).
+MapStore's architecture is designed for modularity and extensibility, allowing developers to integrate custom plugins or adapt it for specific use cases. Whether you need to create interactive maps for publication or sophisticated geospatial applications, MapStore2 provides a solid foundation for building powerful web mapping solutions.
 
-Download
-------------
-You can download the WAR file from the latest release [here](https://github.com/geosolutions-it/MapStore2/releases/latest).
+For more information check the <a href="https://docs.mapstore.geosolutionsgroup.com/en/latest/" target="_blank">MapStore documentation!</a>
+
+## Documentation
+
+You can find more documentation about how to build, install or develop with MapStore on the <a href="https://docs.mapstore.geosolutionsgroup.com/en/latest/" target="_blank">documentation site</a>.
+
+## License
+
+MapStore is Free and Open Source software, it is based on OpenLayers, Cesium, Leaflet and <a href="https://facebook.github.io/react/" target="_blank">ReactJS</a>, and is licensed under the Simplified BSD License.
+
+## Demo Instances
+
+We have the following instances:
+
+1. a DEV instance, which can be accessed <a href="https://dev-mapstore.geosolutionsgroup.com/" target="_blank">here</a>, where all the changes are deployed once they are published on the Master branch of our repo
+2. a QA instance, which can be accessed  <a href="https://qa-mapstore.geosolutionsgroup.com/" target="_blank">here</a>, that becomes active 1 week before any release, during the hardening phase, and deploys the release branch whenever a fix is pushed onto it.
+3. a STABLE instance, which can be accessed <a href="https://mapstore.geosolutionsgroup.com/" target="_blank">here</a>, that gets deployed on demand after each release.
+
+As a user you need to be aware of STABLE and DEV, QA is used internally before a release; for 1 Week it will diverge from STABLE as it is actually anticipating the next stable.
+So, if you want to test latest features use DEV, if you are not that brave use STABLE. You might forget that QA exists unless you are parte of the developers team.
+
+## Download
+
+You can download the WAR file from the latest release [MapStore documentation!](https://docs.mapstore.geosolutionsgroup.com/en/latest/)
 
 [All the releases](https://github.com/geosolutions-it/MapStore2/releases)
 
-Quick Start
-------------
-After downloading the MapStore2 war file, install it in your java web container (e.g. Tomcat), with usual procedures for the container (normally you only need to copy the war file in the webapps subfolder).
+## Quick Start
 
-If you don't have a java web container you can download Apache Tomcat from [here](https://tomcat.apache.org/download-70.cgi) and install it. You will also need a Java7 [JRE](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html)
+There are two quick ways to test out MapStore. Either using <a href="https://www.docker.com/" target="_blank">Docker</a> (all tags are available in the [geosolutions dockerhub](https://hub.docker.com/r/geosolutionsit/mapstore2/tags?page=1&ordering=last_updated)) or a local java web container like <a href="http://tomcat.apache.org/" target="_blank">Apache Tomcat</a>
 
-Then you can access MapStore2 using the following URL (assuming the web container is on the standard 8080 port):
+## Using Docker
+
+### * Run Mapstore as standalone container
+
+Pull the latest image from Docker Hub:
+
+```sh
+docker pull geosolutionsit/mapstore2
+docker run --name mapstore -p 8080:8080  geosolutionsit/mapstore2
+```
+
+Then you can access MapStore using the following URL:
 
 [http://localhost:8080/mapstore](http://localhost:8080/mapstore)
 
 Use the default credentials (admin / admin) to login and start creating your maps!
 
-Documentation
--------------
-You can find more documentation about how to build, install or develop with MapStore 2 on the [documentation site](https://dev.mapstore2.geo-solutions.it/mapstore/docs/).
+### * Run the Mapstore with PostGIS through docker-compose in the local environment
 
-License
-------------
-MapStore 2 is Free and Open Source software, it is based on OpenLayers 3, Leaflet and [ReactJS](https://facebook.github.io/react/), and is licensed under the Simplified BSD License.
+- To test a different release of MapStore, you should change the `MAPSTORE_WEBAPP_SRC` build argument in the docker-compose file.
+- You should change the value of `POSTGRES_PASSWORD` for more security.
+- Due to proxy binding on host port 80, you may need to run docker-compose as root.
+- To spin up the environment run:
 
+  ```sh
+  docker-compose up -d
+  ```
 
-Demo Instances
----------------
-We have the following instances:
+**Note**: Take in consideration due to the requirements of the deployment, you should update the docker-compose to the latest version.
 
-1. a DEV instance, which can be accessed [here](http://dev.mapstore2.geo-solutions.it), where all the changes are deployed once they are published on the Master branch of our repo
-2. a QA instance, which can be accessed  [here](http://qa.mapstore2.geo-solutions.it), that becomes active 1 week before any release, during the hardening phase, and deploys the release branch whenever a fix is pushed onto it.
-3. a STABLE instance, which can be accessed [here](http://mapstore2.geo-solutions.it), that gets deployed on demand after each release.
+---
 
-As a user you need to be aware of STABLE and DEV, QA is used internally before a release; for 1 Week it will diverge from STABLE as it is actually anticipating the next stable.
-So, if you want to test latest features use DEV, if you are not that brave use STABLE. You might forget that QA exists unless you are parte of the developers team.
+- After the docker-compose finish, you can access to the site using following URL:
 
-Start developing your custom app
-------------
+  [http://localhost/mapstore](http://localhost/mapstore)
 
-Clone the repository with the --recursive option to automatically clone submodules:
+- Use the default credentials (**admin** / **admin**) to login and start creating your maps!
+- After finished the test you can stop the environment with the command:
 
-`git clone --recursive https://github.com/geosolutions-it/MapStore2.git`
+    ```shell
+    docker-compose down
+    ```
 
-Install NodeJS >= 4.6.1 , if needed, from [here](https://nodejs.org/en/download/releases/).
+- To clean the full environment:
 
-Update npm to 3.x, using:
+    ```shell
+    docker-compose down --remove-orphans --rmi all -v
+    ```
 
-`npm install -g npm@3`
+## Using the Web Archive (WAR file)
+
+After downloading the MapStore war file, install it in your java web container (e.g. Tomcat), with usual procedures for the container (normally you only need to copy the war file in the webapps subfolder).
+
+Check out <a href="https://docs.mapstore.geosolutionsgroup.com/en/latest/developer-guide/requirements/" target="_blank">here</a> which version of Java and Tomcat are needed.
+
+Then you can access MapStore using the following URL (assuming the web container is on the standard 8080 port):
+
+[http://localhost:8080/mapstore](http://localhost:8080/mapstore)
+
+Use the default credentials (admin / admin) to login and start creating your maps!
+
+## Start developing your custom app
+
+Clone the repository:
+
+`git clone https://github.com/geosolutions-it/MapStore2.git`
+
+Install NodeJS (with npm), Java and Maven following the requirements [here](https://docs.mapstore.geosolutionsgroup.com/en/latest/developer-guide/requirements/)
 
 Install docma to build the documentation
 
@@ -78,36 +123,69 @@ Start the demo locally:
 
 `npm start`
 
-The demo runs at `http://localhost:8081` afterwards.
-
-Install latest Maven, if needed, from [here](https://maven.apache.org/download.cgi) (version 3.1.0 is required).
+The demo runs at [http://localhost:8081](http://localhost:8081) afterwards (with the Java back-end running at port `http://localhost:8080`).
 
 Build the deployable war:
 
 `./build.sh [version_identifier]`
 
-Where version_identifier is an optional identifier of the generated war that will be shown in the settings panel of the application.
+Where `version_identifier` is an optional identifier of the generated war that will be shown in the settings panel of the application.
 
-Deploy the generated mapstore.war file (in web/target) to your favourite J2EE container (e.g. Tomcat).
+Deploy the generated `mapstore.war` file (in `product/target`) to your favorite J2EE container (e.g. Tomcat).
 
-Read more on the [documentation site](https://dev.mapstore2.geo-solutions.it/mapstore/docs/).
+Read more on the <a href="https://docs.mapstore.geosolutionsgroup.com/en/latest/" target="_blank">documentation site</a>.
 
-Professional Support
----------------------
-MapStore 2 is being developed by [GeoSolutions](http://www.geo-solutions.it/) hence you can talk to us for professional support. Anyway the project is a real Open Source project hence you can contribute to it (see section below).
+## Professional Support
 
-Communication
----------------------
-We currently have two mailing list, [one](https://groups.google.com/d/forum/mapstore-users) for users and [one](https://groups.google.com/d/forum/mapstore-developers) for developers. The first one is for those who are willing to use MapStore and need help/directions, the latter is for those trying to extend/proposed fixes for MapStore.
+MapStore is being developed by <a href="http://www.geosolutionsgroup.com/" target="_blank">GeoSolutions</a> hence you can talk to us for professional support. Anyway the project is a real Open Source project hence you can contribute to it (see section below).
 
+## Communication
 
-Contributing
----------------------
+We currently have two mailing list:  <br>
+<a href="https://groups.google.com/d/forum/mapstore-users" target="_blank">one</a> for users <br>
+<a href="https://groups.google.com/d/forum/mapstore-developers" target="_blank">one</a> for developers.
+
+The first one is for those who are willing to use MapStore and need help/directions, the latter is for those trying to extend/proposed fixes for MapStore.
+
+## Contributing
+
 We welcome contributions in any form:
 
-* pull requests for new features
-* pull requests for bug fixes
-* pull requests for documentation
-* funding for any combination of the above
+- pull requests for new features
+- pull requests for bug fixes
+- pull requests for documentation
+- funding for any combination of the above
 
-For more information check [this](https://github.com/geosolutions-it/MapStore2/blob/master/CONTRIBUTING.md) page.
+For more information check [this](https://github.com/geosolutions-it/MapStore2/wiki/Contributing-to-MapStore) page.
+
+## Who uses MapStore
+
+Here below is a small list of organizations using MapStore either directly or through [GeoNode](https://geonode.org/). If you want us to add ( or remove 😟 ) your organization from this list, please, contact [simone.giannecchini@geosolutionsgroup.com](mailto:simone.giannecchini@geosolutionsgroup.com) .
+
+- [City of Genova - Italy](https://mappe.comune.genova.it/MapStore2/#/)
+- [City of Bozen - Italy](https://sit.comune.bolzano.it/mapstore2/#/)
+- City of Florence - Italy
+- City of Munich - Germany
+- Rennes Metropole - France
+- [CRAIG - France](https://ids.craig.fr/mapstore/#/)
+- Compagnie Nationale du Rhone - France
+- [Urban Brussles (BruGIS) - Belgium](https://gis.urban.brussels/brugis/#/)
+- [Atlas Horizon 2020](http://www.atlas-horizon2020.eu/), this is based on GeoNode
+- [Whanganui District Council - New Zealand](https://data.whanganui.govt.nz/mapstore2-whanganuidc/#/)
+- [Otorohanga District Council - New Zealand](https://maps.otodc.govt.nz)
+- [Wairoa District Council - New Zealand](https://maps.wairoadc.govt.nz/#/)
+- [Cleveland Metroparks - USA](https://mapstore.cmparks.net/)
+- [Minerva - Canada](https://cczis.minervaintelligence.com/)
+- [Moldova National GeoPortal](http://www.moldova-map.md/)
+- [Region of Tuscany, Hydrologic Service - Italy](https://webgis.sir.toscana.it/mapstore/#/)
+- Neftex Halliburton - UK
+- Dhiantus - Sweden
+- [LaMMa Consortium - Italy](https://geoportale.lamma.rete.toscana.it/difesa_suolo/#/)
+- [Arno River Authority - Italy](https://geodata.appenninosettentrionale.it/mapstore/)
+- [Austrocontrol - Austria](https://sdimd-free.austrocontrol.at/mapstore/)
+- Earth-i - UK
+- MapStand - UK
+- [County of Milan - Italy](https://inlineainfrastrutture.cittametropolitana.mi.it/mapstore)
+- [Nordeste Municipality - Portugal](https://sigweb.cmnordeste.pt/mapstore/#/)
+- [Corvo Muncipality - Portugal](https://geocorvo.pt/mapstore/#/)
+- [Lajes das Flores Municipality - Portal](https://sigweb.cmlajesdasflores.pt/#/)

@@ -6,15 +6,20 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-module.exports = {
-    BingLayer: require('./BingLayer'),
-    GoogleLayer: require('./GoogleLayer'),
-    GraticuleLayer: require('./GraticuleLayer'),
-    MapQuest: require('./MapQuest'),
-    OSMLayer: require('./OSMLayer'),
-    OverlayLayer: require('./OverlayLayer'),
-    TileProviderLayer: require('./TileProviderLayer'),
-    VectorLayer: require('./VectorLayer'),
-    WMSLayer: require('./WMSLayer'),
-    WMTSLayer: require('./WMTSLayer')
+export default {
+    BingLayer: require('./BingLayer').default,
+    GoogleLayer: require('./GoogleLayer').default,
+    GraticuleLayer: require('./GraticuleLayer').default,
+    MapQuest: require('./MapQuest').default,
+    OSMLayer: require('./OSMLayer').default,
+    OverlayLayer: require('./OverlayLayer').default,
+    TMSLayer: require('./TMSLayer').default,
+    TileProviderLayer: require('./TileProviderLayer').default,
+    VectorLayer: require('./VectorLayer').default,
+    WFSLayer: require('./WFSLayer').default,
+    WMSLayer: require('./WMSLayer').default,
+    WMTSLayer: require('./WMTSLayer').default,
+    COGLayer: require('./COGLayer').default,
+    ElevationLayer: require('./ElevationLayer').default,
+    ArcGISLayer: require('./ArcGISLayer').default
 };

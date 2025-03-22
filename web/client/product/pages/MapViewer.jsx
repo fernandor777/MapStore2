@@ -5,24 +5,37 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const PropTypes = require('prop-types');
-const {connect} = require('react-redux');
-const url = require('url');
-const urlQuery = url.parse(window.location.href, true).query;
-const MapViewerCmp = require('../components/viewer/MapViewerCmp');
-const {loadMapConfig} = require('../../actions/config');
-const {initMap} = require('../../actions/map');
-const MapViewerContainer = require('../../containers/MapViewer');
 
+import url from 'url';
+
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
+
+import {loadMapConfig, loadNewMap} from '../../actions/config';
+import {initMap} from '../../actions/map';
+import MapViewerContainer from '../../containers/MapViewer';
+import MapViewerCmp from '../components/viewer/MapViewerCmp';
+
+const urlQuery = url.parse(window.location.href, true).query;
+
+/**
+ * Main page for the Map. It is used to render the main page (or context)
+ * It renders the plugins dedicated to the map (depending on mobile/desktop/embedded... mode),
+ * and it triggers the initial actions to load the map config (using the parameter received in `match` property).
+ * @name MapViewer
+ * @class
+ * @memberof pages
+ */
 class MapViewerPage extends React.Component {
     static propTypes = {
         mode: PropTypes.string,
         match: PropTypes.object,
+        loadNewMap: PropTypes.func,
         loadMapConfig: PropTypes.func,
         onInit: PropTypes.func,
         plugins: PropTypes.object,
-        wrappedComponent: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
+        wrappedContainer: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
         location: PropTypes.object
     };
 
@@ -40,10 +53,11 @@ class MapViewerPage extends React.Component {
     }
 }
 
-module.exports = connect((state) => ({
+export default connect((state) => ({
     mode: urlQuery.mobile || state.browser && state.browser.mobile ? 'mobile' : 'desktop'
 }),
-    {
-        loadMapConfig,
-        onInit: initMap
-    })(MapViewerPage);
+{
+    loadNewMap,
+    loadMapConfig,
+    onInit: initMap
+})(MapViewerPage);

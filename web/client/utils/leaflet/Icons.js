@@ -7,7 +7,7 @@
  */
 
 const L = require('leaflet');
-const {isFunction} = require('lodash');
+const isFunction = require('lodash/isFunction');
 
 require('leaflet-extra-markers');
 require('leaflet-extra-markers/dist/css/leaflet.extra-markers.min.css');
@@ -28,7 +28,7 @@ module.exports = {
     standard: {
         getIcon: (style) => {
             return L.icon({
-                iconUrl: style.iconUrl,
+                iconUrl: style.iconUrl || style.symbolUrlCustomized || style.symbolUrl,
                 shadowUrl: style.shadowUrl,
                 iconSize: style.iconSize,
                 shadowSize: style.shadowSize,

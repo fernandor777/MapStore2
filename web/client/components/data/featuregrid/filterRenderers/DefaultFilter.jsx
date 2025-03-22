@@ -1,4 +1,4 @@
- /**
+/**
   * Copyright 2017, GeoSolutions Sas.
   * All rights reserved.
   *
@@ -6,19 +6,20 @@
   * LICENSE file in the root directory of this source tree.
   */
 
-const AttributeFilter = require('./AttributeFilter');
-const {compose, withHandlers, defaultProps} = require('recompose');
+import AttributeFilter from './AttributeFilter';
 
-module.exports = compose(
+import { compose, withHandlers, defaultProps } from 'recompose';
+
+export default compose(
     defaultProps({
         onValueChange: () => {}
     }),
     withHandlers({
-        onChange: props => ({value, attribute} = {}) => {
+        onChange: props => ({value, attribute, inputOperator} = {}) => {
             props.onValueChange(value);
             props.onChange({
                 value: value,
-                operator: "=",
+                operator: inputOperator || "=",
                 type: props.type,
                 attribute
             });

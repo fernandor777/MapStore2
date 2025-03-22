@@ -5,10 +5,11 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require("react");
-const expect = require('expect');
-const ReactDOM = require('react-dom');
-const AdaptiveGrid = require('../AdaptiveGrid');
+import React from 'react';
+
+import expect from 'expect';
+import ReactDOM from 'react-dom';
+import AdaptiveGrid from '../AdaptiveGrid';
 
 let rows = [];
 for (let i = 1; i < 3; i++) {
@@ -16,7 +17,7 @@ for (let i = 1; i < 3; i++) {
         id: i,
         title: 'Title ' + i,
         count: i * 1
-      });
+    });
 }
 const defaultProps = {
     columns: [
@@ -43,7 +44,7 @@ describe("Test AdaptiveGrid Component", () => {
         ReactDOM.render(
             <AdaptiveGrid
                 {...defaultProps}
-                />, document.getElementById("container"));
+            />, document.getElementById("container"));
 
         const domComp = document.getElementsByClassName('react-grid-Container')[0];
         expect(domComp).toExist();

@@ -5,11 +5,14 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var React = require('react');
-var ReactDOM = require('react-dom');
-var Toolbar = require('../Toolbar');
-var expect = require('expect');
-const {filter} = require('lodash');
+
+import expect from 'expect';
+import {filter} from 'lodash';
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+import Toolbar from '../Toolbar';
+
 const spyOn = expect.spyOn;
 
 const isVisibleButton = (el) => {
@@ -31,10 +34,36 @@ describe('Featuregrid toolbar component', () => {
         ReactDOM.render(<Toolbar/>, document.getElementById("container"));
         const el = document.getElementsByClassName("featuregrid-toolbar")[0];
         expect(el).toExist();
-        const downloadBtn = document.getElementById("fg-download-grid");
         const editButton = document.getElementById("fg-edit-mode");
-        expect(isVisibleButton(downloadBtn)).toBe(true);
         expect(isVisibleButton(editButton)).toBe(false);
+    });
+    it('check showAdvancedFilterButton false', () => {
+        ReactDOM.render(<Toolbar showAdvancedFilterButton={false} />, document.getElementById("container"));
+        const el = document.getElementsByClassName("featuregrid-toolbar")[0];
+        expect(el).toExist();
+        const advFilterButton = document.getElementById("fg-search");
+        expect(isVisibleButton(advFilterButton)).toBe(false);
+    });
+    it('check showAdvancedFilterButton default', () => {
+        ReactDOM.render(<Toolbar />, document.getElementById("container"));
+        const el = document.getElementsByClassName("featuregrid-toolbar")[0];
+        expect(el).toExist();
+        const advFilterButton = document.getElementById("fg-search");
+        expect(isVisibleButton(advFilterButton)).toBe(true);
+    });
+    it('check showSyncOnMapButton false', () => {
+        ReactDOM.render(<Toolbar showSyncOnMapButton={false} />, document.getElementById("container"));
+        const el = document.getElementsByClassName("featuregrid-toolbar")[0];
+        expect(el).toExist();
+        const advFilterButton = document.getElementById("fg-grid-map-filter");
+        expect(isVisibleButton(advFilterButton)).toBe(false);
+    });
+    it('check showSyncOnMapButton default', () => {
+        ReactDOM.render(<Toolbar />, document.getElementById("container"));
+        const el = document.getElementsByClassName("featuregrid-toolbar")[0];
+        expect(el).toExist();
+        const advFilterButton = document.getElementById("fg-grid-map-filter");
+        expect(isVisibleButton(advFilterButton)).toBe(true);
     });
     it('check edit-mode button', () => {
         const events = {
@@ -43,15 +72,21 @@ describe('Featuregrid toolbar component', () => {
         spyOn(events, "switchEditMode");
         ReactDOM.render(<Toolbar events={events} mode="VIEW" isEditingAllowed/>, document.getElementById("container"));
         const el = document.getElementsByClassName("featuregrid-toolbar")[0];
-        expect(el).toExist();
+        expect(el).toBeTruthy();
         let editButton = document.getElementById("fg-edit-mode");
-        expect(isVisibleButton(editButton)).toBe(true);
+        expect(isVisibleButton(editButton)).toBe(false);
         editButton.click();
         expect(events.switchEditMode).toHaveBeenCalled();
         ReactDOM.render(<Toolbar events={events} mode="EDIT" isEditingAllowed/>, document.getElementById("container"));
         editButton = document.getElementById("fg-edit-mode");
         expect(isVisibleButton(editButton)).toBe(false);
         ReactDOM.render(<Toolbar events={events} mode="VIEW" isEditingAllowed={false}/>, document.getElementById("container"));
+        editButton = document.getElementById("fg-edit-mode");
+        expect(isVisibleButton(editButton)).toBe(false);
+        ReactDOM.render(<Toolbar events={events} mode="VIEW" isEditingAllowed layer={{type: "wms", disableFeaturesEditing: false}}/>, document.getElementById("container"));
+        editButton = document.getElementById("fg-edit-mode");
+        expect(isVisibleButton(editButton)).toBe(true);
+        ReactDOM.render(<Toolbar events={events} mode="VIEW" isEditingAllowed layer={{type: "wms", disableFeaturesEditing: true}}/>, document.getElementById("container"));
         editButton = document.getElementById("fg-edit-mode");
         expect(isVisibleButton(editButton)).toBe(false);
     });
@@ -271,24 +306,154 @@ describe('Featuregrid toolbar component', () => {
         ReactDOM.render(<Toolbar mode="EDIT" selectedCount={0} hasSupportedGeometry={false} />, document.getElementById("container"));
         const el = document.getElementsByClassName("featuregrid-toolbar")[0];
         expect(el).toExist();
-        expect(filter(document.getElementsByClassName("square-button"), function(b) { return isVisibleButton(b); }).length).toBe(1);
+        expect(filter(document.getElementsByClassName("square-button-md"), function(b) { return isVisibleButton(b); }).length).toBe(2);
         expect(isVisibleButton(document.getElementById("fg-add-feature"))).toBe(false);
         expect(isVisibleButton(document.getElementById("fg-back-view"))).toBe(true);
+        expect(isVisibleButton(document.getElementById("fg-grid-map-filter"))).toBe(true);
 
         ReactDOM.render(<Toolbar mode="EDIT" selectedCount={1} hasSupportedGeometry={false} />, document.getElementById("container"));
-        expect(filter(document.getElementsByClassName("square-button"), function(b) { return isVisibleButton(b); }).length).toBe(2);
+        expect(filter(document.getElementsByClassName("square-button-md"), function(b) { return isVisibleButton(b); }).length).toBe(3);
         expect(isVisibleButton(document.getElementById("fg-add-feature"))).toBe(false);
         expect(isVisibleButton(document.getElementById("fg-draw-feature"))).toBe(false);
         expect(isVisibleButton(document.getElementById("fg-delete-geometry"))).toBe(false);
         expect(isVisibleButton(document.getElementById("fg-remove-features"))).toBe(true);
         expect(isVisibleButton(document.getElementById("fg-back-view"))).toBe(true);
+        expect(isVisibleButton(document.getElementById("fg-grid-map-filter"))).toBe(true);
         ReactDOM.unmountComponentAtNode(document.getElementById("container"));
 
         ReactDOM.render(<Toolbar mode="EDIT" selectedCount={1} hasSupportedGeometry={false} hasChanges/>, document.getElementById("container"));
-        expect(filter(document.getElementsByClassName("square-button"), function(b) { return isVisibleButton(b); }).length).toBe(2);
+        expect(filter(document.getElementsByClassName("square-button-md"), function(b) { return isVisibleButton(b); }).length).toBe(3);
         expect(isVisibleButton(document.getElementById("fg-draw-feature"))).toBe(false);
         expect(isVisibleButton(document.getElementById("fg-delete-geometry"))).toBe(false);
         expect(isVisibleButton(document.getElementById("fg-save-feature"))).toBe(true);
         expect(isVisibleButton(document.getElementById("fg-cancel-editing"))).toBe(true);
+        expect(isVisibleButton(document.getElementById("fg-grid-map-filter"))).toBe(true);
+    });
+
+    it('check zoom-all button if all features has no geom', () => {
+        const events = {
+            switchEditMode: () => {}
+        };
+        spyOn(events, "switchEditMode");
+        ReactDOM.render(<Toolbar events={events} mode="VIEW" disableZoomAll/>, document.getElementById("container"));
+        const el = document.getElementsByClassName("featuregrid-toolbar")[0];
+        expect(el).toExist();
+        let zoomAllButton = document.getElementById("fg-zoom-all");
+        expect(isVisibleButton(zoomAllButton)).toBe(true);
+        expect(zoomAllButton.classList.contains('disabled')).toBe(true);
+        ReactDOM.render(<Toolbar events={events} mode="VIEW" disableZoomAll={false}/>, document.getElementById("container"));
+        zoomAllButton = document.getElementById("fg-zoom-all");
+        expect(zoomAllButton.classList.contains('disabled')).toBe(false);
+    });
+    describe('toolbarItems', () => {
+        it('render toolbarItems component', () => {
+            const DummyComponent = ({sampleProp}) => <button id="dummy-cmp" className={sampleProp}/>;
+            ReactDOM.render(<Toolbar sampleProp="TEST_SAMPLE_PROP" toolbarItems={[{Component: DummyComponent }]}/>, document.getElementById("container"));
+            const button = document.querySelector('.btn-group #dummy-cmp');
+            expect(button).toExist();
+            expect(button.className).toEqual("TEST_SAMPLE_PROP");
+        });
+        it('toolbarItems inherited disableToolbar', () => {
+            const DummyComponent = ({disabled, sampleProp}) => <button id="dummy-cmp" disabled={disabled} className={sampleProp}/>;
+            ReactDOM.render(<Toolbar sampleProp="TEST_SAMPLE_PROP" disableToolbar toolbarItems={[{Component: DummyComponent }]}/>, document.getElementById("container"));
+            const button = document.querySelector('.btn-group #dummy-cmp');
+            expect(button).toExist();
+            expect(button.disabled).toBeTruthy();
+            expect(button.className).toEqual("TEST_SAMPLE_PROP");
+        });
+    });
+    describe('time sync button', () => {
+        it('visibility', () => {
+            ReactDOM.render(<Toolbar mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(isVisibleButton(document.getElementById("fg-timeSync-button"))).toBe(false);
+            ReactDOM.render(<Toolbar showTimeSyncButton show mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(isVisibleButton(document.getElementById("fg-timeSync-button"))).toBe(true);
+        });
+        it('enabled/disabled state', () => {
+            ReactDOM.render(<Toolbar showTimeSyncButton timeSync mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(document.getElementById("fg-timeSync-button").className.split(' ')).toInclude('btn-success');
+            ReactDOM.render(<Toolbar showTimeSyncButton mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(document.getElementById("fg-timeSync-button").className.split(' ')).toNotInclude('btn-success');
+        });
+        it('handler', () => {
+            const events = {
+                setTimeSync: () => { }
+            };
+            const spy = spyOn(events, "setTimeSync");
+            ReactDOM.render(<Toolbar showTimeSyncButton timeSync events={events} mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            document.getElementById("fg-timeSync-button").click();
+            expect(spy.calls[0].arguments[0]).toBe(false);
+            ReactDOM.render(<Toolbar showTimeSyncButton events={events} mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            document.getElementById("fg-timeSync-button").click();
+            expect(spy.calls[1].arguments[0]).toBe(true);
+        });
+    });
+    describe('snap tool button', () => {
+        it('visibility', () => {
+            ReactDOM.render(<Toolbar mapType="openlayers" pluginCfg={{ snapTool: true }} mode="EDIT" disableZoomAll />, document.getElementById("container"));
+            expect(document.getElementById("snap-button")).toExist();
+            ReactDOM.render(<Toolbar mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(document.getElementById("snap-button")).toNotExist();
+        });
+        it('active/inactive state', () => {
+            ReactDOM.render(<Toolbar mapType="openlayers" snapping pluginCfg={{ snapTool: true }} mode="EDIT" disableZoomAll />, document.getElementById("container"));
+            expect(document.getElementById("snap-button").className.split(' ')).toInclude('btn-success');
+            ReactDOM.render(<Toolbar mapType="openlayers" pluginCfg={{ snapTool: true }} mode="EDIT" disableZoomAll />, document.getElementById("container"));
+            expect(document.getElementById("snap-button").className.split(' ')).toNotInclude('btn-success');
+        });
+        it('handler', () => {
+            const events = {
+                toggleSnapping: () => { }
+            };
+            const spy = spyOn(events, "toggleSnapping");
+            ReactDOM.render(<Toolbar mapType="openlayers" events={events} snapping pluginCfg={{ snapTool: true }} mode="EDIT" disableZoomAll />, document.getElementById("container"));
+            document.getElementById("snap-button").click();
+            expect(spy.calls[0].arguments[0]).toBe(false);
+            ReactDOM.render(<Toolbar mapType="openlayers" events={events} pluginCfg={{ snapTool: true }} mode="EDIT" disableZoomAll />, document.getElementById("container"));
+            document.getElementById("snap-button").click();
+            expect(spy.calls[1].arguments[0]).toBe(true);
+        });
+    });
+    describe('viewportFilter tool button', () => {
+        it('visibility', () => {
+            ReactDOM.render(<Toolbar mapType="openlayers" pluginCfg={{ showFilterByViewportTool: true }} isFilterByViewportSupported mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(isVisibleButton(document.getElementById("fg-viewportFilter-button"))).toBe(true);
+            ReactDOM.render(<Toolbar mapType="openlayers" pluginCfg={{ showFilterByViewportTool: true }} mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(isVisibleButton(document.getElementById("fg-viewportFilter-button"))).toBe(false);
+            ReactDOM.render(<Toolbar mapType="openlayers" pluginCfg={{ showFilterByViewportTool: false }} isFilterByViewportSupported mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(isVisibleButton(document.getElementById("fg-viewportFilter-button"))).toBe(false);
+            ReactDOM.render(<Toolbar mode="VIEW" pluginCfg={{ showFilterByViewportTool: false }} disableZoomAll />, document.getElementById("container"));
+            expect(isVisibleButton(document.getElementById("fg-viewportFilter-button"))).toBe(false);
+        });
+        it('active/inactive state', () => {
+            ReactDOM.render(<Toolbar mapType="openlayers" viewportFilter pluginCfg={{ showFilterByViewportTool: true }} mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(document.getElementById("fg-viewportFilter-button").className.split(' ')).toInclude('btn-success');
+            ReactDOM.render(<Toolbar mapType="openlayers" pluginCfg={{ showFilterByViewportTool: true }} mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            expect(document.getElementById("fg-viewportFilter-button").className.split(' ')).toNotInclude('btn-success');
+        });
+        it('handler', () => {
+            const events = {
+                setViewportFilter: () => { }
+            };
+            const spy = spyOn(events, "setViewportFilter");
+            ReactDOM.render(<Toolbar mapType="openlayers" events={events} viewportFilter pluginCfg={{ showFilterByViewportTool: true }} mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            document.getElementById("fg-viewportFilter-button").click();
+            expect(spy.calls[0].arguments[0]).toBe(false);
+            ReactDOM.render(<Toolbar mapType="openlayers" events={events} pluginCfg={{ showFilterByViewportTool: true }} mode="VIEW" disableZoomAll />, document.getElementById("container"));
+            document.getElementById("fg-viewportFilter-button").click();
+            expect(spy.calls[1].arguments[0]).toBe(true);
+        });
+    });
+    describe('showing/hiding PopoverSync in feature grid', () => {
+        it('check showPopoverSync false', () => {
+            ReactDOM.render(<Toolbar pluginCfg={{showPopoverSync: false}} />, document.getElementById("container"));
+            const el = document.getElementById("sync-popover");
+            expect(el).toBe(null);
+        });
+        it('check showPopoverSync true', () => {
+            ReactDOM.render(<Toolbar pluginCfg={{showPopoverSync: true}} />, document.getElementById("container"));
+            const el = document.getElementById("sync-popover");
+            expect(el).toExist();
+        });
     });
 });

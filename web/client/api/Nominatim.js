@@ -5,9 +5,10 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var axios = require('../libs/ajax');
-const urlUtil = require('url');
-const assign = require('object-assign');
+import axios from '../libs/ajax';
+
+import urlUtil from 'url';
+import assign from 'object-assign';
 const DEFAULT_URL = 'nominatim.openstreetmap.org';
 const DEFAULT_REVERSE_URL = 'nominatim.openstreetmap.org/reverse';
 const defaultOptions = {
@@ -23,7 +24,7 @@ const Api = {
     geocode: function(text, options) {
         var params = assign({q: text}, defaultOptions, options || {});
         var url = urlUtil.format({
-            protocol: window.location.protocol,
+            protocol: "https",
             host: DEFAULT_URL,
             query: params
         });
@@ -32,7 +33,7 @@ const Api = {
     reverseGeocode: function(coords, options) {
         const params = assign({lat: coords.lat, lon: coords.lng}, options || {}, defaultOptions);
         const url = urlUtil.format({
-            protocol: window.location.protocol,
+            protocol: "https",
             host: DEFAULT_REVERSE_URL,
             query: params
         });
@@ -40,4 +41,4 @@ const Api = {
     }
 };
 
-module.exports = Api;
+export default Api;

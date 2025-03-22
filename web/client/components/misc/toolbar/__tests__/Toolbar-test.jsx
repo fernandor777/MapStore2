@@ -1,4 +1,4 @@
- /**
+/**
   * Copyright 2017, GeoSolutions Sas.
   * All rights reserved.
   *
@@ -6,11 +6,10 @@
   * LICENSE file in the root directory of this source tree.
   */
 
-var expect = require('expect');
-var React = require('react');
-var ReactDOM = require('react-dom');
-var Toolbar = require('../Toolbar');
-
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Toolbar from '../Toolbar';
 
 describe("Toolbar component", () => {
     beforeEach((done) => {
@@ -56,6 +55,18 @@ describe("Toolbar component", () => {
         const btn = document.getElementById("button");
         expect(btn).toNotExist();
     });
-
-
+    // Optionally removes css animation group
+    it('test disable animation', () => {
+        ReactDOM.render(<Toolbar key={"toolbar"} transitionProps={false} buttons={[{
+            id: "button",
+            visible: true,
+            tooltip: "hello",
+            text: "hello",
+            tooltipPosition: "right",
+            glyph: "plus"
+        }]} />, document.getElementById("container"));
+        // this allows vertical toolbar with bootstrap css (animation group add internal span)
+        const el = document.querySelector(".btn-group > button");
+        expect(el).toExist();
+    });
 });

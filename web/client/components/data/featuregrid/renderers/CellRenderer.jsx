@@ -1,6 +1,6 @@
-const React = require('react');
-const PropTypes = require('prop-types');
-const {Cell} = require('react-data-grid');
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Cell } from 'react-data-grid';
 
 class CellRenderer extends React.Component {
     static propTypes = {
@@ -9,10 +9,15 @@ class CellRenderer extends React.Component {
         column: PropTypes.object
     };
     static contextTypes = {
-      isModified: PropTypes.func,
-      isProperty: PropTypes.func,
-      isValid: PropTypes.func
+        isModified: PropTypes.func,
+        isProperty: PropTypes.func,
+        isValid: PropTypes.func
     };
+    static defaultProps = {
+        value: null,
+        rowData: {},
+        column: {}
+    }
     constructor(props) {
         super(props);
         this.setScrollLeft = (scrollBy) => this.refs.cell.setScrollLeft(scrollBy);
@@ -27,4 +32,4 @@ class CellRenderer extends React.Component {
     }
 }
 
-module.exports = CellRenderer;
+export default CellRenderer;

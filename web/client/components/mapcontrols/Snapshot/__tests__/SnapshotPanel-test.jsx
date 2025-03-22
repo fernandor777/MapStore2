@@ -5,12 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
+import expect from 'expect';
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var ReactTestUtils = require('react-dom/test-utils');
-var SnapshotPanel = require('../SnapshotPanel');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ReactTestUtils from 'react-dom/test-utils';
+import SnapshotPanel from '../SnapshotPanel';
 
 describe("test the SnapshotPanel", () => {
     beforeEach((done) => {
@@ -52,20 +52,20 @@ describe("test the SnapshotPanel", () => {
     it('component error', () => {
         let layers = [{loading: false, type: "google", visibility: true}, {loading: true}];
         let map = {size: {width: 20, height: 20}, zoom: 10};
-        const tb = ReactDOM.render(<SnapshotPanel map={map} snapshot={{error: "ERROR"}} layers={layers} timeout={0} snapshot={{state: "DISABLED"}} active/>, document.getElementById("container"));
+        const tb = ReactDOM.render(<SnapshotPanel map={map} snapshot={{error: "ERROR"}} layers={layers} timeout={0} active/>, document.getElementById("container"));
         expect(tb).toExist();
         expect(document.getElementsByTagName('h4').length).toBe(1);
     });
 
     it('component tainted', () => {
-        const tb = ReactDOM.render(<SnapshotPanel snapshot={{tainted: true}} timeout={0} snapshot={{state: "DISABLED"}} active={false}/>, document.getElementById("container"));
+        const tb = ReactDOM.render(<SnapshotPanel snapshot={{tainted: true}} timeout={0} active={false}/>, document.getElementById("container"));
         expect(tb).toExist();
     });
 
     it('loading queue display', () => {
         let layers = [{loading: false, type: "google", visibility: true}, {loading: true}];
         let map = {size: {width: 20, height: 20}, zoom: 10};
-        const tb = ReactDOM.render(<SnapshotPanel map={map} layers={layers} wrap snapshot={{tainted: true}} timeout={0} snapshot={{state: "DISABLED", queue: [{key: 1}]}} active/>, document.getElementById("container"));
+        const tb = ReactDOM.render(<SnapshotPanel map={map} layers={layers} wrap timeout={0} snapshot={{state: "DISABLED", queue: [{key: 1}]}} active/>, document.getElementById("container"));
         expect(tb).toExist();
         ReactTestUtils.scryRenderedDOMComponentsWithClass(tb, "label-danger");
     });

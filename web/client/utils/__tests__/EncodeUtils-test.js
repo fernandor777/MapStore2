@@ -1,14 +1,13 @@
-const expect = require('expect');
-const EncodeUtils = require('../EncodeUtils');
+import expect from 'expect';
 
-const json = {
-	"name": "Hillshade 2.5m  digitales Gelände- und Oberflächenmodell - Modello digitale del terreno e della superficie - Digital Terrain and Surface Model"
-};
+import { encodeUTF8, decodeUTF8, base64ToUtf8, utf8ToBase64 } from '../EncodeUtils';
 
 describe('EncodeUtils', () => {
-    it('check utf encoding of chars with hex sequences', () => {
-        const encoded = EncodeUtils.utfEncode(JSON.stringify(json));
-
-        expect(encoded.indexOf('\\u00E4') !== -1).toBe(true);
+    const TESTS =  ["✓", "àèìòù€", "日本語", "اَلْعَرَبِيَّةُ", "汉语/漢語"];
+    it('encode-decode UTF-8', () => {
+        TESTS.forEach( value => expect(decodeUTF8(encodeUTF8(value))).toEqual(value));
+    });
+    it('encode-decode base64', () => {
+        TESTS.forEach( value => expect(base64ToUtf8(utf8ToBase64(value))).toEqual(value));
     });
 });

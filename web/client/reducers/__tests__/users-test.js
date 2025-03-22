@@ -5,15 +5,20 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const expect = require('expect');
+import expect from 'expect';
 
-const users = require('../users');
-const {
-    USERMANAGER_GETUSERS, USERMANAGER_EDIT_USER, USERMANAGER_EDIT_USER_DATA,
-    USERMANAGER_UPDATE_USER, USERMANAGER_DELETE_USER, USERMANAGER_GETGROUPS
-} = require('../../actions/users');
+import users from '../users';
 
-const {UPDATEGROUP, STATUS_CREATED, DELETEGROUP, STATUS_DELETED} = require('../../actions/usergroups');
+import {
+    USERMANAGER_GETUSERS,
+    USERMANAGER_EDIT_USER,
+    USERMANAGER_EDIT_USER_DATA,
+    USERMANAGER_UPDATE_USER,
+    USERMANAGER_DELETE_USER,
+    USERMANAGER_GETGROUPS
+} from '../../actions/users';
+
+import { UPDATEGROUP, STATUS_CREATED, DELETEGROUP, STATUS_DELETED } from '../../actions/usergroups';
 
 describe('Test the users reducer', () => {
     it('default loading', () => {
@@ -103,26 +108,15 @@ describe('Test the users reducer', () => {
             groups: []
         }}, {
             type: USERMANAGER_EDIT_USER_DATA,
-            key: "attribute.attr1",
-            newValue: "value2"
-        });
+            key: "attribute",
+            newValue: [{name: "attr1", value: "value2"}]
+        }
+        );
         expect(stateMerge.currentUser).toExist();
         expect(stateMerge.currentUser.id).toBe(1);
         expect(stateMerge.currentUser.attribute).toExist();
         expect(stateMerge.currentUser.attribute.length).toBe(1);
         expect(stateMerge.currentUser.attribute[0].value).toBe("value2");
-
-        // edit existing attribute
-        let stateMerge2 = users(stateMerge, {
-            type: USERMANAGER_EDIT_USER_DATA,
-            key: "attribute.attr1",
-            newValue: "NEW_VALUE"
-        });
-        expect(stateMerge2.currentUser).toExist();
-        expect(stateMerge2.currentUser.id).toBe(1);
-        expect(stateMerge2.currentUser.attribute).toExist();
-        expect(stateMerge2.currentUser.attribute.length).toBe(1);
-        expect(stateMerge2.currentUser.attribute[0].value).toBe("NEW_VALUE");
     });
     it('update user data', () => {
         const state = users({currentUser: {

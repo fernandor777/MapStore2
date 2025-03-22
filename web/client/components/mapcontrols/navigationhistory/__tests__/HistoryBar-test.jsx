@@ -5,11 +5,11 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
+import expect from 'expect';
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var HistoryBar = require('../HistoryBar');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import HistoryBar from '../HistoryBar';
 
 describe('HistoryBar', () => {
     beforeEach((done) => {
@@ -49,9 +49,9 @@ describe('HistoryBar', () => {
                 redoBtnProps={{ onClick: handlers.onclick}}/>, document.getElementById("container"));
             const cmpDom = ReactDOM.findDOMNode(cmp);
             const undo = btnType === "normal" ? cmpDom.getElementsByTagName("button").item(0)
-                                              : cmpDom.getElementsByTagName("img").item(0);
+                : cmpDom.getElementsByTagName("img").item(0);
             const redo = btnType === "normal" ? cmpDom.getElementsByTagName("button").item(1)
-                                              : cmpDom.getElementsByTagName("img").item(1);
+                : cmpDom.getElementsByTagName("img").item(1);
             undo.click();
             redo.click();
             expect(spy.calls.length).toBe(2);

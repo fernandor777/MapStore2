@@ -6,8 +6,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var Layers = require('../../../../utils/openlayers/Layers');
-var ol = require('openlayers');
+import Layers from '../../../../utils/openlayers/Layers';
+import TileLayer from 'ol/layer/Tile';
+import BingMaps from 'ol/source/BingMaps';
 
 const checkLoaded = (layer, options) => {
     if (layer.getSource && layer.getSource().getState() === 'error') {
@@ -24,12 +25,15 @@ Layers.registerType('bing', {
     create: (options) => {
         var key = options.apiKey;
         var maxNativeZoom = options.maxNativeZoom || 19;
-        const layer = new ol.layer.Tile({
+        const layer = new TileLayer({
+            msId: options.id,
             preload: Infinity,
             opacity: options.opacity !== undefined ? options.opacity : 1,
             zIndex: options.zIndex,
             visible: options.visibility,
-            source: new ol.source.BingMaps({
+            minResolution: options.minResolution,
+            maxResolution: options.maxResolution,
+            source: new BingMaps({
                 key: key,
                 imagerySet: options.name,
                 maxZoom: maxNativeZoom
@@ -37,6 +41,14 @@ Layers.registerType('bing', {
         });
         setTimeout(checkLoaded.bind(null, layer, options), 1000);
         return layer;
+    },
+    update: (layer, newOptions, oldOptions) => {
+        if (oldOptions.minResolution !== newOptions.minResolution) {
+            layer.setMinResolution(newOptions.minResolution === undefined ? 0 : newOptions.minResolution);
+        }
+        if (oldOptions.maxResolution !== newOptions.maxResolution) {
+            layer.setMaxResolution(newOptions.maxResolution === undefined ? Infinity : newOptions.maxResolution);
+        }
     },
     isValid: (layer) => {
         if (layer.getSource && layer.getSource().getState() === 'error') {

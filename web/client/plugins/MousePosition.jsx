@@ -1,21 +1,26 @@
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
 
-const {connect} = require('react-redux');
-const {mapSelector, projectionDefsSelector} = require('../selectors/map');
-const Message = require('../components/I18N/Message');
-const {Tooltip} = require('react-bootstrap');
-const {createSelector} = require('reselect');
+import { get } from 'lodash';
+import assign from 'object-assign';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Tooltip } from 'react-bootstrap';
+import { connect } from 'react-redux';
+import { createSelector } from 'reselect';
 
-const assign = require('object-assign');
-
-const {changeMousePositionCrs, changeMousePositionState} = require('../actions/mousePosition');
+import { registerEventListener, unRegisterEventListener } from '../actions/map';
+import { changeMousePositionCrs } from '../actions/mousePosition';
+import ToggleButton from '../components/buttons/ToggleButton';
+import Message from '../components/I18N/Message';
+import MousePositionComponent from '../components/mapcontrols/mouseposition/MousePosition';
+import mousePositionReducers from '../reducers/mousePosition';
+import { isMouseMoveCoordinatesActiveSelector, mapSelector, projectionDefsSelector } from '../selectors/map';
 
 const getDesiredPosition = (map, mousePosition, mapInfo) => {
     if (mousePosition.showCenter && map) {
@@ -33,24 +38,26 @@ const getDesiredPosition = (map, mousePosition, mapInfo) => {
             crs: "EPSG:4326"
         };
     }
-    return mousePosition.position;
+    return mousePosition;
 };
 
 const selector = createSelector([
     (state) => state,
     mapSelector,
-    (state) => state.mousePosition || {},
+    (state) => isMouseMoveCoordinatesActiveSelector(state),
+    (state) => get(state, 'mousePosition.position') || {},
+    (state) => get(state, 'mousePosition.crs') || 'EPSG:4326',
     (state) => state.mapInfo || {}
-], (state, map, mousePosition, mapInfo) => ({
-    enabled: mousePosition.enabled,
+], (state, map, enabled, mousePosition, crs, mapInfo) => ({
+    enabled,
     mousePosition: getDesiredPosition(map, mousePosition, mapInfo),
     projectionDefs: projectionDefsSelector(state),
-    crs: mousePosition.crs || 'EPSG:4326'
+    crs: crs
 }));
 
 const MousePositionButton = connect((state) => ({
-    pressed: state.mousePosition && state.mousePosition.enabled,
-    active: state.mousePosition && state.mousePosition.enabled,
+    pressed: isMouseMoveCoordinatesActiveSelector(state),
+    active: isMouseMoveCoordinatesActiveSelector(state),
     tooltip: <Tooltip id="showMousePositionCoordinates"><Message msgId="showMousePositionCoordinates"/></Tooltip>,
     tooltipPlace: 'left',
     pressedStyle: "success active",
@@ -58,17 +65,32 @@ const MousePositionButton = connect((state) => ({
     glyphicon: "mouse",
     btnConfig: {
         bsSize: "small"}
-}), {
-    onClick: changeMousePositionState
-})(require('../components/buttons/ToggleButton'));
-
-const MousePositionComponent = require('../components/mapcontrols/mouseposition/MousePosition');
+}), {registerEventListener, unRegisterEventListener}, (stateProps, dispatchProps) => {
+    return {...stateProps, onClick: () => stateProps.active ? dispatchProps.unRegisterEventListener('mousemove', 'mouseposition') : dispatchProps.registerEventListener('mousemove', 'mouseposition')};
+})(ToggleButton);
 
 
 class MousePosition extends React.Component {
+    static propTypes = {
+        degreesTemplate: PropTypes.string,
+        projectedTemplate: PropTypes.string
+    };
+
+    static defaultProps = {
+        degreesTemplate: 'MousePositionLabelDMS',
+        projectedTemplate: 'MousePositionLabelYX'
+    };
+
+    getTemplate = (template) => {
+        return require('../components/mapcontrols/mouseposition/' + template + ".jsx").default;
+    };
     render() {
+        const { degreesTemplate, projectedTemplate, ...other} = this.props;
         return (
-            <MousePositionComponent toggle={<MousePositionButton/>} {...this.props}/>
+            <MousePositionComponent
+                degreesTemplate={this.getTemplate(degreesTemplate)}
+                projectedTemplate={this.getTemplate(projectedTemplate)}
+                toggle={<MousePositionButton/>} {...other}/>
         );
     }
 }
@@ -79,6 +101,8 @@ class MousePosition extends React.Component {
   * @name MousePosition
   * @memberof plugins
   * @class
+  * @prop {boolean} cfg.showElevation shows elevation in addition to planar coordinates (requires a WMS layer with useElevation: true to be configured in the map)
+  * @prop {function} cfg.elevationTemplate custom template to show the elevation if showElevation is true (default template shows the elevation number with no formatting)
   * @prop {object[]} projectionDefs list of additional project definitions
   * @prop {string[]} cfg.filterAllowedCRS list of allowed crs in the combobox list to used as filter for the one of retrieved proj4.defs()
   * @prop {object} cfg.additionalCRS additional crs added to the list. The label param is used after in the combobox.
@@ -103,12 +127,22 @@ class MousePosition extends React.Component {
   *     "filterAllowedCRS": ["EPSG:4326", "EPSG:3857"]
   *   }
   * }
+  * @example
+  * // to show elevation and (optionally) use a custom template configure the plugin this way:
+  * {
+  *   "cfg": {
+  *     ...
+  *     "showElevation": true,
+  *     "elevationTemplate": "{(function(elevation) {return 'myelev: ' + (elevation || 0);})}",
+  *     ...
+  *   }
+  * }
 */
 const MousePositionPlugin = connect(selector, {
     onCRSChange: changeMousePositionCrs
 })(MousePosition);
 
-module.exports = {
+export default {
     MousePositionPlugin: assign(MousePositionPlugin, {
         MapFooter: {
             name: 'mousePosition',
@@ -117,5 +151,5 @@ module.exports = {
             priority: 1
         }
     }),
-    reducers: {mousePosition: require('../reducers/mousePosition')}
+    reducers: {mousePosition: mousePositionReducers}
 };

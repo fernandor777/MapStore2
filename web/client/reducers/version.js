@@ -6,12 +6,15 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const { CHANGE_VERSION } = require('../actions/version');
-const assign = require('object-assign');
-
+import { CHANGE_VERSION, LOAD_VERSION_ERROR } from '../actions/version';
+import { parseCommitDataMessage } from '../utils/VersionUtils';
 /**
  * Manages the state of the version identifier
- * @prop {string} current version identifier
+ * @prop {string} current mapstore version identifier
+ * @prop {string} message the commit name
+ * @prop {string} commit the commit sha
+ * @prop {string} date the date when the commit has been created
+ * @prop {string} githubUrl url to use as target for <a> tag inside a button
  *
  * @example
  *{
@@ -19,18 +22,23 @@ const assign = require('object-assign');
  *}
  * @memberof reducers
  */
-function version(state = null, action) {
+function version(state = parseCommitDataMessage(__COMMIT_DATA__), action) {
     switch (action.type) {
     case CHANGE_VERSION: {
-        return assign({}, state,
-            {
-                current: action.version
-            }
-            );
+        return {
+            ...state,
+            current: action.version
+        };
+    }
+    case LOAD_VERSION_ERROR: {
+        return {
+            ...state,
+            current: 'no-version'
+        };
     }
     default:
         return state;
     }
 }
 
-module.exports = version;
+export default version;

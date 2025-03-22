@@ -6,11 +6,12 @@
  * LICENSE file in the root directory of this source tree.
 */
 
-const React = require('react');
-const PagedCombobox = require('./PagedCombobox');
+import React from 'react';
+
+import PagedCombobox from './PagedCombobox';
 
 // state enhancer for local props
-const addState = require('./addState');
+import addState from './addState';
 
 const ControlledCombobox = addState(({ toggle, select, focus, change, value, busy, data, loading = false, filter, open }) => {
     return (<PagedCombobox
@@ -26,7 +27,7 @@ const ControlledCombobox = addState(({ toggle, select, focus, change, value, bus
         open={open}
         loading={loading}
         filter={filter}
-        />);
+    />);
 });
 
-module.exports = ControlledCombobox;
+export default ControlledCombobox;

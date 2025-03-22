@@ -1,20 +1,20 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
+import React from 'react';
 
-const {Row, Col, Panel, FormControl, Button, Glyphicon} = require('react-bootstrap');
+import PropTypes from 'prop-types';
+import { Row, Col } from 'react-bootstrap';
+import SwitchPanel from '../../misc/switch/SwitchPanel';
+import I18N from '../../I18N/I18N';
+import assign from 'object-assign';
+import { reprojectBbox, reproject, getUnits } from '../../../utils/CoordinatesUtils';
+import IntlNumberFormControl from '../../I18N/IntlNumberFormControl';
 
-const I18N = require('../../I18N/I18N');
-
-const assign = require('object-assign');
-
-const CoordinatesUtils = require("../../../utils/CoordinatesUtils");
 
 class GeometryDetails extends React.Component {
     static propTypes = {
@@ -23,7 +23,9 @@ class GeometryDetails extends React.Component {
         type: PropTypes.string,
         onShowPanel: PropTypes.func,
         onChangeDrawingStatus: PropTypes.func,
-        onEndDrawing: PropTypes.func
+        zoom: PropTypes.number,
+        projection: PropTypes.string,
+        enableGeodesic: PropTypes.bool
     };
 
     static defaultProps = {
@@ -31,8 +33,7 @@ class GeometryDetails extends React.Component {
         geometry: null,
         type: null,
         onShowPanel: () => {},
-        onChangeDrawingStatus: () => {},
-        onEndDrawing: () => {}
+        onChangeDrawingStatus: () => {}
     };
 
     componentDidMount() {
@@ -52,9 +53,10 @@ class GeometryDetails extends React.Component {
         }
     }
 
-    onUpdateBBOX = (value, name) => {
-        this.tempExtent[name] = parseFloat(value);
-
+    onUpdateBBOX = (value, name, drawStatus = 'replace') => {
+        if (drawStatus === 'replace') {
+            this.tempExtent[name] = !isNaN(parseFloat(value)) && parseFloat(value) || 0;
+        }
         let coordinates = [];
         for (let prop in this.tempExtent) {
             if (prop) {
@@ -62,8 +64,7 @@ class GeometryDetails extends React.Component {
             }
         }
 
-        let bbox = !this.props.useMapProjection ?
-            CoordinatesUtils.reprojectBbox(coordinates, 'EPSG:4326', this.props.geometry.projection) : coordinates;
+        let bbox = reprojectBbox(coordinates, 'EPSG:4326', this.props.projection);
 
         let geometry = {
             type: this.props.geometry.type,
@@ -77,160 +78,101 @@ class GeometryDetails extends React.Component {
             projection: this.props.geometry.projection
         };
 
-        this.props.onChangeDrawingStatus("replace", undefined, "queryform", [geometry]);
+        this.props.onChangeDrawingStatus(drawStatus, undefined, "queryform", [geometry]);
     };
 
-    onUpdateCircle = (value, name) => {
-        this.tempCircle[name] = parseFloat(value);
-
-        let center = !this.props.useMapProjection ?
-            CoordinatesUtils.reproject([this.tempCircle.x, this.tempCircle.y], 'EPSG:4326', this.props.geometry.projection) : [this.tempCircle.x, this.tempCircle.y];
+    onUpdateCircle = (value, name, drawStatus = 'replace') => {
+        if (drawStatus === 'replace') {
+            this.tempCircle[name] = parseFloat(value);
+        }
+        let center = !isNaN(parseFloat(this.tempCircle.x)) && !isNaN(parseFloat(this.tempCircle.y)) ?
+            reproject([this.tempCircle.x, this.tempCircle.y], 'EPSG:4326', this.props.projection) : [this.tempCircle.x, this.tempCircle.y];
 
         center = center.x === undefined ? {x: center[0], y: center[1]} : center;
+        const validateCenter = {x: !isNaN(center.x) ? center.x : 0, y: !isNaN(center.y) ? center.y : 0};
 
         let geometry = {
             type: this.props.geometry.type,
-            center: center,
-            coordinates: [center.x, center.y],
-            radius: this.tempCircle.radius,
+            center: validateCenter,
+            coordinates: [validateCenter.x, validateCenter.y],
+            radius: !isNaN(this.tempCircle.radius) ? this.tempCircle.radius : 0,
             projection: this.props.geometry.projection
         };
 
-        this.props.onChangeDrawingStatus("replace", undefined, "queryform", [geometry]);
+
+        this.props.onChangeDrawingStatus(drawStatus, undefined, "queryform", [geometry], {geodesic: this.props.enableGeodesic});
     };
 
     onModifyGeometry = () => {
-        let geometry;
-
-        // Update the geometry
         if (this.props.type === "BBOX") {
-            this.extent = this.tempExtent;
-
-            let coordinates = [];
-            for (let prop in this.extent) {
-                if (prop) {
-                    coordinates.push(this.extent[prop]);
-                }
-            }
-
-            let bbox = !this.props.useMapProjection ?
-                CoordinatesUtils.reprojectBbox(coordinates, 'EPSG:4326', this.props.geometry.projection) : coordinates;
-
-            let center = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2];
-
-            geometry = {
-                type: this.props.geometry.type,
-                extent: bbox,
-                center: center,
-                coordinates: [[
-                    [bbox[0], bbox[1]],
-                    [bbox[0], bbox[3]],
-                    [bbox[2], bbox[3]],
-                    [bbox[2], bbox[1]],
-                    [bbox[0], bbox[1]]
-                ]],
-                radius: Math.sqrt(Math.pow(center[0] - bbox[0], 2) + Math.pow(center[1] - bbox[1], 2)),
-                projection: this.props.geometry.projection
-            };
+            this.onUpdateBBOX(null, null, 'endDrawing');
         } else if (this.props.type === "Circle") {
-            this.circle = this.tempCircle;
-
-            let center = !this.props.useMapProjection ?
-                CoordinatesUtils.reproject([this.tempCircle.x, this.tempCircle.y], 'EPSG:4326', this.props.geometry.projection) : [this.tempCircle.x, this.tempCircle.y];
-
-            center = center.x === undefined ? {x: center[0], y: center[1]} : center;
-
-            let extent = [
-                center.x - this.circle.radius, center.y - this.circle.radius,
-                center.x + this.circle.radius, center.y + this.circle.radius
-            ];
-
-            geometry = {
-                type: this.props.geometry.type,
-                extent: extent,
-                center: center,
-                coordinates: CoordinatesUtils.calculateCircleCoordinates(center, this.circle.radius, 100),
-                radius: this.circle.radius,
-                projection: this.props.geometry.projection
-            };
+            this.onUpdateCircle(null, null, 'endDrawing');
         }
-
-        this.props.onEndDrawing(geometry, "queryform");
         this.props.onShowPanel(false);
     };
 
     onClosePanel = () => {
-        if (this.props.type === "BBOX") {
-            this.resetBBOX();
-        } else if (this.props.type === "Circle") {
-            this.resetCircle();
-        }
-
+        this.resetGeom();
         this.props.onShowPanel(false);
     };
-
+    getStep = (zoom = 1) => Math.min(1 / Math.pow(10, Math.ceil(Math.min(zoom, 21) / 3) - 2), 1);
+    getStepCircle = (zoom, name) => {
+        const step = this.getStep(zoom);
+        return (name === 'radius' && !this.isWGS84() && step * 10000) || step;
+    };
     getBBOXDimensions = (geometry) => {
-        const extent = geometry.projection !== 'EPSG:4326' && !this.props.useMapProjection ?
-            CoordinatesUtils.reprojectBbox(geometry.extent, geometry.projection, 'EPSG:4326') : geometry.extent;
+        const extent =  reprojectBbox(geometry.extent, geometry.projection, 'EPSG:4326');
 
         return {
             // minx
-            west: Math.round(extent[0] * 100) / 100,
+            west: extent[0],
             // miny
-            sud: Math.round(extent[1] * 100) / 100,
+            sud: extent[1],
             // maxx
-            est: Math.round(extent[2] * 100) / 100,
+            est: extent[2],
             // maxy
-            north: Math.round(extent[3] * 100) / 100
+            north: extent[3]
         };
     };
     getCircleDimensions = (geometry) => {
         // Show the center coordinates in 4326
-        let center = geometry.projection !== 'EPSG:4326' && !this.props.useMapProjection ?
-            CoordinatesUtils.reproject(geometry.center, geometry.projection, 'EPSG:4326') : geometry.center;
-
-        // If point isn't reprojected, it's an array cast to object.
-        center = (center.x === undefined) ? {x: center[0], y: center[1]} : center;
+        const center = reproject(geometry.center, geometry.projection, 'EPSG:4326');
+        const centerReproject = reproject(geometry.center, geometry.projection, this.props.projection);
+        const radiusEnd = reproject([geometry.center[0] + geometry.radius, geometry.center[1]], geometry.projection, this.props.projection);
+        const radius = Math.sqrt((radiusEnd.x - centerReproject.x) * (radiusEnd.x - centerReproject.x) +
+            (radiusEnd.y - centerReproject.y) * (radiusEnd.y - centerReproject.y));
 
         return {
-            x: Math.round(center.x * 100) / 100,
-            y: Math.round(center.y * 100) / 100,
-            radius: Math.round(geometry.radius * 100) / 100
+            x: center.x,
+            y: center.y,
+            radius: radius
         };
     };
-
-    renderHeader = () => {
-        return (
-            <div className="detail-header">
-                <span>
-                    <span className="detail-title"><I18N.Message msgId={"queryform.spatialfilter.details.details_header"}/></span>
-                    <Button onClick={() => this.onClosePanel(false)} className="remove-filter-button"><Glyphicon glyph="glyphicon glyphicon-remove"/></Button>
-                </span>
-            </div>
-        );
-    };
-
     renderCoordinateField = (value, name) => {
         return (
             <div>
                 <div className="detail-field-title">{name}</div>
-                <FormControl
+                <IntlNumberFormControl
                     style={{minWidth: '105px', margin: 'auto'}}
                     type="number"
                     id={"queryform_bbox_" + name}
-                    defaultValue={value}
-                    onChange={(evt) => this.onUpdateBBOX(evt.target.value, name)}/>
+                    step={this.getStep(this.props.zoom)}
+                    defaultValue={this.roundValue(value, 1000000)}
+                    onChange={(val) => this.onUpdateBBOX(val, name)}/>
             </div>
         );
     };
-
     renderCircleField = (value, name) => {
+        // radius should have 2 decimals if uom of projections is meter (EPSG:3857)
+        // all other cases it must have at least 6 decimals because coords are converted to EPSG:4326
         return (
-            <FormControl
+            <IntlNumberFormControl
                 type="number"
                 id={"queryform_circle_" + name}
-                defaultValue={value}
-                onChange={(evt) => this.onUpdateCircle(evt.target.value, name)}/>
+                defaultValue={this.roundValue(value, name === 'radius' && !this.isWGS84() ? 100 : 1000000)}
+                step={this.getStepCircle(this.props.zoom, name)}
+                onChange={(val) => this.onUpdateCircle(val, name)}/>
         );
     };
 
@@ -278,16 +220,6 @@ class GeometryDetails extends React.Component {
                                 <span/>
                             </Col>
                         </Row>
-                        <Row>
-                            <Col>
-                                <Button id="save-bbox" className="filter-buttons" bsSize="xs" onClick={() => this.onModifyGeometry()}>
-                                    <Glyphicon glyph="glyphicon glyphicon-ok"/><I18N.Message msgId={"confirm"}/>
-                                </Button>
-                                <Button id="reset-bbox" className="filter-buttons" bsSize="xs" onClick={() => this.resetBBOX()}>
-                                    <Glyphicon glyph="glyphicon glyphicon-refresh"/><I18N.Message msgId={"queryform.reset"}/>
-                                </Button>
-                        </Col>
-                        </Row>
                     </div>
                     <span>
                         <hr width="90%"/>
@@ -297,7 +229,7 @@ class GeometryDetails extends React.Component {
             ;
         } else if (this.props.type === "Circle") {
             const circle = this.getCircleDimensions(geometry);
-
+            const uom = getUnits(this.props.projection);
             detailsContent =
                 (<div>
                     <div className="container-fluid">
@@ -334,23 +266,17 @@ class GeometryDetails extends React.Component {
                                 <span/>
                             </Col>
                             <Col xs={2}>
-                                <span className="details-circle-attribute-name"><I18N.Message msgId={"queryform.spatialfilter.details.radius"}/>{':'}</span>
+                                <span className="details-circle-attribute-name">
+                                    <I18N.Message
+                                        msgId="queryform.spatialfilter.details.radius"
+                                        msgParams={{unit: uom === "degrees" ? "°" : uom }}/>{':'}
+                                </span>
                             </Col>
                             <Col xs={4}>
                                 {this.renderCircleField(circle.radius, "radius")}
                             </Col>
                             <Col xs={4}>
                                 <span/>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col>
-                                <Button id="save-radius" className="filter-buttons" bsSize="xs" onClick={() => this.onModifyGeometry()}>
-                                    <Glyphicon glyph="glyphicon glyphicon-ok"/><I18N.Message msgId={"confirm"}/>
-                                </Button>
-                                <Button id="reset-radius" className="filter-buttons" bsSize="xs" onClick={() => this.resetCircle()}>
-                                    <Glyphicon glyph="glyphicon glyphicon-refresh"/><I18N.Message msgId={"queryform.reset"}/>
-                                </Button>
                             </Col>
                         </Row>
                     </div>
@@ -367,36 +293,57 @@ class GeometryDetails extends React.Component {
 
     render() {
         return (
-            <Panel className="details-panel" bsStyle="primary">
-                {this.renderHeader()}
+            <SwitchPanel buttons={[{
+                key: 'confirm',
+                glyph: 'ok',
+                tooltipId: 'confirm',
+                onClick: () => this.onModifyGeometry()
+            }, {
+                key: 'reset',
+                tooltipId: 'queryform.reset',
+                glyph: 'clear-filter',
+                onClick: () => this.resetGeom()
+            }, {
+                key: 'close',
+                glyph: '1-close',
+                onClick: () => this.onClosePanel(false)
+            }]} title={<I18N.Message msgId={"queryform.spatialfilter.details.details_header"}/>} locked expanded className="details-panel" bsStyle="primary">
                 {this.renderDetailsContent()}
-            </Panel>
+            </SwitchPanel>
         );
     }
-
+    isWGS84 = () => this.props.projection === 'EPSG:4326';
+    roundValue = (val, prec = 1000000) => Math.round(val * prec) / prec;
+    resetGeom = () => {
+        if (this.props.type === "BBOX") {
+            this.resetBBOX();
+        } else if (this.props.type === "Circle") {
+            this.resetCircle();
+        }
+    };
     resetBBOX = () => {
         for (let prop in this.extent) {
             if (prop) {
                 let coordinateInput = document.getElementById("queryform_bbox_" + prop);
-                coordinateInput.value = this.extent[prop];
-                this.onUpdateBBOX(coordinateInput.value, prop);
+                coordinateInput.value = this.roundValue(this.extent[prop], 1000000);
+                this.onUpdateBBOX(this.extent[prop], prop);
             }
         }
     };
 
     resetCircle = () => {
         let radiusInput = document.getElementById("queryform_circle_radius");
-        radiusInput.value = this.circle.radius;
-        this.onUpdateCircle(radiusInput.value, "radius");
+        radiusInput.value = this.roundValue(this.circle.radius, 100);
+        this.onUpdateCircle(this.circle.radius, "radius");
 
         let coordinateXInput = document.getElementById("queryform_circle_x");
-        coordinateXInput.value = this.circle.x;
-        this.onUpdateCircle(coordinateXInput.value, "x");
+        coordinateXInput.value = this.roundValue(this.circle.x, !this.isWGS84() ? 100 : 1000000);
+        this.onUpdateCircle(this.circle.x, "x");
 
         let coordinateYInput = document.getElementById("queryform_circle_y");
-        coordinateYInput.value = this.circle.y;
-        this.onUpdateCircle(coordinateYInput.value, "y");
+        coordinateYInput.value = this.roundValue(this.circle.y, !this.isWGS84() ? 100 : 1000000);
+        this.onUpdateCircle(this.circle.y, "y");
     };
 }
 
-module.exports = GeometryDetails;
+export default GeometryDetails;

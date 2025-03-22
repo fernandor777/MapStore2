@@ -1,79 +1,84 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
 
-require("../assets/css/maps.css");
+import url from 'url';
 
-const {connect} = require('react-redux');
+import PropTypes from 'prop-types';
+import React from 'react';
+import {connect} from 'react-redux';
 
-const url = require('url');
+import {resetControls} from '../../actions/controls';
+import {loadMaps} from '../../actions/maps';
+import Page from '../../containers/Page';
+import ConfigUtils from '../../utils/ConfigUtils';
+
 const urlQuery = url.parse(window.location.href, true).query;
 
-const ConfigUtils = require('../../utils/ConfigUtils');
-
-const {loadMapConfig} = require('../../actions/config');
-const {resetControls} = require('../../actions/controls');
-
-const Page = require('../../containers/Page');
-
+/**
+  * @name Maps
+  * @memberof pages
+  * @class
+  * @classdesc
+  * This is the home page of MapStore.
+  * Renders plugins and triggers the initial load action for loading contents in the page.
+  */
 class MapsPage extends React.Component {
     static propTypes = {
-        name: PropTypes.string,
         mode: PropTypes.string,
         match: PropTypes.object,
-        loadMaps: PropTypes.func,
         reset: PropTypes.func,
-        plugins: PropTypes.object
+        loadMaps: PropTypes.func,
+        plugins: PropTypes.object,
+        loaderComponent: PropTypes.func
     };
 
     static defaultProps = {
-        name: "maps",
         mode: 'desktop',
-        loadMaps: () => {},
         reset: () => {}
     };
 
-    componentWillMount() {
+    state = {};
+
+    UNSAFE_componentWillMount() {
         if (this.props.match.params.mapType && this.props.match.params.mapId) {
             if (this.props.mode === 'mobile') {
                 require('../assets/css/mobile.css');
             }
             this.props.reset();
-            this.props.loadMaps(ConfigUtils.getDefaults().geoStoreUrl, ConfigUtils.getDefaults().initialMapFilter || "*");
+        }
+    }
+
+    onLoaded = (pluginsAreLoaded) => {
+        if (pluginsAreLoaded && !this.state.pluginsAreLoaded) {
+            this.setState({pluginsAreLoaded: true}, () => {
+                this.props.loadMaps();
+            });
         }
     }
 
     render() {
-        let plugins = ConfigUtils.getConfigProp("plugins") || {};
-        let pagePlugins = {
-            "desktop": plugins.common || [], // TODO mesh page plugins with other plugins
-            "mobile": plugins.common || []
-        };
-        let pluginsConfig = {
-            "desktop": plugins[this.props.name] || [], // TODO mesh page plugins with other plugins
-            "mobile": plugins[this.props.name] || []
-        };
-
         return (<Page
             id="maps"
-            pagePluginsConfig={pagePlugins}
-            pluginsConfig={pluginsConfig}
+            onLoaded={this.onLoaded}
             plugins={this.props.plugins}
             params={this.props.match.params}
-            />);
+            loaderComponent={this.props.loaderComponent}
+        />);
     }
 }
 
-module.exports = connect((state) => ({
+export default connect((state) => ({
     mode: urlQuery.mobile || state.browser && state.browser.mobile ? 'mobile' : 'desktop'
 }),
-    {
-        loadMapConfig,
-        reset: resetControls
-    })(MapsPage);
+{
+    loadMaps: () => loadMaps(
+        ConfigUtils.getDefaults().geoStoreUrl,
+        ConfigUtils.getDefaults().initialMapFilter || "*"
+    ),
+    reset: resetControls
+})(MapsPage);

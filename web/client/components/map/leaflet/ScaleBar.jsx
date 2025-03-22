@@ -1,4 +1,3 @@
-var PropTypes = require('prop-types');
 /**
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -7,6 +6,7 @@ var PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
+var PropTypes = require('prop-types');
 var React = require('react');
 var L = require('leaflet');
 
@@ -45,10 +45,10 @@ class ScaleBar extends React.Component {
     }
 
     componentWillUnmount() {
-        if (this.props.container && this.scalebar.getContainer()) {
+        if (this.props.container && this.scalebar && this.scalebar.getContainer()) {
             try {
                 document.querySelector(this.props.container).removeChild(this.scalebar.getContainer());
-            } catch(e) {
+            } catch (e) {
                 // nothing to do
             }
         }

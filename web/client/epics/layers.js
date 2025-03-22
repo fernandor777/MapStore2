@@ -6,27 +6,34 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const Rx = require('rxjs');
-const Api = require('../api/WMS');
-const {REFRESH_LAYERS, layersRefreshed, updateNode, layersRefreshError} = require('../actions/layers');
-const LayersUtils = require('../utils/LayersUtils');
+import Rx from 'rxjs';
 
-const assign = require('object-assign');
-const {isArray, head} = require('lodash');
+import Api from '../api/WMS';
 
-const getUpdates = (updates, options) => {
+import {
+    REFRESH_LAYERS,
+    UPDATE_LAYERS_DIMENSION,
+    UPDATE_SETTINGS_PARAMS,
+    LAYER_LOAD,
+    layersRefreshed,
+    updateNode,
+    updateSettings,
+    layersRefreshError,
+    changeLayerParams
+} from '../actions/layers';
+
+import { getLayersWithDimension, layerSettingSelector, getLayerFromId } from '../selectors/layers';
+import { basicError } from '../utils/NotificationUtils';
+import { getCapabilitiesUrl, getLayerTitleTranslations, removeWorkspace } from '../utils/LayersUtils';
+import assign from 'object-assign';
+import { isArray, head } from 'lodash';
+
+export const getUpdates = (updates, options) => {
     return Object.keys(options).filter((opt) => options[opt]).reduce((previous, current) => {
         return assign(previous, {
             [current]: updates[current]
         });
     }, {});
-};
-
-const removeWorkspace = (layer) => {
-    if (layer.indexOf(':') !== -1) {
-        return layer.split(':')[1];
-    }
-    return layer;
 };
 
 /**
@@ -36,16 +43,16 @@ const removeWorkspace = (layer) => {
  * @return {external:Observable}
  */
 
-const refresh = action$ =>
+export const refresh = action$ =>
     action$.ofType(REFRESH_LAYERS)
         .debounce(({debounceTime = 500} = {}) => Rx.Observable.timer(debounceTime) )
         .switchMap(action => {
             return Rx.Observable.from(
                 action.layers.map((layer) =>
                     Rx.Observable.forkJoin(
-                        Api.getCapabilities(LayersUtils.getCapabilitiesUrl(layer), true)
+                        Api.getCapabilities(getCapabilitiesUrl(layer))
                             .then( (json) => {
-                                const root = (json.WMS_Capabilities || json.WMT_MS_Capabilities).Capability;
+                                const root = json?.Capability;
                                 const layersObj = Api.flatLayers(root);
                                 const layers = isArray(layersObj) ? layersObj : [layersObj];
                                 return head(layers.filter((l) => l.Name === removeWorkspace(layer.name) || l.Name === layer.name));
@@ -67,26 +74,80 @@ const refresh = action$ =>
                         if (caps.error) {
                             return Rx.Observable.of(caps.error && caps);
                         }
-                        return Rx.Observable.of(assign({layer: layer.id, title: LayersUtils.getLayerTitleTranslations(caps), bbox: Api.getBBox(caps, true), dimensions: Api.getDimensions(caps)}, (describe && !describe.error) ? {search: describe} : {}));
+                        return Rx.Observable.of(assign({layer: layer.id, title: getLayerTitleTranslations(caps), bbox: Api.getBBox(caps, true), dimensions: Api.getDimensions(caps)}, (describe && !describe.error) ? {search: describe} : {}));
                     })
                 )
             )
-            .mergeAll()
-            .map((layer) => {
-                if (layer.error) {
-                    return Rx.Observable.of(layersRefreshError([layer], layer.error.message));
-                }
-                return Rx.Observable.from([layersRefreshed([layer]), updateNode(layer.layer, "id", getUpdates({
-                    bbox: layer.bbox,
-                    search: layer.search,
-                    title: layer.title,
-                    dimensions: layer.dimensions
-                }, action.options))]);
-            })
-            .mergeAll();
+                .mergeAll()
+                .map((layer) => {
+                    if (layer.error) {
+                        return Rx.Observable.of(layersRefreshError([layer], layer.error.message));
+                    }
+                    return Rx.Observable.from([layersRefreshed([layer]), updateNode(layer.layer, "id", getUpdates({
+                        bbox: layer.bbox,
+                        search: layer.search,
+                        title: layer.title,
+                        dimensions: layer.dimensions
+                    }, action.options))]);
+                })
+                .mergeAll();
         });
 
+/**
+ * Update dimension to all layers that have that dimension set, or for the layers indicated in the action.
+ * @memberof epics.layers
+ * @param {external:Observable} action$ manages `UPDATE_LAYERS_DIMENSION`
+ * @return {external:Observable}
+ */
+export const updateDimension = (action$, {getState = () => {}} = {}) =>
+    action$.ofType(UPDATE_LAYERS_DIMENSION)
+        .map(({ layers, dimension, ...other }) => ({ ...other, dimension, layers: layers || getLayersWithDimension(getState(), dimension)}))
+        .switchMap(({layers, dimension, value}) =>
+            Rx.Observable.of(
+                changeLayerParams(
+                    layers.map(l => l.id),
+                    {
+                        [dimension]: value
+                    }
+                )
+            )
+        );
 
-module.exports = {
-    refresh
+/**
+  * Action performed: `updateSettings`, `setControlProperty` and `updateNode` (`updateNode` only if action.update is true)
+ * @memberof epics.layers
+ * @param {external:Observable} action$ manages `UPDATE_SETTINGS_PARAMS`
+ * @return {external:Observable}
+ */
+export const updateSettingsParamsEpic = (action$, store) =>
+    action$.ofType(UPDATE_SETTINGS_PARAMS)
+        .switchMap(({ newParams = {}, update }) => {
+
+            const state = store.getState();
+            const settings = layerSettingSelector(state);
+            const layer = settings?.nodeType === 'layers' ? getLayerFromId(state, settings?.node) : null;
+            return Rx.Observable.of(
+                updateSettings(newParams),
+                // update changed keys to verify only modified values (internal state)
+                ...(update ? [updateNode(
+                    settings.node,
+                    settings.nodeType,
+                    { ...settings.options, ...newParams }
+                )] : [])
+            // this handles errors due to name changes
+            ).concat(newParams.name && layer && layer.name !== newParams.name ?
+                action$.ofType(LAYER_LOAD).filter(({layerId}) => layerId === layer?.id).take(1).flatMap(({error}) => error ?
+                    Rx.Observable.of(basicError({
+                        title: 'layerNameChangeError.title',
+                        message: 'layerNameChangeError.message',
+                        autoDismiss: 5
+                    })) :
+                    Rx.Observable.empty()) :
+                Rx.Observable.empty());
+        });
+
+export default {
+    refresh,
+    updateDimension,
+    updateSettingsParamsEpic
 };

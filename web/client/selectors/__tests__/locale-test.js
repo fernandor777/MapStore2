@@ -6,12 +6,22 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const expect = require('expect');
-const {currentLocaleSelector} = require('../locale');
+import expect from 'expect';
+
+import {
+    currentLocaleSelector,
+    currentMessagesSelector,
+    currentLocaleLanguageSelector
+} from '../locale';
 
 const state = {
     locale: {
-        current: 'en-US'
+        current: 'en-US',
+        messages: {
+            "details": {
+                "title": "Details"
+            }
+        }
     }
 };
 
@@ -20,5 +30,19 @@ describe('Test locale selectors', () => {
         const currentLocale = currentLocaleSelector(state);
         expect(currentLocale).toExist();
         expect(currentLocale).toBe(state.locale.current);
+    });
+    it('test currentMessagesSelector', () => {
+        const currentMessages = currentMessagesSelector(state);
+        expect(currentMessages).toExist();
+        expect(currentMessages).toEqual(state.locale.messages);
+    });
+    it('test currentMessagesSelector empty', () => {
+        const currentMessages = currentMessagesSelector({});
+        expect(currentMessages).toExist();
+        expect(currentMessages).toEqual({});
+    });
+    it('test currentLocaleLanguageSelector', () => {
+        const currentLocaleLanguage = currentLocaleLanguageSelector(state);
+        expect(currentLocaleLanguage).toBe('en');
     });
 });

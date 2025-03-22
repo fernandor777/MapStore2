@@ -5,10 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const WFS = require('./WFS');
-const assign = require('object-assign');
-const GeoCodeUtils = require('../utils/GeoCodeUtils');
-const {generateTemplateString} = require('../utils/TemplateUtils');
+
+import assign from 'object-assign';
+
+import { nominatimToGeoJson } from '../utils/GeoCodeUtils';
+import { generateTemplateString } from '../utils/TemplateUtils';
+import * as WFS from './WFS';
 
 const defaultFromTextToFilter = ({searchText, staticFilter, blacklist, item, queriableAttributes, predicate} ) => {
     // split into words and remove blacklisted words
@@ -27,12 +29,19 @@ const defaultFromTextToFilter = ({searchText, staticFilter, blacklist, item, que
     filter = filter ? filter.concat(staticFilterParsed) : staticFilterParsed || null;
     return filter;
 };
+/*
+ * The API returns a promise for each search service.
+ * These search services have a particular option that specify how the response is returned.
+ * 'returnFullData' is a boolean option that if true a the full data is returned, otherwise an array o fearures.
+*/
 let Services = {
-    nominatim: (searchText, options = {}) =>
-        require('./Nominatim')
-        .geocode(searchText, options)
-        .then( res => GeoCodeUtils.nominatimToGeoJson(res.data)),
-    wfs: (searchText, {url, typeName, queriableAttributes = [], outputFormat = "application/json", predicate = "ILIKE", staticFilter = "", blacklist = [], item, fromTextToFilter = defaultFromTextToFilter, ...params }) => {
+    nominatim: (searchText, options = {
+        returnFullData: false
+    }) =>
+        require('./Nominatim').default
+            .geocode(searchText, options)
+            .then( res => {return options.returnFullData ? res : nominatimToGeoJson(res.data); }),
+    wfs: (searchText, {url, typeName, queriableAttributes = [], outputFormat = "application/json", predicate = "ILIKE", staticFilter = "", blacklist = [], item, fromTextToFilter = defaultFromTextToFilter, returnFullData = false, ...params }) => {
         const filter = fromTextToFilter({searchText, staticFilter, blacklist, item, queriableAttributes, predicate});
         return WFS
             .getFeatureSimple(url, assign({
@@ -42,7 +51,7 @@ let Services = {
                 // create a filter like : `(ATTR ilike '%word1%') AND (ATTR ilike '%word2%')`
                 cql_filter: filter
             }, params))
-            .then( response => response.features );
+            .then( response => {return returnFullData ? response : response.features; } );
     }
 };
 
@@ -54,5 +63,6 @@ const Utils = {
         return !!Services[type] ? Services[type] : null;
     }
 };
+export const API = {Services, Utils};
 
-module.exports = {API: {Services, Utils}};
+export default {API};

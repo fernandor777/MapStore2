@@ -6,26 +6,19 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const {createSelector} = require('reselect');
+import { createSelector } from 'reselect';
 
-const getWMSLayers = (state) => state.layers && state.layers.flat && state.layers.flat.filter((l) => l.type === 'wms' && l.group !== 'background') || [];
+export const getWMSLayers = (state) => state.layers && state.layers.flat && state.layers.flat.filter((l) => l.type === 'wms' && l.group !== 'background') || [];
 
-const refreshingLayers = (state) => state.layers && state.layers.refreshing || [];
+export const refreshingLayers = (state) => state.layers && state.layers.refreshing || [];
 
-const mapUpdateOptions = (state) => state.controls && state.controls.mapUpdate && state.controls.mapUpdate.options || {bbox: true, search: true, dimensions: true, title: false};
+export const mapUpdateOptions = (state) => state.controls && state.controls.mapUpdate && state.controls.mapUpdate.options || {bbox: true, search: true, dimensions: true, title: false};
 
-const autoMapUpdateSelector = createSelector([
-     getWMSLayers,
-     refreshingLayers
- ], (layers, refreshing) => ({
-     loading: refreshing && refreshing.length > 0 ? true : false,
-     length: layers.length || 0,
-     count: (layers.length - refreshing.length) + 1 || 0
- }));
-
-module.exports = {
+export const autoMapUpdateSelector = createSelector([
     getWMSLayers,
-    refreshingLayers,
-    autoMapUpdateSelector,
-    mapUpdateOptions
-};
+    refreshingLayers
+], (layers, refreshing) => ({
+    loading: refreshing && refreshing.length > 0 ? true : false,
+    length: layers.length || 0,
+    count: (layers.length - refreshing.length) + 1 || 0
+}));

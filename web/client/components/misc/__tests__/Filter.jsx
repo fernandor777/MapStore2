@@ -5,13 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const ReactDOM = require('react-dom');
+import React from 'react';
 
-const Filter = require('../Filter');
-const expect = require('expect');
-
-const TestUtils = require('react-dom/test-utils');
+import ReactDOM from 'react-dom';
+import Filter from '../Filter';
+import expect from 'expect';
+import TestUtils from 'react-dom/test-utils';
 
 describe('TOC Filter', () => {
     beforeEach((done) => {
@@ -34,7 +33,7 @@ describe('TOC Filter', () => {
         const spyFocus = expect.spyOn(actions, 'onFocus');
 
         const cmp = ReactDOM.render(<Filter onFilter={actions.onFilter}
-        onFocus={actions.onFocus}/>, document.getElementById("container"));
+            onFocus={actions.onFocus}/>, document.getElementById("container"));
         const el = ReactDOM.findDOMNode(cmp);
         expect(el).toExist();
 
@@ -59,7 +58,7 @@ describe('TOC Filter', () => {
         const spyFilter = expect.spyOn(actions, 'onFilter');
 
         const cmp = ReactDOM.render(<Filter onFilter={actions.onFilter}
-        onFocus={actions.onFocus}/>, document.getElementById("container"));
+            onFocus={actions.onFocus}/>, document.getElementById("container"));
         const el = ReactDOM.findDOMNode(cmp);
         expect(el).toExist();
 

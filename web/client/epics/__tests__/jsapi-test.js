@@ -6,11 +6,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var expect = require('expect');
+import expect from 'expect';
 
-
-const {generateActionTrigger} = require('../jsapi');
-const {testEpic} = require('./epicTestUtils');
+import { generateActionTrigger } from '../jsapi';
+import { testEpic } from './epicTestUtils';
 describe('jsapi epic', () => {
     it('check jsapi epic triggering', (done) => {
         let {epic, trigger, stop} = generateActionTrigger("B");
@@ -18,12 +17,12 @@ describe('jsapi epic', () => {
         testEpic(epic, 1, [{type: "A"}, {type: "B"}], actions => {
             actions.map((action) => {
                 switch (action.type) {
-                    case "C":
-                        stop();
-                        done();
-                        break;
-                    default:
-                        expect(true).toBe(false);
+                case "C":
+                    stop();
+                    done();
+                    break;
+                default:
+                    expect(true).toBe(false);
 
                 }
             });

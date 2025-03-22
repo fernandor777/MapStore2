@@ -6,70 +6,92 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {connect} = require('react-redux');
-const {toggleControl, setControlProperty} = require('../actions/controls');
-const {changeLayerProperties} = require('../actions/layers');
+import { connect } from 'react-redux';
 
-const {createSelector} = require('reselect');
-const {layersSelector, backgroundControlsSelector, currentBackgroundSelector, tempBackgroundSelector} = require('../selectors/layers');
-const {mapTypeSelector} = require('../selectors/maptype');
-const {invalidateUnsupportedLayer} = require('../utils/LayersUtils');
+import { compose, withProps } from 'recompose';
+import { find } from 'lodash';
+import { toggleControl, setControlProperty } from '../actions/controls';
+import { changeLayerProperties, removeNode, updateNode, addLayer } from '../actions/layers';
 
-const {mapSelector} = require('../selectors/map');
+import {
+    addBackground,
+    addBackgroundProperties,
+    confirmDeleteBackgroundModal,
+    backgroundAdded,
+    updateThumbnail,
+    removeBackground,
+    clearModalParameters,
+    backgroundEdited,
+    setCurrentBackgroundLayer
+} from '../actions/backgroundselector';
 
-const drawerEnabledControlSelector = (state) => (state.controls && state.controls.drawer && state.controls.drawer.enabled) || false;
+import { createSelector } from 'reselect';
 
-const HYBRID = require('./background/assets/img/HYBRID.jpg');
-const ROADMAP = require('./background/assets/img/ROADMAP.jpg');
-const TERRAIN = require('./background/assets/img/TERRAIN.jpg');
-const SATELLITE = require('./background/assets/img/SATELLITE.jpg');
-const Aerial = require('./background/assets/img/Aerial.jpg');
-const mapnik = require('./background/assets/img/mapnik.jpg');
-const mapquestOsm = require('./background/assets/img/mapquest-osm.jpg');
-const empty = require('./background/assets/img/none.jpg');
-const unknown = require('./background/assets/img/dafault.jpg');
-const Night2012 = require('./background/assets/img/NASA_NIGHT.jpg');
-const AerialWithLabels = require('./background/assets/img/AerialWithLabels.jpg');
-const OpenTopoMap = require('./background/assets/img/OpenTopoMap.jpg');
+import {
+    allBackgroundLayerSelector,
+    backgroundControlsSelector,
+    currentBackgroundSelector,
+    tempBackgroundSelector
+} from '../selectors/layers';
 
-const thumbs = {
-    google: {
-        HYBRID,
-        ROADMAP,
-        TERRAIN,
-        SATELLITE
-    },
-    bing: {
-        Aerial,
-        AerialWithLabels
-    },
-    osm: {
-        mapnik
-    },
-    mapquest: {
-        osm: mapquestOsm
-    },
-    ol: {
-        "undefined": empty
-    },
-    nasagibs: {
-        Night2012
-    },
-    OpenTopoMap: {
-        OpenTopoMap
-    },
-    unknown
-};
+import { mapSelector, mapIsEditableSelector, projectionSelector } from '../selectors/map';
 
-const backgroundSelector = createSelector([mapSelector, layersSelector, backgroundControlsSelector, drawerEnabledControlSelector, mapTypeSelector, currentBackgroundSelector, tempBackgroundSelector],
-    (map, layers, controls, drawer, maptype, currentLayer, tempLayer) => ({
-        size: map && map.size || {width: 0, height: 0},
-        layers: layers.filter((l) => l && l.group === "background").map((l) => invalidateUnsupportedLayer(l, maptype)) || [],
-        tempLayer,
-        currentLayer,
-        start: controls.start || 0,
-        enabled: controls.enabled && !drawer
-    }));
+import {
+    modalParamsSelector,
+    isDeletedIdSelector,
+    backgroundListSelector,
+    backgroundLayersSelector,
+    confirmDeleteBackgroundModalSelector,
+    allowBackgroundsDeletionSelector
+} from '../selectors/backgroundselector';
+
+import { mapLayoutValuesSelector } from '../selectors/maplayout';
+import thumbs from './background/DefaultThumbs';
+import { createPlugin } from '../utils/PluginsUtils';
+
+import controlsReducer from "../reducers/controls";
+import backgroundReducer from "../reducers/backgroundselector";
+import backgroundEpic from "../epics/backgroundselector";
+import BackgroundSelector from "../components/background/BackgroundSelector";
+import { isCesium } from '../selectors/maptype';
+
+const backgroundSelector = createSelector([
+    projectionSelector,
+    modalParamsSelector,
+    backgroundListSelector,
+    isDeletedIdSelector,
+    allBackgroundLayerSelector,
+    mapSelector,
+    mapIsEditableSelector,
+    backgroundLayersSelector,
+    backgroundControlsSelector,
+    currentBackgroundSelector,
+    tempBackgroundSelector,
+    state => mapLayoutValuesSelector(state, {left: true, bottom: true}),
+    state => state.controls && state.controls.metadataexplorer && state.controls.metadataexplorer.enabled,
+    state => state.browser && state.browser.mobile ? 'mobile' : 'desktop',
+    confirmDeleteBackgroundModalSelector,
+    allowBackgroundsDeletionSelector, isCesium],
+(projection, modalParams, backgroundList, deletedId, backgrounds, map, mapIsEditable, layers, controls, currentLayer, tempLayer, style, enabledCatalog, mode, confirmDeleteBackgroundModalObj, allowDeletion, isCesiumViewer) => ({
+    mode,
+    modalParams,
+    backgroundList,
+    deletedId,
+    backgrounds,
+    size: map && map.size || {width: 0, height: 0},
+    mapIsEditable,
+    layers,
+    tempLayer,
+    currentLayer,
+    start: controls.start || 0,
+    enabled: controls.enabled,
+    style,
+    enabledCatalog,
+    confirmDeleteBackgroundModal: confirmDeleteBackgroundModalObj,
+    allowDeletion,
+    projection,
+    disableTileGrids: !!isCesiumViewer
+}));
 
 /**
   * BackgroundSelector Plugin.
@@ -97,12 +119,26 @@ const backgroundSelector = createSelector([mapSelector, layersSelector, backgrou
   * }
   */
 
-const BackgroundSelectorPlugin = connect(backgroundSelector, {
-    onPropertiesChange: changeLayerProperties,
-    onToggle: toggleControl.bind(null, 'backgroundSelector', null),
-    onLayerChange: setControlProperty.bind(null, 'backgroundSelector'),
-    onStartChange: setControlProperty.bind(null, 'backgroundSelector', 'start')
-}, (stateProps, dispatchProps, ownProps) => ({
+const BackgroundSelectorPlugin =
+compose(
+    connect(backgroundSelector, {
+        onPropertiesChange: changeLayerProperties,
+        onToggle: toggleControl.bind(null, 'backgroundSelector', null),
+        onLayerChange: setControlProperty.bind(null, 'backgroundSelector'),
+        onStartChange: setControlProperty.bind(null, 'backgroundSelector', 'start'),
+        onAdd: addBackground,
+        addLayer: addLayer,
+        backgroundAdded,
+        onRemove: removeNode,
+        onBackgroundEdit: backgroundEdited,
+        updateNode,
+        onUpdateThumbnail: updateThumbnail,
+        removeBackground,
+        clearModal: clearModalParameters,
+        addBackgroundProperties,
+        onRemoveBackground: confirmDeleteBackgroundModal,
+        setCurrentBackgroundLayer
+    }, (stateProps, dispatchProps, ownProps) => ({
         ...stateProps,
         ...dispatchProps,
         ...ownProps,
@@ -110,12 +146,18 @@ const BackgroundSelectorPlugin = connect(backgroundSelector, {
             ...thumbs,
             ...ownProps.thumbs
         }
-    })
-)(require('../components/background/BackgroundSelector'));
+    })),
+    // check if catalog is present to render the + button. TODO: move the add button in the catalog
+    withProps(({ items = [] }) => ({
+        hasCatalog: !!find(items, { name: 'MetadataExplorer' })
+    }))
+)(BackgroundSelector);
 
-module.exports = {
-    BackgroundSelectorPlugin,
+export default createPlugin("BackgroundSelector", {
+    component: BackgroundSelectorPlugin,
     reducers: {
-        controls: require('../reducers/controls')
-    }
-};
+        controls: controlsReducer,
+        backgroundSelector: backgroundReducer
+    },
+    epics: backgroundEpic
+});

@@ -6,12 +6,18 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var Layers = require('../../../../utils/leaflet/Layers');
-var Google = require('leaflet-plugins/layer/tile/Google');
-Google.prototype._checkZoomLevels = function() {
-    // Avoid map zoom setting when current zoom is greatr then  the google's max zoom
-};
+import Layers from '../../../../utils/leaflet/Layers';
+import L from 'leaflet';
+import 'leaflet.gridlayer.googlemutant';
+function getGMapsLib() {
+    return window?.google?.maps;
+}
 Layers.registerType('google', (options) => {
-    return new Google(options.name, {zoomOffset: options.zoomOffset || 0, maxNativeZoom: options.maxNativeZoom || 18,
+    if (!getGMapsLib()) {
+        return null;
+    }
+    return L.gridLayer.googleMutant({
+        type: options.name.toLowerCase(),
+        maxNativeZoom: options.maxNativeZoom || 18,
         maxZoom: options.maxZoom || 20});
 });

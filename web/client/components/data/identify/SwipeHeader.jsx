@@ -1,4 +1,4 @@
-const PropTypes = require('prop-types');
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,10 +7,11 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Glyphicon } from 'react-bootstrap';
 
-const {Glyphicon, Button} = require('react-bootstrap');
-require('./css/swipeHeader.css');
+import Button from '../../misc/Button';
 
 class SwipeHeader extends React.Component {
     static propTypes = {
@@ -20,7 +21,8 @@ class SwipeHeader extends React.Component {
         container: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
         useButtons: PropTypes.bool,
         onPrevious: PropTypes.func,
-        onNext: PropTypes.func
+        onNext: PropTypes.func,
+        btnClassName: PropTypes.string
     };
 
     static defaultProps = {
@@ -34,20 +36,34 @@ class SwipeHeader extends React.Component {
     }
 
     renderLeftButton = () => {
+        const isDisabled = this.props.index === 0 ? true : false;
         return this.props.useButtons ?
-            <Button ref="left" disabled={this.props.index === 0 ? true : false} className="swipe-header-left-button square-button" bsStyle="primary" onClick={() => {this.props.onPrevious(); }}><Glyphicon glyph="arrow-left"/></Button> :
-            <a ref="left" disabled={this.props.index === 0 ? true : false} className="swipe-header-left-button" onClick={() => {this.props.onPrevious(); }}><Glyphicon glyph="chevron-left" /></a>;
+            <Button ref="left" disabled={isDisabled} className={this.props.btnClassName || "square-button-md no-border"} onClick={() => {this.props.onPrevious(); }}><Glyphicon glyph="back"/></Button> :
+            <a ref="left" disabled={isDisabled} className={this.props.btnClassName || "square-button-md"} onClick={() => {this.props.onPrevious(); }}><Glyphicon glyph="back" /></a>;
     };
 
     renderRightButton = () => {
+        const isDisabled = this.props.index === this.props.size - 1 ? true : false;
         return this.props.useButtons ?
-            <Button ref="right" disabled={this.props.index === this.props.size - 1 ? true : false } className="swipe-header-right-button square-button" bsStyle="primary" onClick={() => {this.props.onNext(); }}><Glyphicon glyph="arrow-right"/></Button> :
-            <a ref="right" disabled={this.props.index === this.props.size - 1 ? true : false} className="swipe-header-right-button" onClick={() => {this.props.onNext(); }}><Glyphicon glyph="chevron-right" /></a>;
+            <Button ref="right" disabled={isDisabled} className={this.props.btnClassName || "square-button-md no-border"} onClick={() => {this.props.onNext(); }}><Glyphicon glyph="next"/></Button> :
+            <a ref="right" disabled={isDisabled} className={this.props.btnClassName || "square-button-md"} onClick={() => {this.props.onNext(); }}><Glyphicon glyph="next" /></a>;
     };
 
     render() {
-        return <span>{this.renderLeftButton()} <span>{this.props.title}</span> {this.renderRightButton()}</span>;
+        return (
+            <div className="ms-identify-swipe-header">
+                {this.props.size > 1 &&
+                <div className="ms-identify-swipe-header-arrow">
+                    {this.renderLeftButton()}
+                </div>}
+                <div className="ms-identify-swipe-header-title">{this.props.title}</div>
+                {this.props.size > 1 &&
+                <div className="ms-identify-swipe-header-arrow">
+                    {this.renderRightButton()}
+                </div>}
+            </div>
+        );
     }
 }
 
-module.exports = SwipeHeader;
+export default SwipeHeader;

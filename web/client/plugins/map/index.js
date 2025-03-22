@@ -6,91 +6,128 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const React = require('react');
+import React from 'react';
 
-const {creationError, changeMapView, clickOnMap} = require('../../actions/map');
-const {layerLoading, layerLoad, layerError} = require('../../actions/layers');
-const {changeMousePosition} = require('../../actions/mousePosition');
-const {changeMeasurementState} = require('../../actions/measurement');
-const {changeSelectionState} = require('../../actions/selection');
-const {changeLocateState, onLocateError} = require('../../actions/locate');
-const {changeDrawingStatus, endDrawing, setCurrentStyle} = require('../../actions/draw');
-const {geometryChanged, drawStopped} = require('../../actions/draw');
-const {updateHighlighted} = require('../../actions/highlight');
+import { createSelector } from 'reselect';
+import { changeMapView, clickOnMap, mouseMove, mouseOut } from '../../actions/map';
+import { boxEnd } from '../../actions/box';
+import { removePopup } from '../../actions/mapPopups';
+import { layerLoading, layerLoad, layerError } from '../../actions/layers';
+import { changeSelectionState } from '../../actions/selection';
+import { boxSelectionStatus } from '../../selectors/box';
 
-const {connect} = require('react-redux');
-const assign = require('object-assign');
-const {projectionDefsSelector} = require('../../selectors/map');
+import {
+    changeDrawingStatus,
+    endDrawing,
+    setCurrentStyle,
+    geometryChanged,
+    drawStopped,
+    selectFeatures,
+    drawingFeatures,
+    toggleSnappingIsLoading
+} from '../../actions/draw';
+
+import { updateHighlighted } from '../../actions/highlight';
+import { warning } from '../../actions/notifications';
+import { connect } from 'react-redux';
+import assign from 'object-assign';
+import { projectionDefsSelector, isMouseMoveActiveSelector } from '../../selectors/map';
+import {
+    snappingLayerSelector
+} from "../../selectors/draw";
+import { mapPopupsSelector } from '../../selectors/mapPopups';
 
 const Empty = () => { return <span/>; };
 
-module.exports = (mapType, actions) => {
+const pluginsCreator = (mapType, actions) => {
 
-    const components = require('./' + mapType + '/index');
+    return Promise.all([
+        import('./' + mapType + '/index'),
+        // wait until the layer registration is complete
+        // to ensure the layer can create the layer based on type
+        import('../../components/map/' + mapType + '/plugins/index')
+    ]).then(([ module ]) => {
+        const components = module.default;
+        const LMap = connect((state) => ({
+            projectionDefs: projectionDefsSelector(state),
+            mousePosition: isMouseMoveActiveSelector(state)
+        }), assign({}, {
+            onMapViewChanges: changeMapView,
+            onClick: clickOnMap,
+            onMouseMove: mouseMove,
+            onLayerLoading: layerLoading,
+            onLayerLoad: layerLoad,
+            onLayerError: layerError,
+            onWarning: warning,
+            onMouseOut: mouseOut
+        }, actions), (stateProps, dispatchProps, ownProps) => {
+            return assign({}, ownProps, stateProps, assign({}, dispatchProps, {
+                onMouseMove: stateProps.mousePosition ? dispatchProps.onMouseMove : () => {}
+            }));
+        })(components.LMap);
 
-    const LMap = connect((state) => ({
-        projectionDefs: projectionDefsSelector(state),
-        mousePosition: state.mousePosition || {enabled: false}
-    }), assign({}, {
-        onCreationError: creationError,
-        onMapViewChanges: changeMapView,
-        onClick: clickOnMap,
-        onMouseMove: changeMousePosition,
-        onLayerLoading: layerLoading,
-        onLayerLoad: layerLoad,
-        onLayerError: layerError
-    }, actions), (stateProps, dispatchProps, ownProps) => {
-        return assign({}, ownProps, stateProps, assign({}, dispatchProps, {
-            onMouseMove: stateProps.mousePosition.enabled ? dispatchProps.onMouseMove : () => {}
-        }));
-    })(components.LMap);
-
-    const MeasurementSupport = connect((state) => ({
-        measurement: state.measurement || {}
-    }), {
-        changeMeasurementState
-    })(components.MeasurementSupport || Empty);
-
-    const Locate = connect((state) => ({
-        status: state.locate && state.locate.state,
-        messages: state.locale && state.locale.messages ? state.locale.messages.locate : undefined
-    }), {
-        changeLocateState,
-        onLocateError
-    })(components.Locate || Empty);
-
-    const DrawSupport = connect((state) =>
-        state.draw || {}, {
+        const DrawSupport = connect((state) =>
+            ({
+                ...(state.draw ?? {}),
+                snappingLayerInstance: snappingLayerSelector(state)
+            }), {
             onChangeDrawingStatus: changeDrawingStatus,
             onEndDrawing: endDrawing,
             onGeometryChanged: geometryChanged,
+            onSelectFeatures: selectFeatures,
+            onDrawingFeatures: drawingFeatures,
             onDrawStopped: drawStopped,
-            setCurrentStyle: setCurrentStyle
+            setCurrentStyle: setCurrentStyle,
+            toggleSnappingIsLoading: toggleSnappingIsLoading
         })( components.DrawSupport || Empty);
 
-    const HighlightSupport = connect((state) =>
-        state.highlight || {}, {updateHighlighted})( components.HighlightFeatureSupport || Empty);
+        const BoxSelectionSupport = connect(
+            createSelector(
+                (state) => boxSelectionStatus(state),
+                (status) => ({
+                    status
+                })), {
+                onBoxEnd: boxEnd
+            }
+        )(components.BoxSelectionSupport || Empty);
 
-    const SelectionSupport = connect((state) => ({
-        selection: state.selection || {}
-    }), {
-        changeSelectionState
-    })(components.SelectionSupport || Empty);
+        const HighlightSupport = connect((state) =>
+            state.highlight || {}, {updateHighlighted})( components.HighlightFeatureSupport || Empty);
 
-    require('../../components/map/' + mapType + '/plugins/index');
+        const SelectionSupport = connect((state) => ({
+            selection: state.selection || {}
+        }), {
+            changeSelectionState
+        })(components.SelectionSupport || Empty);
 
-    return {
-        Map: LMap,
-        Layer: components.Layer || Empty,
-        Feature: components.Feature || Empty,
-        tools: {
-            measurement: MeasurementSupport,
-            locate: Locate,
-            overview: components.Overview || Empty,
-            scalebar: components.ScaleBar || Empty,
-            draw: DrawSupport,
-            highlight: HighlightSupport,
-            selection: SelectionSupport
-        }
-    };
+        const LLayer = connect(null, {onWarning: warning})( components.Layer || Empty);
+
+        const PopupSupport = connect(
+            createSelector(
+                mapPopupsSelector,
+                (popups) => ({popups})
+            ), {
+                onPopupClose: removePopup
+            }
+        )(components.PopupSupport || Empty);
+        return {
+            Map: LMap,
+            Layer: LLayer,
+            Feature: components.Feature || Empty,
+            tools: {
+                overview: components.Overview || Empty,
+                scalebar: components.ScaleBar || Empty,
+                draw: DrawSupport,
+                highlight: HighlightSupport,
+                selection: SelectionSupport,
+                popup: PopupSupport,
+                box: BoxSelectionSupport
+            },
+            mapType
+        };
+    });
+
+
 };
+
+export default pluginsCreator;

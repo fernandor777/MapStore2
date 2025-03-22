@@ -4,6 +4,7 @@ dist/
 target/
 *.sublime-*
 npm-debug.log
+package-lock.json
 coverage/
 web/client/libs/Cesium/
 web/cesium.zip
@@ -18,3 +19,12 @@ _site
 docs/developer-guide/reference/
 web/client/mapstore/docs/
 web/docs
+.classpath
+.project
+.settings/
+debug.log
+.vscode/settings.json
+site
+.DS_Store
+venv
+__pycache__

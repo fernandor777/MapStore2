@@ -6,11 +6,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const I18N = require('../../../components/I18N/I18N');
-const CesiumTooltip = require('../../../components/tutorial/steps/CesiumTooltip');
+import React from 'react';
 
-module.exports = [
+import I18N from '../../../components/I18N/I18N';
+import CesiumTooltip from '../../../components/tutorial/steps/CesiumTooltip';
+
+export default [
     {
         translation: 'introCesium',
         selector: '#intro-tutorial'
@@ -27,7 +28,7 @@ module.exports = [
     },
     {
         translationHTML: 'drawerMenu',
-        selector: '#drawer-menu-button'
+        selector: '.ms-drawer-menu-button'
     },
     {
         translation: 'searchBar',
@@ -48,7 +49,7 @@ module.exports = [
     },
     {
         translation: 'identifyButton',
-        selector: '#identifyBar-container',
+        selector: '#navigationBar-container .glyphicon.glyphicon-option-horizontal',
         position: 'top'
     }
 ];

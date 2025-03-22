@@ -6,12 +6,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var ReactTestUtils = require('react-dom/test-utils');
-var Elevation = require('../Elevation');
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ReactTestUtils from 'react-dom/test-utils';
 
-var expect = require('expect');
+import Elevation from '../Elevation';
 
 describe('test Layer Properties Elevation component', () => {
     beforeEach((done) => {
@@ -36,12 +36,12 @@ describe('test Layer Properties Elevation component', () => {
             params: {
                 "ELEVATION": "1.5"
             },
-            elevations: {
+            dimensions: [{
                 name: "ELEVATION",
                 units: "Meters",
                 positive: false,
                 values: ["1.5", "5.0", "10.0", "15.0", "20.0", "25.0", "30.0"]
-            }
+            }]
         };
         const settings = {
             options: {opacity: 1}
@@ -50,7 +50,6 @@ describe('test Layer Properties Elevation component', () => {
             <Elevation
                 elevationText={"Text"}
                 element={l}
-                elevations={l.elevations}
                 settings={settings} />,
             document.getElementById("container")
         );

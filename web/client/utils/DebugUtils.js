@@ -5,54 +5,44 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var url = require('url');
+import {createStore} from "./StateUtils";
 
-var {createStore, compose, applyMiddleware} = require('redux');
-var thunkMiddleware = require('redux-thunk');
-
+import url from 'url';
 
 const urlQuery = url.parse(window.location.href, true).query;
-/*eslint-disable */
-var warn = console.warn;
-/*eslint-enable */
 
-var warningFilterKey = function(warning) {
-    // avoid React 0.13.x warning about nested context. Will remove in 0.14
-    return warning.indexOf("Warning: owner-based and parent-based contexts differ") >= 0;
+export const isDebugMode = () => {
+    return urlQuery && urlQuery.debug && __DEVTOOLS__;
 };
 
-var DebugUtils = {
-    createDebugStore: function(reducer, initialState, userMiddlewares, enhancer) {
-        let finalCreateStore;
-        if (__DEVTOOLS__ && urlQuery.debug) {
-            let logger = require('redux-logger')();
-            let immutable = require('redux-immutable-state-invariant')();
-            let middlewares = [immutable, thunkMiddleware, logger].concat(userMiddlewares || []);
-            const {persistState} = require('redux-devtools');
-            const DevTools = require('../components/development/DevTools');
-
-            finalCreateStore = compose(
-              applyMiddleware.apply(null, middlewares),
-              persistState(window.location.href.match(/[?&]debug_session=([^&]+)\b/)),
-              window.devToolsExtension ? window.devToolsExtension() : DevTools.instrument()
-
-          )(createStore);
-        } else {
-            let middlewares = [thunkMiddleware].concat(userMiddlewares || []);
-            finalCreateStore = applyMiddleware.apply(null, middlewares)(createStore);
-        }
-        return finalCreateStore(reducer, initialState, enhancer);
+export const logError = (error) => {
+    if (isDebugMode) {
+        console.error(error.message);
     }
 };
 
-/*eslint-disable */
-console.warn = function() {
-    if ( arguments && arguments.length > 0 && typeof arguments[0] === "string" && warningFilterKey(arguments[0]) ) {
-        // do not warn
-    } else {
-        warn.apply(console, arguments);
-    }
-};
-/*eslint-enable */
+export function createDebugStore(reducer, initialState, userMiddlewares, enhancer) {
+    return createStore({
+        rootReducer: reducer,
+        state: initialState,
+        middlewares: userMiddlewares,
+        enhancer,
+        debug: isDebugMode()
+    });
+}
 
-module.exports = DebugUtils;
+export function checkForMissingPlugins(pluginsDef = {}) {
+    const missingPlugins = Object.keys(pluginsDef).filter(plugin => pluginsDef[plugin].default);
+    if (missingPlugins.length > 0) {
+        // eslint-disable-next-line
+        console.error("plugin not correctly loaded: ", missingPlugins);
+    }
+}
+
+const DebugUtils = {
+    createDebugStore,
+    checkForMissingPlugins
+};
+
+
+export default DebugUtils;

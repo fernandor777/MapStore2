@@ -5,13 +5,13 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
+import expect from 'expect';
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var LangBar = require('../LangBar');
-var LocaleUtils = require('../../../utils/LocaleUtils');
-const TestUtils = require('react-dom/test-utils');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import LangBar from '../LangBar';
+import { getSupportedLocales } from '../../../utils/LocaleUtils';
+import TestUtils from 'react-dom/test-utils';
 
 describe('LangBar', () => {
     beforeEach((done) => {
@@ -26,28 +26,28 @@ describe('LangBar', () => {
     });
 
     it('checks default', () => {
-
-        const cmp = ReactDOM.render(<LangBar/>, document.getElementById("container"));
+        const cmp = ReactDOM.render(<LangBar />, document.getElementById("container"));
         expect(cmp).toExist();
 
         const cmpDom = ReactDOM.findDOMNode(cmp);
         expect(cmpDom).toExist();
 
         const buttons = cmpDom.getElementsByTagName("button");
-
-        expect(buttons.length === LocaleUtils.getSupportedLocales().length);
+        expect(buttons.length).toBe(1);
+        const numSupportedLocales = Object.keys(getSupportedLocales()).length;
+        const flags = cmpDom.querySelectorAll(".lang-button");
+        expect(numSupportedLocales).toBe(flags.length);
 
     });
 
     it('checks button click fires the proper action', () => {
         let newLang;
-        const cmp = ReactDOM.render(<LangBar onLanguageChange={ (lang) => {newLang = lang; }}/>, document.getElementById("container"));
+        const cmp = ReactDOM.render(<LangBar dropdown={false} onLanguageChange={ (lang) => {newLang = lang; }}/>, document.getElementById("container"));
         const cmpDom = ReactDOM.findDOMNode(cmp);
         const select = cmpDom.getElementsByTagName("button").item(0);
 
         select.value = "it-IT";
         TestUtils.Simulate.click(select, {target: {value: 'it-IT'}});
-        // select.children[1].click();
 
         expect(newLang).toBe('it-IT');
     });

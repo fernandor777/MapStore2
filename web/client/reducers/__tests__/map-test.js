@@ -5,10 +5,11 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
+import expect from 'expect';
 
-var mapConfig = require('../map');
-
+import { round } from 'lodash';
+import mapConfig from '../map';
+import { updateMapOptions, changeMapLimits, PAN_TO, SET_MAP_RESOLUTIONS } from '../../actions/map';
 
 describe('Test the map reducer', () => {
     it('returns original state on unrecognized action', () => {
@@ -158,38 +159,33 @@ describe('Test the map reducer', () => {
         expect(state.mapOptions.view.resolutions).toExist();
     });
 
-    it('zoom to extent', () => {
+    it('sets new resolutions', () => {
+        const resolutions = [2.54, 0.254];
         const action = {
-            type: 'ZOOM_TO_EXTENT',
-            extent: [10, 44, 12, 46],
-            crs: "EPSG:4326"
+            type: SET_MAP_RESOLUTIONS,
+            resolutions
         };
-        // full extent
-        const action2 = {
-            type: 'ZOOM_TO_EXTENT',
-            extent: [-180, -90, 180, 90],
-            crs: "EPSG:4326"
+        const state = mapConfig({}, action);
+        expect(state.resolutions).toEqual(resolutions);
+    });
+
+    it('pan to with center as array', () => {
+        const action = {
+            type: PAN_TO,
+            center: [2, 2]
         };
-
-        var state = mapConfig({projection: "EPSG:4326", size: {width: 400, height: 400}}, action);
-        expect(state.mapStateSource).toBe(undefined);
-        expect(state.center.x).toBe(11);
-        expect(state.center.y).toBe(45);
-        expect(state.bbox).toExist();
-        expect(state.bbox.bounds).toExist();
-        expect(state.bbox.bounds.minx).toExist();
-        expect(state.bbox.bounds.miny).toExist();
-        expect(state.bbox.bounds.maxx).toExist();
-        expect(state.bbox.bounds.maxy).toExist();
-        state = mapConfig({projection: "EPSG:900913"}, action2);
-        expect(state.zoom).toBe(1);
-        expect(state.bbox).toExist();
-        expect(state.bbox.bounds).toExist();
-        expect(state.bbox.bounds.minx).toExist();
-        expect(state.bbox.bounds.miny).toExist();
-        expect(state.bbox.bounds.maxx).toExist();
-        expect(state.bbox.bounds.maxy).toExist();
-
+        const state = mapConfig({}, action);
+        expect(state.center).toEqual( { x: 2, y: 2, srs: "EPSG:4326", crs: "EPSG:4326" } );
+    });
+    it('pan to with center as object', () => {
+        const action = {
+            type: PAN_TO,
+            center: { x: 1000, y: 1000, crs: "EPSG:3857" }
+        };
+        const state = mapConfig({}, action);
+        expect(round(state.center.x, 8)).toEqual(0.00898315);
+        expect(round(state.center.y, 8)).toEqual(0.00898315);
+        expect(state.center.srs).toEqual("EPSG:4326");
     });
     it('change map style', () => {
         const action = {
@@ -221,5 +217,73 @@ describe('Test the map reducer', () => {
         };
         let state = mapConfig({}, action);
         expect(state.version).toEqual(version);
+    });
+
+    it('force resize update of map', () => {
+        const action = {
+            type: 'RESIZE_MAP'
+        };
+        let state = mapConfig({}, action);
+        expect(state.resize).toEqual(1);
+    });
+    it('change the restricted extent of a map', () => {
+        const action = changeMapLimits({
+            restrictedExtent: [9, 9, 9, 9],
+            crs: "EPSG:4326"
+        });
+        let state = mapConfig({}, action);
+        expect(state.limits.restrictedExtent.length).toBe(4);
+        expect(state.limits.restrictedExtent).toEqual([9, 9, 9, 9]);
+    });
+    it('change min zoom a map', () => {
+        const action = changeMapLimits({
+            minZoom: 1
+        });
+        let state = mapConfig({}, action);
+        expect(state.limits.minZoom).toBe(1);
+    });
+
+    it('zoom to a point', () => {
+        const pos = {x: 1, y: 2};
+        const zoom = 12;
+        const crs = "EPSG:4326";
+        const action = {
+            type: 'ZOOM_TO_POINT',
+            pos,
+            zoom,
+            crs
+        };
+        let state = mapConfig({}, action);
+        expect(state.center).toEqual({...pos, srs: crs, crs});
+        expect(state.zoom).toEqual(zoom);
+        expect(state.mapStateSource).toEqual(null);
+    });
+
+    it('3D Orientation reducers', () => {
+        const orientation =  { x: '1', y: '3', z: 1, heading: 1, pitch: 1, roll: 1 };
+        const action = {
+            type: 'MAP:ORIENTATION',
+            orientation: {
+                center: '1,3',
+                zoom: 1,
+                heading: 1,
+                pitch: 1,
+                roll: 1
+            }
+        };
+        const state = mapConfig({}, action);
+        expect(state.orientate).toEqual(orientation);
+    });
+
+    it('Updates scene config', () => {
+        const action = updateMapOptions({
+            skyAtmosphere: false
+        });
+        let state = mapConfig({
+            mapOptions: {
+                skyAtmosphere: true
+            }
+        }, action);
+        expect(state.mapOptions.skyAtmosphere).toBe(false);
     });
 });

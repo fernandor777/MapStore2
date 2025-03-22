@@ -1,5 +1,4 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
@@ -7,33 +6,36 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {connect} = require('react-redux');
-const {compose} = require('redux');
+import { partial } from 'lodash';
+import assign from 'object-assign';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Collapse, Glyphicon, Panel, Tooltip } from 'react-bootstrap';
+import { connect } from 'react-redux';
+import { compose } from 'redux';
 
-const {changeHelpText, changeHelpwinVisibility} = require('../../actions/help');
+import { setControlProperty, toggleControl } from '../../actions/controls';
+import { changeHelpText, changeHelpwinVisibility } from '../../actions/help';
+import HelpBadgeComp from '../../components/help/HelpBadge';
+import Message from '../../components/I18N/Message';
+import OverlayTrigger from '../../components/misc/OverlayTrigger';
+import Button from '../../components/misc/Button';
+import { MapLibraries } from '../../utils/MapTypeUtils';
+import { mapTypeSelector } from "../../selectors/maptype";
 
 const HelpBadge = connect((state) => ({
     isVisible: state.controls && state.controls.help && state.controls.help.enabled
 }), {
     changeHelpText,
     changeHelpwinVisibility
-})(require('../../components/help/HelpBadge'));
+})(HelpBadgeComp);
 
-const Message = require('../../components/I18N/Message');
-
-const {Button, Tooltip, Panel, Collapse, Glyphicon} = require('react-bootstrap');
-const OverlayTrigger = require('../../components/misc/OverlayTrigger');
-
-const {setControlProperty, toggleControl} = require('../../actions/controls');
-const {partial} = require('lodash');
-
-const assign = require('object-assign');
 
 /**
  * A container for tools.
- * @memberof plugins.containers.ToolsContainer
+ * @memberof plugins.containers
  * @class ToolsContainer
+ * @deprecated
  * @static
  * @prop {object[]} tools An array of tools. Each tool have this shape. the first in order wins:
  * ```
@@ -41,7 +43,7 @@ const assign = require('object-assign');
  *    tool: {boolean|node} if boolean and true, renders the plugins itself, if object, renders this object as a react component,
  *    exclusive: if true, gets a selector to make it active or not, setting active property of the tool. tool.toggleControl | tool.name is used from controls state to retrieve the status of the tool
  *    toggle: same as above, but sets also bsStyle
- *    action: if present, this action will be binded to the context and associated to the tool as eventSelector (default onClick)
+ *    action: if present, this action will be bind to the context and associated to the tool as eventSelector (default onClick)
  * }
  * ```
  *
@@ -50,7 +52,8 @@ class ToolsContainer extends React.Component {
     static propTypes = {
         id: PropTypes.string.isRequired,
         container: PropTypes.func,
-        tool: PropTypes.func,
+        containerWrapperStyle: PropTypes.object,
+        tool: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
         className: PropTypes.string,
         style: PropTypes.object,
         tools: PropTypes.array,
@@ -64,7 +67,8 @@ class ToolsContainer extends React.Component {
         panelStyle: PropTypes.object,
         panelClassName: PropTypes.string,
         activePanel: PropTypes.string,
-        toolCfg: PropTypes.object
+        toolCfg: PropTypes.object,
+        toolComponent: PropTypes.any
     };
 
     static contextTypes = {
@@ -81,7 +85,7 @@ class ToolsContainer extends React.Component {
         tools: [],
         panels: [],
         tool: Button,
-        mapType: "leaflet",
+        mapType: MapLibraries.OPENLAYERS,
         eventSelector: "onClick",
         panelStyle: {},
         panelClassName: "tools-container-panel",
@@ -128,51 +132,60 @@ class ToolsContainer extends React.Component {
         })(this.props.tool);
     };
 
+    renderTool = (tool, i) => {
+        if (tool.element) {
+            return tool.element;
+        }
+        const help = tool.help ? <HelpBadge className="mapstore-helpbadge" helpText={tool.help}/> : <span/>;
+        const tooltip = tool.tooltip ? <Message msgId={tool.tooltip}/> : null;
+
+        const Tool = this.getTool(tool);
+        const toolCfg = this.getToolConfig(tool);
+        const toolChildren = tool.childTools || [];
+
+        return this.addTooltip(
+            <Tool {...toolCfg} pluginCfg={tool.cfg} tooltip={tooltip} style={tool.style} btnSize={this.props.toolSize} bsStyle={this.props.toolStyle} help={help} key={tool.name || "tool" + i} mapType={this.props.mapType}
+                {...tool.cfg} items={tool.items || []} component={this.props.toolComponent}>
+                {tool.cfg && tool.cfg.glyph ? <Glyphicon glyph={tool.cfg.glyph}/> : tool.icon}{help} {tool.text}
+                {toolChildren.length > 0 && <ToolsContainer
+                    {...tool.innerProps}
+                    mapType={this.props.mapType}
+                    tools={toolChildren}
+                    panels={tool.childPanels}/>}
+            </Tool>,
+            tool
+        );
+    }
+
     renderTools = () => {
-        return this.props.tools.map((tool, i) => {
-            if (tool.element) {
-                return tool.element;
-            }
-            const help = tool.help ? <HelpBadge className="mapstore-helpbadge" helpText={tool.help}/> : <span/>;
-            const tooltip = tool.tooltip ? <Message msgId={tool.tooltip}/> : null;
-
-            const Tool = this.getTool(tool);
-            const toolCfg = this.getToolConfig(tool);
-
-            return this.addTooltip(
-                <Tool {...toolCfg} pluginCfg={tool.cfg} tooltip={tooltip} btnSize={this.props.toolSize} bsStyle={this.props.toolStyle} help={help} key={tool.name || "tool" + i} mapType={this.props.mapType}
-                    {...tool.cfg} items={tool.items || []}>
-                    {tool.cfg && tool.cfg.glyph ? <Glyphicon glyph={tool.cfg.glyph}/> : tool.icon}{help} {tool.text}
-                </Tool>,
-            tool);
-        });
+        return this.props.tools.map(this.renderTool);
     };
 
     renderPanels = () => {
         return this.props.panels
-        .filter((panel) => !panel.panel.loadPlugin).map((panel) => {
-            const ToolPanelComponent = panel.panel;
-            const ToolPanel = (<ToolPanelComponent
-                key={panel.name} mapType={this.props.mapType} {...panel.cfg} {...(panel.props || {})}
-                items={panel.items || []}/>);
-            const title = panel.title ? <Message msgId={panel.title}/> : null;
-            if (panel.wrap) {
-                return (
-                    <Collapse key={"mapToolBar-item-collapse-" + panel.name} in={this.props.activePanel === panel.name}>
-                        <Panel header={title} style={this.props.panelStyle} className={this.props.panelClassName}>
-                            {ToolPanel}
-                        </Panel>
-                    </Collapse>
-                );
-            }
-            return ToolPanel;
-        });
+            .filter((panel) => !panel.panel.loadPlugin).map((panel) => {
+                const ToolPanelComponent = panel.panel;
+                const ToolPanel = (<ToolPanelComponent
+                    key={panel.name} mapType={this.props.mapType} {...panel.cfg} {...(panel.props || {})}
+                    items={panel.items || []}/>);
+                const title = panel.title ? <Message msgId={panel.title}/> : null;
+                if (panel.wrap) {
+                    return (
+                        <Collapse key={"mapToolBar-item-collapse-" + panel.name} in={this.props.activePanel === panel.name}>
+                            <Panel header={title} style={this.props.panelStyle} className={this.props.panelClassName}>
+                                {ToolPanel}
+                            </Panel>
+                        </Collapse>
+                    );
+                }
+                return ToolPanel;
+            });
     };
 
     render() {
         const Container = this.props.container;
         return (
-            <span id={this.props.id}>
+            <span id={this.props.id} style={this.props.containerWrapperStyle}>
                 <Container id={this.props.id + "-container"} style={this.props.style} className={this.props.className}>
                     {this.renderTools()}
                 </Container>
@@ -200,4 +213,6 @@ class ToolsContainer extends React.Component {
     };
 }
 
-module.exports = ToolsContainer;
+export default connect(state => ({
+    mapType: mapTypeSelector(state)
+}))(ToolsContainer);

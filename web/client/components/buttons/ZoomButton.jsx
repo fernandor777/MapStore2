@@ -1,4 +1,4 @@
-const PropTypes = require('prop-types');
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,9 +7,12 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {Button, Glyphicon, Tooltip} = require('react-bootstrap');
-const OverlayTrigger = require('../misc/OverlayTrigger');
+import PropTypes from 'prop-types';
+import React from 'react';
+
+import Button from '../misc/Button';
+import { Glyphicon, Tooltip } from 'react-bootstrap';
+import OverlayTrigger from '../misc/OverlayTrigger';
 
 class ZoomButton extends React.Component {
     static propTypes = {
@@ -54,7 +57,7 @@ class ZoomButton extends React.Component {
                 className={this.props.className}
                 disabled={this.props.currentZoom + this.props.step > this.props.maxZoom || this.props.currentZoom + this.props.step < this.props.minZoom}
                 bsStyle={this.props.bsStyle}
-                >
+            >
                 {this.props.glyphicon ? <Glyphicon glyph={this.props.glyphicon}/> : null}
                 {this.props.glyphicon && this.props.text ? "\u00A0" : null}
                 {this.props.text}
@@ -76,4 +79,4 @@ class ZoomButton extends React.Component {
     };
 }
 
-module.exports = ZoomButton;
+export default ZoomButton;

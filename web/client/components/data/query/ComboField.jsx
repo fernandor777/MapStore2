@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,24 +5,25 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const assign = require('object-assign');
+import React from 'react';
 
-const {Tooltip} = require('react-bootstrap');
-
-const OverlayTrigger = require('../../misc/OverlayTrigger');
-
-const {DropdownList, Multiselect} = require('react-widgets');
-
-const Message = require('../../../components/I18N/Message');
+import assign from 'object-assign';
+import { getMessageById } from '../../../utils/LocaleUtils';
+import PropTypes from 'prop-types';
+import { Tooltip } from 'react-bootstrap';
+import OverlayTrigger from '../../misc/OverlayTrigger';
+import { DropdownList, Multiselect } from 'react-widgets';
+import Message from '../../../components/I18N/Message';
 
 class ComboField extends React.Component {
     static propTypes = {
+        dropUp: PropTypes.bool,
         busy: PropTypes.bool,
         style: PropTypes.object,
         valueField: PropTypes.string,
         textField: PropTypes.string,
         placeholder: PropTypes.object,
+        itemComponent: PropTypes.oneOfType([PropTypes.object, PropTypes.func]),
         fieldOptions: PropTypes.array,
         fieldName: PropTypes.string,
         fieldRowId: PropTypes.number,
@@ -74,6 +74,7 @@ class ComboField extends React.Component {
         textField: null,
         fieldOptions: [],
         fieldName: null,
+        itemComponent: null,
         fieldRowId: null,
         fieldValue: null,
         fieldException: null,
@@ -97,9 +98,11 @@ class ComboField extends React.Component {
 
         const list = this.props.valueField !== null && this.props.textField !== null ?
             (<ListComponent
+                dropUp={this.props.dropUp}
                 {...this.props.options}
                 busy={this.props.busy}
                 disabled={this.props.disabled}
+                itemComponent={this.props.itemComponent}
                 valueField={this.props.valueField}
                 textField={this.props.textField}
                 data={this.props.fieldOptions}
@@ -107,6 +110,7 @@ class ComboField extends React.Component {
                 caseSensitive={false}
                 minLength={3}
                 placeholder={this.props.placeholder}
+                messages={{open: getMessageById(this.context.messages, "queryform.comboField.drop_down")}}
                 filter={this.props.comboFilter}
                 style={style}
                 groupBy={this.props.groupBy}
@@ -114,16 +118,19 @@ class ComboField extends React.Component {
                 onChange={(value) => this.props.onUpdateField(this.props.fieldRowId, this.props.fieldName, this.props.multivalue ? value : value[this.props.valueField], this.props.attType)}
                 onToggle={this.props.onToggle}
                 onSearch={this.props.onSearch}/>)
-         :
+            :
             (<ListComponent
+                dropUp={this.props.dropUp}
                 {...this.props.options}
                 busy={this.props.busy}
                 disabled={this.props.disabled}
+                itemComponent={this.props.itemComponent}
                 data={this.props.fieldOptions}
                 value={this.props.fieldValue}
                 caseSensitive={false}
                 minLength={3}
                 placeholder={this.props.placeholder}
+                messages={{open: getMessageById(this.context.messages, "queryform.comboField.drop_down")}}
                 filter={this.props.comboFilter}
                 style={style}
                 groupBy={this.props.groupBy}
@@ -135,18 +142,18 @@ class ComboField extends React.Component {
 
         return this.props.fieldException ?
             <OverlayTrigger placement="bottom" overlay={(
-                    <Tooltip id={this.props.fieldRowId + "_tooltip"}>
-                        <strong>
-                            {this.props.fieldException}
-                        </strong>
-                    </Tooltip>
+                <Tooltip id={this.props.fieldRowId + "_tooltip"}>
+                    <strong>
+                        {this.props.fieldException}
+                    </strong>
+                </Tooltip>
             )}>
                 {list}
             </OverlayTrigger>
-         :
+            :
             list
         ;
     }
 }
 
-module.exports = ComboField;
+export default ComboField;

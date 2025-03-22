@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,45 +5,70 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
+import React from 'react';
 
-const {connect} = require('react-redux');
-
-const url = require('url');
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import url from 'url';
+import isEqual from 'lodash/isEqual';
 const urlQuery = url.parse(window.location.href, true).query;
 
-const ConfigUtils = require('../utils/ConfigUtils');
-const PluginsUtils = require('../utils/PluginsUtils');
+import ConfigUtils from '../utils/ConfigUtils';
+import { getMonitoredState } from '../utils/PluginsUtils';
+import ModulePluginsContainer from "../product/pages/containers/ModulePluginsContainer";
+import { createShallowSelectorCreator } from '../utils/ReselectUtils';
+import BorderLayout from '../components/layout/BorderLayout';
 
-const PluginsContainer = connect((state) => ({
-    pluginsConfig: state.plugins || ConfigUtils.getConfigProp('plugins') || null,
-    mode: urlQuery.mode || state.mode || (state.browser && state.browser.mobile ? 'mobile' : 'desktop'),
-    pluginsState: state && state.controls || {},
-    monitoredState: PluginsUtils.getMonitoredState(state, ConfigUtils.getConfigProp('monitorState'))
-}))(require('../components/plugins/PluginsContainer'));
+const PluginsContainer = connect(
+    createShallowSelectorCreator(isEqual)(
+        state => state.plugins,
+        state => state.mode,
+        state => state?.browser?.mobile,
+        state => state.controls,
+        state => getMonitoredState(state, ConfigUtils.getConfigProp('monitorState')),
+        (statePluginsConfig, stateMode, mobile, controls, monitoredState) => ({
+            statePluginsConfig,
+            mode: urlQuery.mode || stateMode || (mobile ? 'mobile' : 'desktop'),
+            pluginsState: controls,
+            monitoredState
+        })
+    )
+)(ModulePluginsContainer);
 
 class MapViewer extends React.Component {
     static propTypes = {
+        className: PropTypes.string,
         params: PropTypes.object,
+        statePluginsConfig: PropTypes.object,
+        pluginsConfig: PropTypes.object,
         loadMapConfig: PropTypes.func,
-        plugins: PropTypes.object
+        plugins: PropTypes.object,
+        loaderComponent: PropTypes.func,
+        onLoaded: PropTypes.func,
+        component: PropTypes.any
     };
 
     static defaultProps = {
         mode: 'desktop',
-        loadMapConfig: () => {}
+        className: 'viewer',
+        loadMapConfig: () => {},
+        onLoaded: () => {}
     };
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.props.loadMapConfig();
     }
 
     render() {
-        return (<PluginsContainer key="viewer" id="viewer" className="viewer"
+        return (<PluginsContainer key="viewer" id="viewer" className={this.props.className}
+            pluginsConfig={this.props.pluginsConfig || this.props.statePluginsConfig || ConfigUtils.getConfigProp('plugins')}
             plugins={this.props.plugins}
             params={this.props.params}
-            />);
+            loaderComponent={this.props.loaderComponent}
+            onLoaded={this.props.onLoaded}
+            component={this.props.component || BorderLayout}
+        />);
     }
 }
 
-module.exports = MapViewer;
+export default MapViewer;

@@ -6,8 +6,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var expect = require('expect');
-var rulesmanager = require('../rulesmanager');
+import expect from 'expect';
+
+import rulesmanager from '../rulesmanager';
 
 describe('test rules manager reducer', () => {
 
@@ -106,131 +107,6 @@ describe('test rules manager reducer', () => {
         expect(state.selectedRules).toInclude({ id: "rules2" });
     });
 
-    it('load rules not keeping selected rules', () => {
-        const oldState = {
-            rules: [
-                { id: "rules1" },
-                { id: "rules2" }
-            ],
-            rulesCount: 15,
-            rulesPage: 1,
-            selectedRules: [
-                { id: "rules3" },
-                { id: "rules4" }
-            ],
-            activeRule: { id: "rules5" },
-            error: { msgId: "error" }
-        };
-        var state = rulesmanager(oldState, {
-            type: 'RULES_LOADED',
-            rules: [
-                { id: "rules6" },
-                { id: "rules7" }
-            ],
-            count: 20,
-            page: 2,
-            keepSelected: false
-        });
-        expect(state.rules.length).toBe(2);
-        expect(state.rules).toInclude({ id: "rules6" });
-        expect(state.rules).toInclude({ id: "rules7" });
-        expect(state.rulesCount).toBe(20);
-        expect(state.rulesPage).toBe(2);
-        expect(state.selectedRules.length).toBe(0);
-        expect(state.activeRule).toEqual({});
-        expect(state.error).toEqual({});
-    });
-
-    it('load rules keeping selected rules', () => {
-        const oldState = {
-            rules: [
-                { id: "rules1" },
-                { id: "rules2" }
-            ],
-            rulesCount: 15,
-            rulesPage: 1,
-            selectedRules: [
-                { id: "rules3" },
-                { id: "rules4" }
-            ],
-            activeRule: { id: "rules5" },
-            error: { msgId: "error" }
-        };
-        var state = rulesmanager(oldState, {
-            type: 'RULES_LOADED',
-            rules: [
-                { id: "rules6" },
-                { id: "rules7" }
-            ],
-            count: 20,
-            page: 2,
-            keepSelected: true
-        });
-        expect(state.rules.length).toBe(2);
-        expect(state.rules).toInclude({ id: "rules6" });
-        expect(state.rules).toInclude({ id: "rules7" });
-        expect(state.rulesCount).toBe(20);
-        expect(state.rulesPage).toBe(2);
-        expect(state.selectedRules.length).toBe(2);
-        expect(state.selectedRules).toInclude({ id: "rules3" });
-        expect(state.selectedRules).toInclude({ id: "rules4" });
-        expect(state.activeRule).toEqual({});
-        expect(state.error).toEqual({});
-    });
-
-    it('update active rule by substituing values', () => {
-        const oldState = {
-            activeRule: {
-                rule: {
-                    id: "rules1",
-                    value1: "value1"
-                },
-                status: "status1"
-            }
-        };
-        var state = rulesmanager(oldState, {
-            type: 'UPDATE_ACTIVE_RULE',
-            rule: {
-                id: "rules2",
-                value2: "value2"
-            },
-            status: "status2",
-            merge: false
-        });
-        expect(state.activeRule.rule).toEqual({
-            id: "rules2",
-            value2: "value2"
-        });
-        expect(state.activeRule.status).toBe("status2");
-    });
-
-    it('update active rule by merging values', () => {
-        const oldState = {
-            activeRule: {
-                rule: {
-                    id: "rules1",
-                    value1: "value1"
-                },
-                status: "status1"
-            }
-        };
-        var state = rulesmanager(oldState, {
-            type: 'UPDATE_ACTIVE_RULE',
-            rule: {
-                id: "rules2",
-                value2: "value2"
-            },
-            status: "status2",
-            merge: true
-        });
-        expect(state.activeRule.rule).toEqual({
-            id: "rules2",
-            value1: "value1",
-            value2: "value2"
-        });
-        expect(state.activeRule.status).toBe("status2");
-    });
-
     it('update filters values', () => {
         const oldState = {
             filtersValues: {
@@ -251,22 +127,41 @@ describe('test rules manager reducer', () => {
             filter3: "value3"
         });
     });
-
-    it('action error submission', () => {
+    it('update set filter values', () => {
         const oldState = {
-            error: {
-                msgId: "msg1",
-                context: "context1"
+            filters: {
+                layer: "layer1"
             }
         };
         var state = rulesmanager(oldState, {
-            type: 'ACTION_ERROR',
-            msgId: "msg2",
-            context: "context2"
+            type: 'RULES_MANAGER:SET_FILTER',
+            key: "workspace",
+            value: "workspace1"
         });
-        expect(state.error).toEqual({
-            msgId: "msg2",
-            context: "context2"
+        expect(state.filters).toEqual({
+            layer: "layer1",
+            workspace: "workspace1"
+        });
+    });
+
+    it('update set reset filter values', () => {
+        const oldState = {
+            filters: {
+                workspace: "workspace1",
+                workspaceAny: false,
+                layer: "layer1"
+            }
+        };
+        var state = rulesmanager(oldState, {
+            type: 'RULES_MANAGER:SET_FILTER',
+            key: "workspace",
+            value: undefined,
+            isResetField: true
+        });
+        expect(state.filters).toEqual({
+            workspace: undefined,
+            workspaceAny: undefined,
+            layer: "layer1"
         });
     });
 

@@ -1,53 +1,31 @@
-/*
- * Copyright 2017, GeoSolutions Sas.
- * All rights reserved.
+/**
+ * Convert an UTF-8 into a byte representation. It usefult to avoid the `btoa` Unicode problem
+ * A more detailed explaination about this can be found here: https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree.
+ * @param {string} string string to convert
+ * @returns the UTF8 string converted in bytes
  */
-
-const regexWhitelist = /[ !#-&\(-\[\]-~]/;
-const regexSingleEscape = /["'\\\b\f\n\r\t]/;
-
-const EncodeUtils = {
-    /**
-     * This piece of code is a short version of https://github.com/mathiasbynens/jsesc functionalities.
-     * Encodes a string so that UTF-8 chars are replaced by hex codes escapes.
-     * @memberof utils.EncodeUtils
-     * @function
-     * @param {String} string the string to encode
-     * @return {String} the encoded string
-     */
-    utfEncode: function(string) {
-        let index = -1;
-        const length = string.length;
-        let result = '';
-        while (++index < length) {
-            const character = string.charAt(index);
-
-            if (regexWhitelist.test(character) || character === '"' || character === '`' || character === '\'') {
-                // It’s a printable ASCII character
-                // so don’t escape it.
-                result += character;
-                continue;
-            }
-
-            if (regexSingleEscape.test(character)) {
-                // no need for a `hasOwnProperty` check here
-                result += character;
-                continue;
-            }
-
-            const charCode = character.charCodeAt(0);
-
-            let hexadecimal = charCode.toString(16).toUpperCase();
-            const escaped = '\\' + 'u' +
-                ('0000' + hexadecimal).slice(-4);
-            result += escaped;
-        }
-        return result;
-    }
-};
-
-
-module.exports = EncodeUtils;
+export function encodeUTF8(string) {
+    return unescape(encodeURIComponent(string));
+}
+export function decodeUTF8(string) {
+    return decodeURIComponent(escape(string));
+}
+/**
+ * This utility function allows to encode UTF-8 strings in
+ * Base64 (btoa is afflicted by the Unicode Problem: https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem)
+ * @param {string} str the string to encode
+ * @returns the string encoded in base64
+ */
+export function utf8ToBase64( str ) {
+    return window.btoa(encodeUTF8( str));
+}
+/**
+ * This utility function allows to decode UTF-8 strings in
+ * Base64 (btoa is afflicted by the Unicode Problem: https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem)
+ * @param {string} str the string in base64 to decode
+ * @returns the string decoded
+ */
+export function base64ToUtf8( str ) {
+    return decodeUTF8(window.atob( str ));
+}

@@ -6,8 +6,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const expect = require('expect');
-const {
+import expect from 'expect';
+
+import {
     ADD_FILTER_FIELD,
     ADD_GROUP_FIELD,
     REMOVE_FILTER_FIELD,
@@ -26,12 +27,13 @@ const {
     ZONE_SEARCH,
     ZONE_SEARCH_ERROR,
     ZONE_FILTER,
-    // OPEN_MENU,
     ZONE_CHANGE,
     ZONES_RESET,
     SHOW_GENERATED_FILTER,
     QUERY_FORM_RESET,
     CHANGE_DWITHIN_VALUE,
+    QUERY_FORM_SEARCH,
+    LOAD_FILTER,
     SIMPLE_FILTER_FIELD_UPDATE,
     ADD_SIMPLE_FILTER_FIELD,
     REMOVE_SIMPLE_FILTER_FIELD,
@@ -40,17 +42,22 @@ const {
     CHANGE_SPATIAL_ATTRIBUTE,
     TOGGLE_AUTOCOMPLETE_MENU,
     SET_AUTOCOMPLETE_MODE,
+    CHANGE_SPATIAL_FILTER_VALUE,
+    UPDATE_CROSS_LAYER_FILTER_FIELD_OPTIONS,
+    UPSERT_FILTERS,
+    REMOVE_FILTERS,
     setAutocompleteMode,
     toggleMenu,
     changeDwithinValue,
     resetZones,
     zoneChange,
-   //  openMenu,
     zoneSearch,
     zoneSearchError,
     zoneFilter,
     zoneGetValues,
     query,
+    search,
+    loadFilter,
     reset,
     addFilterField,
     addGroupField,
@@ -72,11 +79,24 @@ const {
     simpleFilterFieldUpdate,
     addSimpleFilterField,
     removeSimpleFilterField,
-    removeAllSimpleFilterFields
-} = require('../queryform');
+    removeAllSimpleFilterFields,
+    changeSpatialFilterValue,
+    updateCrossLayerFilterFieldOptions,
+    upsertFilters,
+    changeMapEditor,
+    removeFilters,
+    CHANGE_MAP_EDITOR
+} from '../queryform';
 
 describe('Test correctness of the queryform actions', () => {
 
+    it('changeMapEditor', () => {
+        var retval = changeMapEditor(null);
+
+        expect(retval).toExist();
+        expect(retval.type).toBe(CHANGE_MAP_EDITOR);
+        expect(retval.mapData).toBe(null);
+    });
     it('addFilterField', () => {
         let groupId = 1;
 
@@ -97,6 +117,33 @@ describe('Test correctness of the queryform actions', () => {
         expect(retval.type).toBe(TOGGLE_AUTOCOMPLETE_MENU);
         expect(retval.rowId).toBe(rowId);
         expect(retval.status).toBe(status);
+    });
+
+    it('toggleMenu with layerFilterType undefined', () => {
+        let status = true;
+        let rowId = 100;
+
+        var retval = toggleMenu(rowId, status);
+
+        expect(retval).toExist();
+        expect(retval.type).toBe(TOGGLE_AUTOCOMPLETE_MENU);
+        expect(retval.rowId).toBe(rowId);
+        expect(retval.status).toBe(status);
+        expect(retval.layerFilterType).toBe("filterField");
+    });
+
+
+    it('toggleMenu with layerFilterType', () => {
+        let status = true;
+        let rowId = 100;
+
+        var retval = toggleMenu(rowId, status, "crossLayer");
+
+        expect(retval).toExist();
+        expect(retval.type).toBe(TOGGLE_AUTOCOMPLETE_MENU);
+        expect(retval.rowId).toBe(rowId);
+        expect(retval.status).toBe(status);
+        expect(retval.layerFilterType).toBe("crossLayer");
     });
 
     it('set autocomplete', () => {
@@ -165,6 +212,22 @@ describe('Test correctness of the queryform actions', () => {
         expect(retval.rowId).toBe(100);
         expect(retval.fieldName).toBe("fieldName");
         expect(retval.fieldValue).toBe("fieldValue");
+    });
+
+    it('updateCrossLayerFilterFieldOptions', () => {
+        let rowId = 100;
+        let fieldName = "fieldName";
+        let fieldValue = "fieldValue";
+        let fieldAttribute = 'NAME';
+
+        let retval = updateCrossLayerFilterFieldOptions({
+            rowId, fieldName, fieldValue, attribute: fieldAttribute, fieldOptions: {}
+        }, ['a', 'b, c'], 3);
+        expect(retval).toExist();
+        expect(retval.filterField.fieldValue).toBe(fieldValue);
+        expect(retval.type).toBe(UPDATE_CROSS_LAYER_FILTER_FIELD_OPTIONS);
+        expect(retval.valuesCount).toEqual(3);
+        expect(retval.options).toEqual(['a', 'b, c']);
     });
 
     it('updateExceptionField', () => {
@@ -288,6 +351,22 @@ describe('Test correctness of the queryform actions', () => {
         expect(retval.data).toBe(null);
     });
 
+    it('search', () => {
+        const retval = search("URL", {});
+        expect(retval).toExist();
+        expect(retval.type).toBe(QUERY_FORM_SEARCH);
+    });
+
+    it('loadFilter', () => {
+        const filter = {
+
+        };
+        const retval = loadFilter(filter);
+        expect(retval).toExist();
+        expect(retval.type).toBe(LOAD_FILTER);
+        expect(retval.filter).toBe(filter);
+    });
+
     it('reset', () => {
         let retval = reset();
 
@@ -385,5 +464,50 @@ describe('Test correctness of the queryform actions', () => {
 
         expect(retval).toExist();
         expect(retval.type).toBe(REMOVE_ALL_SIMPLE_FILTER_FIELDS);
+    });
+    it('removeAllSimpleFilterFields', () => {
+        const arg = {
+            collectGeometries: {},
+            options: {},
+            feature: { geometry: {
+                type: "Point",
+                coordinates: [1, 1]
+            }},
+            srsName: {},
+            style: {}
+        };
+        let retval = changeSpatialFilterValue(arg);
+
+        expect(retval).toExist();
+        expect(retval.type).toBe(CHANGE_SPATIAL_FILTER_VALUE);
+        expect(retval.geometry).toBe(arg.feature.geometry);
+        expect(retval.collectGeometries).toBe(arg.collectGeometries);
+        expect(retval.options).toBe(arg.options);
+        expect(retval.feature).toBe(arg.feature);
+        expect(retval.srsName).toBe(arg.srsName);
+        expect(retval.style).toBe(arg.style);
+
+    });
+    it('upsertFilters', () => {
+        let retval = upsertFilters({id: "my", format: 'cql', body: 'prop = 1'});
+
+        expect(retval).toExist();
+        expect(retval.type).toBe(UPSERT_FILTERS);
+        expect(retval.filters).toExist();
+        expect(retval.filters.length).toBe(1);
+        expect(retval.filters[0].id).toBe("my");
+        expect(retval.filters[0].format).toBe('cql');
+        expect(retval.filters[0].body).toBe('prop = 1');
+    });
+    it('removeFilters', () => {
+        let retval = removeFilters({id: "my", format: 'cql', body: 'prop = 1'});
+
+        expect(retval).toExist();
+        expect(retval.type).toBe(REMOVE_FILTERS);
+        expect(retval.filters).toExist();
+        expect(retval.filters.length).toBe(1);
+        expect(retval.filters[0].id).toBe("my");
+        expect(retval.filters[0].format).toBe('cql');
+        expect(retval.filters[0].body).toBe('prop = 1');
     });
 });

@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2017, GeoSolutions Sas.
  * All rights reserved.
@@ -7,15 +6,20 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-var React = require('react');
-var SearchResult = require('./SearchResult');
-const I18N = require('../../I18N/I18N');
-var assign = require('object-assign');
+import React from 'react';
+import PropTypes from 'prop-types';
+import { find } from 'lodash';
+import assign from 'object-assign';
 
+import SearchResult from './SearchResult';
+import I18N from '../../I18N/I18N';
 
-class SearchResultList extends React.Component {
+import { showGFIForService, layerIsVisibleForGFI } from '../../../utils/SearchUtils';
+
+export default class SearchResultList extends React.Component {
     static propTypes = {
         results: PropTypes.array,
+        layers: PropTypes.array,
         searchOptions: PropTypes.object,
         mapConfig: PropTypes.object,
         fitToMapSize: PropTypes.bool,
@@ -24,10 +28,12 @@ class SearchResultList extends React.Component {
         onItemClick: PropTypes.func,
         addMarker: PropTypes.func,
         afterItemClick: PropTypes.func,
+        showGFI: PropTypes.func,
         notFoundMessage: PropTypes.oneOfType([PropTypes.object, PropTypes.string])
     };
 
     static defaultProps = {
+        layers: [],
         sizeAdjustment: {
             width: 0,
             height: 110
@@ -37,21 +43,39 @@ class SearchResultList extends React.Component {
         },
         onItemClick: () => {},
         addMarker: () => {},
-        afterItemClick: () => {}
+        afterItemClick: () => {},
+        showGFI: () => {}
     };
 
-    onItemClick = (item) => {
-        this.props.onItemClick(item, this.props.mapConfig);
+    onItemClick = (item, service) => {
+        this.props.onItemClick(item, this.props.mapConfig, service);
     };
 
     renderResults = () => {
         return this.props.results.map((item, idx)=> {
             const service = this.findService(item) || {};
+            const searchLayerObj = find(this.props.layers, {name: service.options?.typeName});
+            const visible = showGFIForService(service);
+            const disabled = !layerIsVisibleForGFI(searchLayerObj, service);
             return (<SearchResult
                 subTitle={service.subTitle}
                 idField={service.idField}
                 displayName={service.displayName}
-                key={item.osm_id || "res_" + idx} item={item} onItemClick={this.onItemClick}/>);
+                key={item.osm_id || item.id || "res_" + idx}
+                item={item}
+                onItemClick={() => this.onItemClick(item, service)}
+                tools={[{
+                    id: 'open-gfi',
+                    keyProp: 'open-gfi',
+                    visible,
+                    disabled,
+                    glyph: 'info-sign',
+                    tooltipId: visible && disabled ? 'search.layerMustBeVisible' : 'search.showGFI',
+                    onClick: e => {
+                        e.stopPropagation();
+                        this.props.showGFI(item);
+                    }
+                }]}/>);
         });
     };
 
@@ -101,7 +125,6 @@ class SearchResultList extends React.Component {
                 return item.__SERVICE__;
             }
         }
+        return null;
     };
 }
-
-module.exports = SearchResultList;

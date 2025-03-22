@@ -6,18 +6,18 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var Layers = require('../../../../utils/cesium/Layers');
-var ConfigUtils = require('../../../../utils/ConfigUtils');
-const ProxyUtils = require('../../../../utils/ProxyUtils');
-const WMTSUtils = require('../../../../utils/WMTSUtils');
-var Cesium = require('../../../../libs/cesium');
-var assign = require('object-assign');
-var {isObject, isArray, slice, get} = require('lodash');
-
-function getWMTSURLs( urls ) {
-    return urls.map((url) => url.split("\?")[0]);
-}
-
+import Layers from '../../../../utils/cesium/Layers';
+import * as Cesium from 'cesium';
+import ConfigUtils from '../../../../utils/ConfigUtils';
+import {
+    getProxyUrl
+} from '../../../../utils/ProxyUtils';
+import * as WMTSUtils from '../../../../utils/WMTSUtils';
+import { creditsToAttribution, getAuthenticationParam, getURLs } from '../../../../utils/LayersUtils';
+import assign from 'object-assign';
+import { isObject, isArray, slice, get, head} from 'lodash';
+import urlParser from 'url';
+import { isVectorFormat } from '../../../../utils/VectorTileUtils';
 
 function splitUrl(originalUrl) {
     let url = originalUrl;
@@ -46,7 +46,7 @@ const isValidTile = (tileMatrixSet) => (x, y, level) =>
 
 WMTSProxy.prototype.getURL = function(resource) {
     let {url, queryString} = splitUrl(resource);
-    return ProxyUtils.getProxyUrl() + encodeURIComponent(url + queryString);
+    return getProxyUrl() + encodeURIComponent(url + queryString);
 };
 
 function NoProxy() {
@@ -56,8 +56,8 @@ NoProxy.prototype.getURL = function(resource) {
     let {url, queryString} = splitUrl(resource);
     return url + queryString;
 };
-function getMatrixIds(matrix = [], srs) {
-    return ((isObject(matrix) && matrix[srs]) || isArray(matrix) && matrix || []).map((el) => el.identifier);
+function getMatrixIds(matrix = [], setId) {
+    return ((isObject(matrix) && matrix[setId]) || isArray(matrix) && matrix || []).map((el) => el.identifier);
 }
 
 function getDefaultMatrixId(options) {
@@ -85,54 +85,64 @@ const getTilingSchema = (srs) => {
     } else if (srs.indexOf("EPSG:3857") >= 0) {
         return new Cesium.WebMercatorTilingScheme();
     }
+    return null;
 };
 
 const getMatrixOptions = (options, srs) => {
     const tileMatrixSet = WMTSUtils.getTileMatrixSet(options.tileMatrixSet, srs, options.allowedSRS, options.matrixIds);
-    const matrixIds = limitMatrix(options.matrixIds && getMatrixIds(options.matrixIds, srs) || getDefaultMatrixId(options));
+    const matrixIds = limitMatrix(options.matrixIds && getMatrixIds(options.matrixIds, tileMatrixSet) || getDefaultMatrixId(options));
     return {tileMatrixSet, matrixIds};
 };
 
-function wmtsToCesiumOptions(options) {
+function wmtsToCesiumOptions(_options) {
+    const options = WMTSUtils.parseTileMatrixSetOption(_options);
     let srs = 'EPSG:4326';
-    let {tileMatrixSet, matrixIds} = getMatrixOptions(options, srs);
+    let { tileMatrixSet: tileMatrixSetID, matrixIds} = getMatrixOptions(options, srs);
     if (matrixIds.length === 0) {
         srs = 'EPSG:3857';
         const matrixOptions = getMatrixOptions(options, srs);
-        tileMatrixSet = matrixOptions.tileMatrixSet;
+        tileMatrixSetID = matrixOptions.tileMatrixSet;
         matrixIds = matrixOptions.matrixIds;
     }
-
+    // NOTE: can we use opacity to manage visibility?
     // var opacity = options.opacity !== undefined ? options.opacity : 1;
     let proxyUrl = ConfigUtils.getProxyUrl({});
     let proxy;
     if (proxyUrl) {
-        proxy = ProxyUtils.needProxy(options.url) && proxyUrl;
+        proxy = options.forceProxy;
     }
-    // NOTE: can we use opacity to manage visibility?
-    const isValid = isValidTile(options.matrixIds && options.matrixIds[tileMatrixSet]);
+    const isValid = isValidTile(options.matrixIds && options.matrixIds[tileMatrixSetID]);
+    const queryParametersString = urlParser.format({ query: {...getAuthenticationParam(options)}});
+    const cr = options.credits;
+    const credit = cr ? new Cesium.Credit(creditsToAttribution(cr)) : '';
     return assign({
-        url: getWMTSURLs(isArray(options.url) ? options.url : [options.url]), // TODO subdomain support, if use {s} switches to RESTFul mode
-        format: options.format || 'image/png',
+        // TODO: multi-domain support, if use {s} switches to RESTFul mode
+        url: new Cesium.Resource({
+            url: head(getURLs(isArray(options.url) ? options.url : [options.url], queryParametersString)),
+            proxy: proxy && new WMTSProxy(proxy) || new NoProxy()
+        }),
+        // set image format to png if vector to avoid errors while switching between map type
+        format: isVectorFormat(options.format) && 'image/png' || options.format || 'image/png',
         isValid,
         // tileDiscardPolicy: {
         //    isReady: () => true,
         //    shouldDiscardImage: ({x, y, level}) => !isValid(x, y, level)
         // }, // not supported yet
+        credit,
         layer: options.name,
         style: options.style || "",
         tileMatrixLabels: matrixIds,
-        tilingScheme: getTilingSchema(srs, options.matrixIds[tileMatrixSet]),
-        proxy: proxy && new WMTSProxy(proxy) || new NoProxy(),
+        tilingScheme: getTilingSchema(srs, options.matrixIds[tileMatrixSetID]),
         enablePickFeatures: false,
         tileWidth: options.tileWidth || options.tileSize || 256,
         tileHeight: options.tileHeight || options.tileSize || 256,
-        tileMatrixSetID: tileMatrixSet,
-        maximumLevel: 30
+        tileMatrixSetID: tileMatrixSetID,
+        maximumLevel: 30,
+        parameters: {...getAuthenticationParam(options)}
     });
 }
 
-const createLayer = (options) => {
+const createLayer = options => {
     let layer;
     const cesiumOptions = wmtsToCesiumOptions(options);
     layer = new Cesium.WebMapTileServiceImageryProvider(cesiumOptions);
@@ -147,4 +157,13 @@ const createLayer = (options) => {
     return layer;
 };
 
-Layers.registerType('wmts', createLayer);
+const updateLayer = (layer, newOptions, oldOptions) => {
+    if (newOptions.securityToken !== oldOptions.securityToken
+    || oldOptions.format !== newOptions.format
+    || oldOptions.credits !== newOptions.credits || newOptions.forceProxy !== oldOptions.forceProxy) {
+        return createLayer(newOptions);
+    }
+    return null;
+};
+
+Layers.registerType('wmts', {create: createLayer, update: updateLayer});

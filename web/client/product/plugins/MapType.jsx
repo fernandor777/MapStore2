@@ -1,18 +1,21 @@
-const PropTypes = require('prop-types');
 /*
- * Copyright 2016, GeoSolutions Sas.
+ * Copyright 2017, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
- */
-const React = require('react');
-const {Label, FormControl, FormGroup} = require('react-bootstrap');
-const Message = require('../../components/I18N/Message');
-const {compose} = require('redux');
-const {changeMapType} = require('../../actions/maptype');
-const {connect} = require('react-redux');
-const assign = require('object-assign');
+*/
+import PropTypes from 'prop-types';
+
+import React from 'react';
+import { Label, FormControl, FormGroup } from 'react-bootstrap';
+import Message from '../../components/I18N/Message';
+import { compose } from 'redux';
+import { changeMapType } from '../../actions/maptype';
+import { mapTypeSelector } from '../../selectors/maptype';
+import { connect } from 'react-redux';
+import assign from 'object-assign';
+import { MapLibraries } from '../../utils/MapTypeUtils';
 
 class MapType extends React.Component {
     static propTypes = {
@@ -24,12 +27,12 @@ class MapType extends React.Component {
     };
 
     static defaultProps = {
-        mapType: 'leaflet',
+        mapType: MapLibraries.LEAFLET,
         onChangeMapType: () => {},
         mapTypes: [
-            { key: "leaflet", label: "Leaflet"},
-            { key: "openlayers", label: "OpenLayers"},
-            { key: "cesium", label: "Cesium"}
+            { key: MapLibraries.LEAFLET, label: "Leaflet"},
+            { key: MapLibraries.OPENLAYERS, label: "OpenLayers"},
+            { key: MapLibraries.CESIUM, label: "Cesium"}
         ]
     };
 
@@ -42,25 +45,25 @@ class MapType extends React.Component {
                         {this.props.mapTypes.map(type => <option value={type.key} key={type.key}>{type.label}</option>)}
                     </FormControl>
                 </FormGroup>
-        </div>
+            </div>
         );
     }
 }
 
 const MapTypePlugin = connect((state) => ({
-    mapType: state.maptype && state.maptype.mapType || 'leaflet'
+    mapType: mapTypeSelector(state)
 }), {
     onChangeMapType: compose(changeMapType, (event) => event.target.value)
 })(MapType);
 
-module.exports = {
+export default {
     MapTypePlugin: assign(MapTypePlugin, {
-        GridContainer: {
+        OmniBar: {
             name: 'MapType',
             tool: true,
-            position: 1,
+            position: 6,
             priority: 1
         }
     }),
-    reducers: {maptype: require('../../reducers/maptype')}
+    reducers: {maptype: require('../../reducers/maptype').default}
 };

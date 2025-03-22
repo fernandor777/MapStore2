@@ -6,7 +6,8 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {SHOW_NOTIFICATION, HIDE_NOTIFICATION, CLEAR_NOTIFICATIONS} = require('../actions/notifications');
+import { SHOW_NOTIFICATION, HIDE_NOTIFICATION, CLEAR_NOTIFICATIONS } from '../actions/notifications';
+
 /**
  * Manages the notifications.
  * @memberof reducers
@@ -25,21 +26,20 @@ const {SHOW_NOTIFICATION, HIDE_NOTIFICATION, CLEAR_NOTIFICATIONS} = require('../
  */
 function notifications(state = [], action = {}) {
     switch (action.type) {
-        case SHOW_NOTIFICATION:
-            const { type, ...rest } = action;
-            return [
-                ...state,
-                { ...rest}
-            ];
-        case HIDE_NOTIFICATION:
-            return state.filter(notification => {
-                return notification.uid !== action.uid;
-            });
-        case CLEAR_NOTIFICATIONS:
-            return [];
-        default:
-            return state;
+    case SHOW_NOTIFICATION:
+        const { type, ...rest } = action;
+        return [
+            ...state,
+            { ...rest}
+        ];
+    case HIDE_NOTIFICATION:
+        return state.filter(notification => {
+            return notification.uid !== action.uid;
+        });
+    case CLEAR_NOTIFICATIONS:
+        return [];
+    default:
+        return state;
     }
-    return state;
 }
-module.exports = notifications;
+export default notifications;

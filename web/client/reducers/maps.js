@@ -6,15 +6,27 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {
-    MAPS_LIST_LOADED, MAPS_LIST_LOADING, MAPS_LIST_LOAD_ERROR, MAP_CREATED, MAP_UPDATING,
-    MAP_METADATA_UPDATED, MAP_DELETING, MAP_DELETED, ATTRIBUTE_UPDATED, PERMISSIONS_LIST_LOADING,
-    PERMISSIONS_LIST_LOADED, SAVE_MAP, PERMISSIONS_UPDATED, THUMBNAIL_ERROR, RESET_UPDATING,
-    MAPS_SEARCH_TEXT_CHANGED, METADATA_CHANGED} = require('../actions/maps');
-const {
-    EDIT_MAP, RESET_CURRENT_MAP} = require('../actions/currentMap');
-const assign = require('object-assign');
-const _ = require('lodash');
+import {
+    MAPS_LIST_LOADED,
+    MAPS_LIST_LOADING,
+    MAPS_LIST_LOAD_ERROR,
+    MAP_CREATED,
+    MAP_ERROR,
+    MAP_UPDATING,
+    MAP_DELETING,
+    ATTRIBUTE_UPDATED,
+    PERMISSIONS_LIST_LOADING,
+    THUMBNAIL_ERROR,
+    MAPS_SEARCH_TEXT_CHANGED,
+    SEARCH_FILTER_CHANGED,
+    SET_SEARCH_FILTER,
+    SET_CONTEXTS,
+    LOADING,
+    METADATA_CHANGED
+} from '../actions/maps';
+
+import assign from 'object-assign';
+import { isNil } from 'lodash';
 /**
  * Manages the state of the maps list search with it's results
  * The properties represent the shape of the state
@@ -62,30 +74,43 @@ const _ = require('lodash');
  */
 function maps(state = {
     enabled: false,
+    showMapDetails: true,
     errors: [],
-    searchText: ""}, action) {
+    searchFilter: {},
+    searchText: "",
+    results: ""}, action) {
     switch (action.type) {
     case MAPS_SEARCH_TEXT_CHANGED: {
         return assign({}, state, {
             searchText: action.text
         });
     }
-    case METADATA_CHANGED: {
+    case SEARCH_FILTER_CHANGED: {
         return assign({}, state, {
-            metadata: assign({}, state.metadata, {[action.prop]: action.value })
-        });
-    }
-    case EDIT_MAP: {
-        return assign({}, state, {
-            metadata: {
-                name: action.map && action.map.name || state && state.metadata && state.metadata.name || "",
-                description: action.map && action.map.description || state && state.metadata && state.metadata.description || ""
+            searchFilter: {
+                ...state.searchFilter,
+                [action.filter]: action.filterData
             }
         });
     }
-    case RESET_CURRENT_MAP: {
+    case SET_SEARCH_FILTER: {
+        return assign({}, state, {searchFilter: action.searchFilter});
+    }
+    case SET_CONTEXTS: {
+        return assign({}, state, {contexts: action.contexts});
+    }
+    case LOADING: {
         return assign({}, state, {
-            metadata: {name: "", description: ""}
+            loading: action.value,
+            loadFlags: {
+                ...(state.loadFlags || {}),
+                ...(action.name !== 'loading' ? {[action.name]: action.value} : {})
+            }
+        });
+    }
+    case METADATA_CHANGED: {
+        return assign({}, state, {
+            metadata: assign({}, state.metadata, {[action.prop]: action.value })
         });
     }
     case MAPS_LIST_LOADING:
@@ -111,7 +136,7 @@ function maps(state = {
             loadingError: action.error
         };
     case MAP_UPDATING: {
-        let newMaps = state.results === "" ? [] : [...state.results];
+        let newMaps = state.results === "" || isNil(state.results) ? [] : [...state.results];
 
         for (let i = 0; i < newMaps.length; i++) {
             if (newMaps[i].id && newMaps[i].id === action.resourceId ) {
@@ -120,30 +145,12 @@ function maps(state = {
         }
         return assign({}, state, {results: newMaps});
     }
-    case MAP_METADATA_UPDATED: {
-        let newMaps = state.results === "" ? [] : [...state.results];
-
-        for (let i = 0; i < newMaps.length; i++) {
-            if (newMaps[i].id && newMaps[i].id === action.resourceId ) {
-                newMaps[i] = assign({}, newMaps[i], {description: action.newDescription, name: action.newName, updating: false});
-            }
-        }
-        return assign({}, state, {results: newMaps});
-    }
     case ATTRIBUTE_UPDATED: {
         let newMaps = state.results === "" ? [] : [...state.results];
         for (let i = 0; i < newMaps.length; i++) {
             if (newMaps[i].id && newMaps[i].id === action.resourceId) {
-                newMaps[i] = assign({}, newMaps[i], {[action.name]: decodeURIComponent(action.value), updating: false, loadingError: action.error ? action.error : null}); // TODO remove decodeURIComponent to reuse this reducer!!!
-            }
-        }
-        return assign({}, state, {results: newMaps});
-    }
-    case PERMISSIONS_UPDATED: {
-        let newMaps = state.results === "" ? [] : [...state.results];
-        for (let i = 0; i < newMaps.length; i++) {
-            if (newMaps[i].id && newMaps[i].id === action.resourceId) {
-                newMaps[i] = assign({}, newMaps[i], { loadingError: action.error ? action.error : null});
+                // this decode is for backward compatibility with old linked resources`rest%2Fgeostore%2Fdata%2F2%2Fraw%3Fdecode%3Ddatauri` not needed for new ones `rest/geostore/data/2/raw?decode=datauri`
+                newMaps[i] = assign({}, newMaps[i], {[action.name]: decodeURIComponent(action.value), updating: false, loadingError: action.error ? action.error : null});
             }
         }
         return assign({}, state, {results: newMaps});
@@ -158,17 +165,7 @@ function maps(state = {
         }
         return assign({}, state, {results: newMaps});
     }
-    case MAP_DELETED: {
-        let newMaps = state.results === "" ? [] : [...state.results];
-        let newMapsState = {
-            results: newMaps.filter(function(el) {
-                return el.id && el.id !== action.resourceId;
-            }),
-            totalCount: state.totalCount - 1
-        };
 
-        return assign({}, state, newMapsState);
-    }
     case MAP_CREATED: {
         let newMaps = state.results === "" ? [] : [...state.results];
         let newMapsState = {
@@ -177,32 +174,7 @@ function maps(state = {
         };
         return assign({}, state, newMapsState);
     }
-    case SAVE_MAP: {
-        let newMaps = state.results === "" ? [] : [...state.results];
-
-        for (let i = 0; i < newMaps.length; i++) {
-            if (newMaps[i].id && newMaps[i].id === action.resourceId ) {
-                newMaps[i] = assign({}, newMaps[i], {
-                    files: action.map && action.map.files,
-                    errors: action.map && action.map.errors,
-                    newThumbnail: action.map && action.map.newThumbnail,
-                    thumbnailError: action.map && action.map.thumbnailError,
-                    thumbnail: action.map && action.map.thumbnail });
-            }
-        }
-        return assign({}, state, {results: newMaps});
-    }
-    case THUMBNAIL_ERROR: {
-        let newMaps = state.results === "" ? [] : [...state.results];
-
-        for (let i = 0; i < newMaps.length; i++) {
-            if (newMaps[i].id && newMaps[i].id === action.resourceId ) {
-                newMaps[i] = assign({}, newMaps[i], {updating: false});
-            }
-        }
-        return assign({}, state, {results: newMaps});
-    }
-    case RESET_UPDATING: {
+    case THUMBNAIL_ERROR: case MAP_ERROR: {
         let newMaps = state.results === "" ? [] : [...state.results];
 
         for (let i = 0; i < newMaps.length; i++) {
@@ -214,7 +186,7 @@ function maps(state = {
     }
     case PERMISSIONS_LIST_LOADING: {
         let newMaps = state.results === "" ? [] : [...state.results];
-            // TODO: Add the fix for GeoStore single-item arrays
+        // TODO: Add the fix for GeoStore single-item arrays
         let newState = assign({}, state, {
             results: newMaps.map(function(map) {
                 if (map.id === action.mapId) {
@@ -223,38 +195,7 @@ function maps(state = {
                 return map;
             })
         }
-            );
-        return newState;
-    }
-    case PERMISSIONS_LIST_LOADED: {
-        let newMaps = state.results === "" ? [] : [...state.results];
-            // TODO: Add the fix for GeoStore single-item arrays
-        let newState = assign({}, state, {
-            results: newMaps.map(function(map) {
-                if (map.id === action.mapId) {
-
-                            // Fix to overcome GeoStore bad encoding of single object arrays
-                    let fixedSecurityRule = [];
-                    if (action.permissions && action.permissions.SecurityRuleList && action.permissions.SecurityRuleList.SecurityRule) {
-                        if ( _.isArray(action.permissions.SecurityRuleList.SecurityRule)) {
-                            fixedSecurityRule = action.permissions.SecurityRuleList.SecurityRule;
-                        } else {
-                            fixedSecurityRule.push(action.permissions.SecurityRuleList.SecurityRule);
-                        }
-                    }
-
-                    return assign({}, map, {
-                        permissionLoading: false,
-                        permissions: {
-                            SecurityRuleList: {
-                                SecurityRule: fixedSecurityRule
-                            }
-                        }});
-                }
-                return map;
-            })
-        }
-            );
+        );
         return newState;
     }
     default:
@@ -262,4 +203,4 @@ function maps(state = {
     }
 }
 
-module.exports = maps;
+export default maps;

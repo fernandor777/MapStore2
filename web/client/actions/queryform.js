@@ -5,57 +5,80 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const ADD_FILTER_FIELD = 'ADD_FILTER_FIELD';
-const REMOVE_FILTER_FIELD = 'REMOVE_FILTER_FIELD';
-const UPDATE_FILTER_FIELD = 'UPDATE_FILTER_FIELD';
-const UPDATE_EXCEPTION_FIELD = 'UPDATE_EXCEPTION_FIELD';
-const ADD_GROUP_FIELD = 'ADD_GROUP_FIELD';
-const UPDATE_LOGIC_COMBO = 'UPDATE_LOGIC_COMBO';
-const REMOVE_GROUP_FIELD = 'REMOVE_GROUP_FIELD';
-const CHANGE_CASCADING_VALUE = 'CHANGE_CASCADING_VALUE';
-const EXPAND_ATTRIBUTE_PANEL = 'EXPAND_ATTRIBUTE_PANEL';
-const EXPAND_SPATIAL_PANEL = 'EXPAND_SPATIAL_PANEL';
-const SELECT_SPATIAL_METHOD = 'SELECT_SPATIAL_METHOD';
-const SELECT_VIEWPORT_SPATIAL_METHOD = 'SELECT_VIEWPORT_SPATIAL_METHOD';
-const UPDATE_GEOMETRY = 'UPDATE_GEOMETRY';
-const SELECT_SPATIAL_OPERATION = 'SELECT_SPATIAL_OPERATION';
-const CHANGE_SPATIAL_ATTRIBUTE = 'CHANGE_SPATIAL_ATTRIBUTE';
-const REMOVE_SPATIAL_SELECT = 'REMOVE_SPATIAL_SELECT';
-const SHOW_SPATIAL_DETAILS = 'SHOW_SPATIAL_DETAILS';
-// const QUERY_FORM_SEARCH = 'QUERY_FORM_SEARCH';
-const QUERY_FORM_RESET = 'QUERY_FORM_RESET';
-// const WFS_LOAD_ERROR = 'WFS_LOAD_ERROR';
-const SHOW_GENERATED_FILTER = 'SHOW_GENERATED_FILTER';
-const CHANGE_DWITHIN_VALUE = 'CHANGE_DWITHIN_VALUE';
+export const ADD_FILTER_FIELD = 'ADD_FILTER_FIELD';
+export const REMOVE_FILTER_FIELD = 'REMOVE_FILTER_FIELD';
+export const UPDATE_FILTER_FIELD = 'UPDATE_FILTER_FIELD';
+export const UPDATE_EXCEPTION_FIELD = 'UPDATE_EXCEPTION_FIELD';
+export const ADD_GROUP_FIELD = 'ADD_GROUP_FIELD';
+export const UPDATE_LOGIC_COMBO = 'UPDATE_LOGIC_COMBO';
+export const REMOVE_GROUP_FIELD = 'REMOVE_GROUP_FIELD';
+export const CHANGE_CASCADING_VALUE = 'CHANGE_CASCADING_VALUE';
+export const EXPAND_ATTRIBUTE_PANEL = 'EXPAND_ATTRIBUTE_PANEL';
+export const EXPAND_SPATIAL_PANEL = 'EXPAND_SPATIAL_PANEL';
+export const EXPAND_CROSS_LAYER = 'QUERYFORM:EXPAND_CROSS_LAYER';
+export const SET_CROSS_LAYER_PARAMETER = 'QUERYFORM:SET_CROSS_LAYER_PARAMETER';
+export const RESET_CROSS_LAYER_FILTER = 'QUERYFORM:RESET_CROSS_LAYER_FILTER';
+export const SELECT_SPATIAL_METHOD = 'SELECT_SPATIAL_METHOD';
+export const SELECT_VIEWPORT_SPATIAL_METHOD = 'SELECT_VIEWPORT_SPATIAL_METHOD';
+export const UPDATE_GEOMETRY = 'UPDATE_GEOMETRY';
+export const SELECT_SPATIAL_OPERATION = 'SELECT_SPATIAL_OPERATION';
+export const CHANGE_SPATIAL_ATTRIBUTE = 'CHANGE_SPATIAL_ATTRIBUTE';
+export const CHANGE_SPATIAL_FILTER_VALUE = 'CHANGE_SPATIAL_FILTER_VALUE';
+export const REMOVE_SPATIAL_SELECT = 'REMOVE_SPATIAL_SELECT';
+export const SHOW_SPATIAL_DETAILS = 'SHOW_SPATIAL_DETAILS';
+export const QUERY_FORM_SEARCH = 'QUERY_FORM_SEARCH';
+export const QUERY_FORM_RESET = 'QUERY_FORM_RESET';
+// export  const WFS_LOAD_ERROR = 'WFS_LOAD_ERROR';
+export const SHOW_GENERATED_FILTER = 'SHOW_GENERATED_FILTER';
+export const CHANGE_DWITHIN_VALUE = 'CHANGE_DWITHIN_VALUE';
 
-const ZONE_SEARCH = 'ZONE_SEARCH';
-const ZONE_SEARCH_ERROR = 'ZONE_SEARCH_ERROR';
-const ZONE_FILTER = 'ZONE_FILTER';
+export const ZONE_SEARCH = 'ZONE_SEARCH';
+export const ZONE_SEARCH_ERROR = 'ZONE_SEARCH_ERROR';
+export const ZONE_FILTER = 'ZONE_FILTER';
 
-// const OPEN_MENU = 'OPEN_MENU';
+// export  const OPEN_MENU = 'OPEN_MENU';
 
-const ZONE_CHANGE = 'ZONE_CHANGE';
-const ZONES_RESET = 'ZONES_RESET';
+export const ZONE_CHANGE = 'ZONE_CHANGE';
+export const ZONES_RESET = 'ZONES_RESET';
 
-const SIMPLE_FILTER_FIELD_UPDATE = 'SIMPLE_FILTER_FIELD_UPDATE';
-const ADD_SIMPLE_FILTER_FIELD = 'ADD_SIMPLE_FILTER_FIELD';
-const REMOVE_SIMPLE_FILTER_FIELD = 'REMOVE_SIMPLE_FILTER_FIELD';
-const REMOVE_ALL_SIMPLE_FILTER_FIELDS = 'REMOVE_ALL_SIMPLE_FILTER_FIELDS';
-const UPDATE_FILTER_FIELD_OPTIONS = 'UPDATE_FILTER_FIELD_OPTIONS';
-const LOADING_FILTER_FIELD_OPTIONS = 'LOADING_FILTER_FIELD_OPTIONS';
-const SET_AUTOCOMPLETE_MODE = 'SET_AUTOCOMPLETE_MODE';
-const TOGGLE_AUTOCOMPLETE_MENU = 'TOGGLE_AUTOCOMPLETE_MENU';
+export const SIMPLE_FILTER_FIELD_UPDATE = 'SIMPLE_FILTER_FIELD_UPDATE';
+export const ADD_SIMPLE_FILTER_FIELD = 'ADD_SIMPLE_FILTER_FIELD';
+export const REMOVE_SIMPLE_FILTER_FIELD = 'REMOVE_SIMPLE_FILTER_FIELD';
+export const REMOVE_ALL_SIMPLE_FILTER_FIELDS = 'REMOVE_ALL_SIMPLE_FILTER_FIELDS';
+export const UPDATE_FILTER_FIELD_OPTIONS = 'UPDATE_FILTER_FIELD_OPTIONS';
+export const LOADING_FILTER_FIELD_OPTIONS = 'LOADING_FILTER_FIELD_OPTIONS';
+export const ADD_CROSS_LAYER_FILTER_FIELD = 'QUERYFORM:ADD_CROSS_LAYER_FILTER_FIELD';
+export const UPDATE_CROSS_LAYER_FILTER_FIELD = 'QUERYFORM:UPDATE_CROSS_LAYER_FILTER_FIELD';
+export const REMOVE_CROSS_LAYER_FILTER_FIELD = 'QUERYFORM:REMOVE_CROSS_LAYER_FILTER_FIELD';
+export const UPDATE_CROSS_LAYER_FILTER_FIELD_OPTIONS = 'QUERYFORM:UPDATE_CROSS_LAYER_FILTER_FIELD_OPTIONS';
+export const SET_AUTOCOMPLETE_MODE = 'SET_AUTOCOMPLETE_MODE';
+export const TOGGLE_AUTOCOMPLETE_MENU = 'TOGGLE_AUTOCOMPLETE_MENU';
+export const LOAD_FILTER = 'QUERYFORM:LOAD_FILTER';
 
-const axios = require('../libs/ajax');
+export const UPSERT_FILTERS = 'QUERYFORM:UPSERT_FILTERS';
+export const REMOVE_FILTERS = 'QUERYFORM:REMOVE_FILTERS';
 
-function addFilterField(groupId) {
+export const CHANGE_MAP_EDITOR = "QUERYFORM:CHANGE_MAP_EDITOR";
+
+import axios from '../libs/ajax';
+
+/**
+ * Changes the map config to be used by query form for creating spatial filters
+ * @param  {object} mapData the new map data
+ */
+export const changeMapEditor = (mapData) => ({
+    type: CHANGE_MAP_EDITOR,
+    mapData
+});
+
+export function addFilterField(groupId) {
     return {
         type: ADD_FILTER_FIELD,
         groupId: groupId
     };
 }
 
-function addGroupField(groupId, index) {
+export function addGroupField(groupId, index) {
     return {
         type: ADD_GROUP_FIELD,
         groupId: groupId,
@@ -63,22 +86,23 @@ function addGroupField(groupId, index) {
     };
 }
 
-function removeFilterField(rowId) {
+export function removeFilterField(rowId) {
     return {
         type: REMOVE_FILTER_FIELD,
         rowId: rowId
     };
 }
 
-function toggleMenu(rowId, status) {
+export function toggleMenu(rowId, status, layerFilterType = "filterField") {
     return {
         type: TOGGLE_AUTOCOMPLETE_MENU,
         rowId,
-        status
+        status,
+        layerFilterType
     };
 }
 
-function updateFilterField(rowId, fieldName, fieldValue, fieldType, fieldOptions = {}) {
+export function updateFilterField(rowId, fieldName, fieldValue, fieldType, fieldOptions = {}) {
     return {
         type: UPDATE_FILTER_FIELD,
         rowId: rowId,
@@ -89,7 +113,7 @@ function updateFilterField(rowId, fieldName, fieldValue, fieldType, fieldOptions
     };
 }
 
-function updateExceptionField(rowId, message) {
+export function updateExceptionField(rowId, message) {
     return {
         type: UPDATE_EXCEPTION_FIELD,
         rowId: rowId,
@@ -97,7 +121,7 @@ function updateExceptionField(rowId, message) {
     };
 }
 
-function updateLogicCombo(groupId, logic) {
+export function updateLogicCombo(groupId, logic) {
     return {
         type: UPDATE_LOGIC_COMBO,
         groupId: groupId,
@@ -105,42 +129,54 @@ function updateLogicCombo(groupId, logic) {
     };
 }
 
-function setAutocompleteMode(status) {
+export function setAutocompleteMode(status) {
     return {
         type: SET_AUTOCOMPLETE_MODE,
         status
     };
 }
 
-function removeGroupField(groupId) {
+export function removeGroupField(groupId) {
     return {
         type: REMOVE_GROUP_FIELD,
         groupId: groupId
     };
 }
 
-function changeCascadingValue(attributes) {
+export function changeCascadingValue(attributes) {
     return {
         type: CHANGE_CASCADING_VALUE,
         attributes: attributes
     };
 }
 
-function expandAttributeFilterPanel(expand) {
+export function expandAttributeFilterPanel(expand) {
     return {
         type: EXPAND_ATTRIBUTE_PANEL,
         expand: expand
     };
 }
 
-function expandSpatialFilterPanel(expand) {
+export function expandSpatialFilterPanel(expand) {
     return {
         type: EXPAND_SPATIAL_PANEL,
         expand: expand
     };
 }
-
-function selectSpatialMethod(method, fieldName) {
+export function expandCrossLayerFilterPanel(expand) {
+    return {
+        type: EXPAND_CROSS_LAYER,
+        expand
+    };
+}
+export function setCrossLayerFilterParameter(key, value) {
+    return {
+        type: SET_CROSS_LAYER_PARAMETER,
+        key,
+        value
+    };
+}
+export function selectSpatialMethod(method, fieldName) {
     return {
         type: SELECT_SPATIAL_METHOD,
         fieldName: fieldName,
@@ -148,19 +184,19 @@ function selectSpatialMethod(method, fieldName) {
     };
 }
 
-function selectViewportSpatialMethod() {
+export function selectViewportSpatialMethod() {
     return {
         type: SELECT_VIEWPORT_SPATIAL_METHOD
     };
 }
-function updateGeometrySpatialField(geometry) {
+export function updateGeometrySpatialField(geometry) {
     return {
         type: UPDATE_GEOMETRY,
         geometry
     };
 }
 
-function selectSpatialOperation(operation, fieldName) {
+export function selectSpatialOperation(operation, fieldName) {
     return {
         type: SELECT_SPATIAL_OPERATION,
         fieldName: fieldName,
@@ -168,47 +204,73 @@ function selectSpatialOperation(operation, fieldName) {
     };
 }
 
-function changeSpatialAttribute(attribute) {
+export function changeSpatialAttribute(attribute) {
     return {
         type: CHANGE_SPATIAL_ATTRIBUTE,
         attribute
     };
 }
 
-function removeSpatialSelection() {
+export function changeSpatialFilterValue({feature, srsName, collectGeometries, style, options, value} = {}) {
+    return {
+        type: CHANGE_SPATIAL_FILTER_VALUE,
+        value,
+        collectGeometries,
+        options,
+        geometry: feature && feature.geometry,
+        feature,
+        srsName,
+        style
+    };
+}
+export function removeSpatialSelection() {
     return {
         type: REMOVE_SPATIAL_SELECT
     };
 }
 
-function showSpatialSelectionDetails(show) {
+export function showSpatialSelectionDetails(show) {
     return {
         type: SHOW_SPATIAL_DETAILS,
         show: show
     };
 }
 
-function changeDwithinValue(distance) {
+export function changeDwithinValue(distance) {
     return {
         type: CHANGE_DWITHIN_VALUE,
         distance: distance
     };
 }
 
-/* function querySearchResponse(response) {
+/* export function querySearchResponse(response) {
     return {
         type: QUERY_FORM_SEARCH,
         response: response
     };
 }
-function wfsLoadError(e) {
+export function wfsLoadError(e) {
     return {
         type: WFS_LOAD_ERROR,
         error: e
     };
 }*/
 
-function query(seachURL, data) {
+export function search(searchUrl, filterObj) {
+    return {
+        type: QUERY_FORM_SEARCH,
+        searchUrl,
+        filterObj
+    };
+}
+
+export function loadFilter(filter) {
+    return {
+        type: LOAD_FILTER,
+        filter
+    };
+}
+export function query(seachURL, data) {
     return {
         type: SHOW_GENERATED_FILTER,
         data: data
@@ -222,19 +284,20 @@ function query(seachURL, data) {
     };*/
 }
 
-function reset() {
+export function reset(skip) {
     return {
-        type: QUERY_FORM_RESET
+        type: QUERY_FORM_RESET,
+        skip
     };
 }
 
-function resetZones() {
+export function resetZones() {
     return {
         type: ZONES_RESET
     };
 }
 
-function zoneFilter(searchResult, id) {
+export function zoneFilter(searchResult, id) {
     return {
         type: ZONE_FILTER,
         data: searchResult,
@@ -242,7 +305,7 @@ function zoneFilter(searchResult, id) {
     };
 }
 
-function zoneSearchError(error, id) {
+export function zoneSearchError(error, id) {
     return {
         type: ZONE_SEARCH_ERROR,
         error: error,
@@ -250,7 +313,7 @@ function zoneSearchError(error, id) {
     };
 }
 
-function zoneSearch(active, id) {
+export function zoneSearch(active, id) {
     return {
         type: ZONE_SEARCH,
         active: active,
@@ -258,7 +321,7 @@ function zoneSearch(active, id) {
     };
 }
 
-function zoneGetValues(url, filter, id) {
+export function zoneGetValues(url, filter, id) {
     return (dispatch) => {
         return axios.post(url, filter, {
             timeout: 10000,
@@ -281,7 +344,7 @@ function zoneGetValues(url, filter, id) {
     };
 }
 
-/* function openMenu(active, id) {
+/* export  function openMenu(active, id) {
     return {
         type: OPEN_MENU,
         active: active,
@@ -289,7 +352,7 @@ function zoneGetValues(url, filter, id) {
     };
 }*/
 
-function zoneChange(id, value) {
+export function zoneChange(id, value) {
     return {
         type: ZONE_CHANGE,
         id: id,
@@ -297,7 +360,7 @@ function zoneChange(id, value) {
     };
 }
 
-function simpleFilterFieldUpdate(id, properties) {
+export function simpleFilterFieldUpdate(id, properties) {
     return {
         type: SIMPLE_FILTER_FIELD_UPDATE,
         id,
@@ -305,35 +368,64 @@ function simpleFilterFieldUpdate(id, properties) {
     };
 }
 
-function addSimpleFilterField(properties) {
+export function addSimpleFilterField(properties) {
     return {
         type: ADD_SIMPLE_FILTER_FIELD,
         properties
     };
 }
 
-function removeSimpleFilterField(id) {
+export function removeSimpleFilterField(id) {
     return {
         type: REMOVE_SIMPLE_FILTER_FIELD,
         id
     };
 }
 
-function removeAllSimpleFilterFields() {
+export function removeAllSimpleFilterFields() {
     return {
         type: REMOVE_ALL_SIMPLE_FILTER_FIELDS
     };
 }
-
-function loadingFilterFieldOptions(status, filterField) {
+export function addCrossLayerFilterField(groupId) {
     return {
-        type: LOADING_FILTER_FIELD_OPTIONS,
-        status,
-        filterField
+        type: ADD_CROSS_LAYER_FILTER_FIELD,
+        rowId: new Date().getTime(),
+        groupId
+    };
+}
+export function updateCrossLayerFilterField(rowId, fieldName, fieldValue, fieldType, fieldOptions = {}) {
+    return {
+        type: UPDATE_CROSS_LAYER_FILTER_FIELD,
+        rowId,
+        fieldName,
+        fieldValue,
+        fieldType,
+        fieldOptions
+    };
+}
+export function removeCrossLayerFilterField(rowId) {
+    return {
+        type: REMOVE_CROSS_LAYER_FILTER_FIELD,
+        rowId
+    };
+}
+export function resetCrossLayerFilter() {
+    return {
+        type: RESET_CROSS_LAYER_FILTER
     };
 }
 
-function updateFilterFieldOptions(filterField, options, valuesCount) {
+export function loadingFilterFieldOptions(status, filterField, layerFilterType = "filterField") {
+    return {
+        type: LOADING_FILTER_FIELD_OPTIONS,
+        status,
+        filterField,
+        layerFilterType
+    };
+}
+
+export function updateFilterFieldOptions(filterField, options, valuesCount) {
     return {
         type: UPDATE_FILTER_FIELD_OPTIONS,
         filterField,
@@ -342,78 +434,35 @@ function updateFilterFieldOptions(filterField, options, valuesCount) {
     };
 }
 
-module.exports = {
-    ADD_FILTER_FIELD,
-    REMOVE_FILTER_FIELD,
-    UPDATE_FILTER_FIELD,
-    UPDATE_EXCEPTION_FIELD,
-    ADD_GROUP_FIELD,
-    UPDATE_LOGIC_COMBO,
-    REMOVE_GROUP_FIELD,
-    CHANGE_CASCADING_VALUE,
-    EXPAND_ATTRIBUTE_PANEL,
-    EXPAND_SPATIAL_PANEL,
-    SELECT_SPATIAL_METHOD,
-    SELECT_SPATIAL_OPERATION,
-    CHANGE_SPATIAL_ATTRIBUTE,
-    REMOVE_SPATIAL_SELECT,
-    SHOW_SPATIAL_DETAILS,
-    // QUERY_FORM_SEARCH,
-    QUERY_FORM_RESET,
-    // WFS_LOAD_ERROR,
-    SHOW_GENERATED_FILTER,
-    CHANGE_DWITHIN_VALUE,
-    ZONE_SEARCH,
-    ZONE_SEARCH_ERROR,
-    ZONE_FILTER,
-    // OPEN_MENU,
-    ZONE_CHANGE,
-    ZONES_RESET,
-    SIMPLE_FILTER_FIELD_UPDATE,
-    ADD_SIMPLE_FILTER_FIELD,
-    REMOVE_SIMPLE_FILTER_FIELD,
-    REMOVE_ALL_SIMPLE_FILTER_FIELDS,
-    SELECT_VIEWPORT_SPATIAL_METHOD,
-    UPDATE_GEOMETRY,
-    UPDATE_FILTER_FIELD_OPTIONS,
-    LOADING_FILTER_FIELD_OPTIONS,
-    SET_AUTOCOMPLETE_MODE,
-    TOGGLE_AUTOCOMPLETE_MENU,
-    setAutocompleteMode,
-    loadingFilterFieldOptions,
-    updateGeometrySpatialField,
-    selectViewportSpatialMethod,
-    resetZones,
-    zoneChange,
-    // openMenu,
-    zoneSearch,
-    zoneSearchError,
-    zoneFilter,
-    zoneGetValues,
-    addFilterField,
-    removeFilterField,
-    updateFilterField,
-    updateExceptionField,
-    addGroupField,
-    updateLogicCombo,
-    removeGroupField,
-    changeCascadingValue,
-    expandAttributeFilterPanel,
-    expandSpatialFilterPanel,
-    selectSpatialMethod,
-    selectSpatialOperation,
-    changeSpatialAttribute,
-    removeSpatialSelection,
-    showSpatialSelectionDetails,
-    query,
-    reset,
-    changeDwithinValue,
-    simpleFilterFieldUpdate,
-    addSimpleFilterField,
-    removeSimpleFilterField,
-    removeAllSimpleFilterFields,
-    updateFilterFieldOptions,
-    toggleMenu
-    // wfsLoadError,
-    // querySearchResponse
-};
+export function updateCrossLayerFilterFieldOptions(filterField, options, valuesCount) {
+    return {
+        type: UPDATE_CROSS_LAYER_FILTER_FIELD_OPTIONS,
+        filterField,
+        options,
+        valuesCount
+    };
+}
+
+/**
+ * Insert or update filters in the query form state. If a filter with the same id already exists, it will be updated.
+ * @param {object} filter the filters to insert or update
+ * @returns the action
+ */
+export function upsertFilters(...filters) {
+    return {
+        type: UPSERT_FILTERS,
+        filters
+    };
+}
+
+/**
+ * Removes filters from the query form state (by `id`)
+ * @param {object} filters the filters to remove
+ * @returns the action
+ */
+export function removeFilters(...filters) {
+    return {
+        type: REMOVE_FILTERS,
+        filters
+    };
+}

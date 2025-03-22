@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2017, GeoSolutions Sas.
  * All rights reserved.
  *
@@ -6,29 +6,60 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
+import React from 'react';
+import {Glyphicon} from 'react-bootstrap';
+import {get} from 'lodash';
 
-const assign = require('object-assign');
-const {Glyphicon} = require('react-bootstrap');
+import { createPlugin } from '../utils/PluginsUtils';
+import Message from '../components/I18N/Message';
+import help from '../reducers/help';
 
-const Message = require('../components/I18N/Message');
+/**
+ *  HelpLink is a plugin that redirects the user to the online documentation.
+ *  It gets displayed into the {@link #plugins.BurgerMenu|BurgerMenu} plugin.
+ *  @name HelpLink
+ *  @memberof plugins
+ *  @class
+ *  @prop {string} docsUrl default https://mapstore.readthedocs.io/en/latest/. Link to the online documentation.
+ *  @example
+ *  // If you, as an admin, want to specify the link to the docs when creating or editing a context, you can configure the HelpLink plugin, as shown below:
+ *  {
+ *    "docsUrl": "https://your-path"
+ *  }
+ */
 
-module.exports = {
-    HelpLinkPlugin: assign(class extends React.Component {
-        render() {
-            return null;
-        }
-    }, {
+export default createPlugin('HelpLink', {
+    component: () => null,
+    reducers: { help },
+    containers: {
         BurgerMenu: {
             name: 'helplink',
-            position: 1000,
-            text: <Message msgId="help"/>,
+            position: 1100,
+            tooltip: "docsTooltip",
+            text: <Message msgId="docs"/>,
             icon: <Glyphicon glyph="question-sign"/>,
             action: () => ({type: ''}),
-            selector: () => ({href: 'docs', target: 'blank'}),
+            selector: (state, ownProps) => {
+                const docsUrl = get(ownProps, 'docsUrl', 'https://mapstore.readthedocs.io/en/latest/');
+                return {href: docsUrl, target: 'blank'};
+            },
             priority: 2,
             doNotHide: true
+        },
+        SidebarMenu: {
+            name: 'helplink',
+            position: 1100,
+            tooltip: "docsTooltip",
+            text: <Message msgId="docs"/>,
+            icon: <Glyphicon glyph="question-sign"/>,
+            action: () => ({type: ''}),
+            selector: (state, ownProps) => {
+                const docsUrl = get(ownProps, 'docsUrl', 'https://mapstore.readthedocs.io/en/latest/');
+                return { href: docsUrl, target: 'blank'};
+            },
+            priority: 1,
+            doNotHide: true
         }
-    }),
-    reducers: {help: require('../reducers/help')}
-};
+    }
+});
+

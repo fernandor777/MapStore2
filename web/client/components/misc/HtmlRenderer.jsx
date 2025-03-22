@@ -1,4 +1,5 @@
-var PropTypes = require('prop-types');
+import PropTypes from 'prop-types';
+
 /**
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -6,7 +7,7 @@ var PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var React = require('react');
+import React from 'react';
 
 /**
  * Render the given html code into a <div>
@@ -18,8 +19,15 @@ var React = require('react');
 class HtmlRenderer extends React.Component {
     static propTypes = {
         html: PropTypes.string,
-        id: PropTypes.string
+        id: PropTypes.string,
+        style: PropTypes.object
     };
+
+    static defaultProps = {
+        // the content of an html is not dependent of the MapStore theme
+        // we should provide the default color of the browser
+        style: { color: '#000000' }
+    }
 
     getSourceCode = () => {
         return {
@@ -28,8 +36,8 @@ class HtmlRenderer extends React.Component {
     };
 
     render() {
-        return <div id={this.props.id} style={{padding: "8px"}} dangerouslySetInnerHTML={this.getSourceCode()} />;
+        return <div id={this.props.id} style={this.props.style} dangerouslySetInnerHTML={this.getSourceCode()} />;
     }
 }
 
-module.exports = HtmlRenderer;
+export default HtmlRenderer;

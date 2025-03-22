@@ -7,16 +7,18 @@
 */
 
 
-const PropTypes = require('prop-types');
-const React = require('react');
-const assign = require('object-assign');
-const AutocompleteListItem = require('./AutocompleteListItem');
-const PagedCombobox = require('../../misc/combobox/PagedCombobox');
-const {isLikeOrIlike} = require('../../../utils/FilterUtils');
-const HTML = require('../../../components/I18N/HTML');
+import PropTypes from 'prop-types';
+
+import React from 'react';
+import assign from 'object-assign';
+import AutocompleteListItem from './AutocompleteListItem';
+import PagedCombobox from '../../misc/combobox/PagedCombobox';
+import { isLikeOrIlike } from '../../../utils/FilterUtils';
+import HTML from '../../../components/I18N/HTML';
 
 class AutocompleteFieldHOC extends React.Component {
     static propTypes = {
+        dropUp: PropTypes.bool,
         disabled: PropTypes.bool,
         filterField: PropTypes.object,
         label: PropTypes.string,
@@ -43,7 +45,10 @@ class AutocompleteFieldHOC extends React.Component {
             prevPageIcon: "chevron-left"
         },
         itemComponent: AutocompleteListItem,
-        toggleMenu: () => {}
+        toggleMenu: () => {},
+        filterField: {
+            fieldOptions: {}
+        }
     };
 
     getOptions = () => {
@@ -56,11 +61,15 @@ class AutocompleteFieldHOC extends React.Component {
     };
 
     getPagination = (options) => {
+        if (!this.props.filterField.options) {
+            return {};
+        }
+
         const numberOfPages = Math.ceil(this.props.filterField.fieldOptions.valuesCount / this.props.maxFeaturesWPS);
         const firstPage = this.props.filterField.fieldOptions.currentPage === 1 || !this.props.filterField.fieldOptions.currentPage;
         const lastPage = this.props.filterField.fieldOptions.currentPage === numberOfPages || !this.props.filterField.fieldOptions.currentPage;
         return assign({}, this.props.pagination, {
-            paginated: options.length !== 1,
+            paginated: options.length !== 0 && !(firstPage && options.length === 1),
             firstPage,
             lastPage,
             loadPrevPage: () => this.props.onUpdateField(this.props.filterField.rowId, "value", this.props.filterField.value, "string", {currentPage: this.props.filterField.fieldOptions.currentPage - 1, delayDebounce: 0}),
@@ -89,6 +98,7 @@ class AutocompleteFieldHOC extends React.Component {
         let options = this.getOptions() ? this.getOptions().slice(0) : [];
 
         return (<PagedCombobox
+            dropUp={this.props.dropUp}
             busy={this.props.filterField.loading}
             data={this.props.filterField.loading ? [] : options}
             disabled={this.props.filterField.operator === "isNull"}
@@ -144,4 +154,4 @@ class AutocompleteFieldHOC extends React.Component {
     };
 }
 
-module.exports = AutocompleteFieldHOC;
+export default AutocompleteFieldHOC;

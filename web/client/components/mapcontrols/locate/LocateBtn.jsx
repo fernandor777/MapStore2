@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2015-2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,11 +6,16 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-var React = require('react');
-var {Button, Glyphicon, Tooltip} = require('react-bootstrap');
-const OverlayTrigger = require('../../misc/OverlayTrigger');
-const defaultIcon = require('../../misc/spinners/InlineSpinner/img/spinner.gif');
-require('./css/locate.css');
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Glyphicon, Tooltip} from 'react-bootstrap';
+
+import Message from '../../I18N/Message';
+import OverlayTrigger from '../../misc/OverlayTrigger';
+import defaultIcon from '../../misc/spinners/InlineSpinner/img/spinner.gif';
+import Button from '../../misc/Button';
+import('./css/locate.css');
+
 let checkingGeoLocation = false;
 let geoLocationAllowed = false;
 
@@ -94,27 +98,34 @@ class LocateBtn extends React.Component {
     };
 
     addTooltip = (btn) => {
-        let tooltip = <Tooltip id="locate-tooltip">{this.props.tooltip}</Tooltip>;
+        const tooltip = <Tooltip id="locate-tooltip"><Message msgId={this.props.tooltip} /></Tooltip>;
         return (
-            <OverlayTrigger placement={this.props.tooltipPlace} key={"overlay-trigger." + this.props.id} overlay={tooltip}>
+            <OverlayTrigger placement={this.props.tooltipPlace} key={`{overlay-trigger.${this.props.id}-${this.props.tooltip}}`} overlay={tooltip}>
                 {btn}
             </OverlayTrigger>
         );
     };
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         if (this.props.locate !== 'PERMISSION_DENIED' && !checkingGeoLocation && !geoLocationAllowed) {
             // check if we are allowed to use geolocation feature
             checkingGeoLocation = true;
-            navigator.geolocation.getCurrentPosition(() => {
+            if (navigator?.geolocation?.getCurrentPosition) {
+                navigator.geolocation.getCurrentPosition(() => {
+                    checkingGeoLocation = false;
+                    geoLocationAllowed = true;
+                }, (error) => {
+                    checkingGeoLocation = false;
+                    if (error.code === 1) {
+                        this.props.onClick("PERMISSION_DENIED");
+                    }
+                });
+            } else {
+                // geolocation is deactivated in browser settings
                 checkingGeoLocation = false;
-                geoLocationAllowed = true;
-            }, (error) => {
-                checkingGeoLocation = false;
-                if (error.code === 1) {
-                    this.props.onClick("PERMISSION_DENIED");
-                }
-            });
+                this.props.onClick("PERMISSION_DENIED");
+            }
+
         }
     }
 
@@ -131,14 +142,13 @@ class LocateBtn extends React.Component {
     }
 
     getBtnStyle = () => {
-        let style = this.props.bsStyle;
-        if (this.props.locate === "FOLLOWING") {
-            style = "success";
-        } else if (this.props.locate === "ENABLED") {
-            style = "info";
+        const {locate, bsStyle} = this.props;
+        let style = bsStyle;
+        if (locate === "FOLLOWING" || locate === "ENABLED") {
+            style = "success active";
         }
         return style;
     };
 }
 
-module.exports = LocateBtn;
+export default LocateBtn;

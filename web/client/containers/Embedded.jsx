@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,26 +5,28 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
+import React from 'react';
+import PropTypes from 'prop-types';
+import ModulePluginsContainer from "../product/pages/containers/ModulePluginsContainer";
+import { connect } from 'react-redux';
 
-const {connect} = require('react-redux');
-
-const url = require('url');
+import url from 'url';
 const urlQuery = url.parse(window.location.href, true).query;
-const PluginsUtils = require('../utils/PluginsUtils');
-const ConfigUtils = require('../utils/ConfigUtils');
+import { getMonitoredState } from '../utils/PluginsUtils';
+import ConfigUtils from '../utils/ConfigUtils';
 
 const PluginsContainer = connect((state) => ({
     mode: urlQuery.mode || (state.browser && state.browser.mobile ? 'mobile' : 'desktop'),
-    pluginsState: state && state.controls || {},
-    monitoredState: PluginsUtils.getMonitoredState(state, ConfigUtils.getConfigProp('monitorState'))
-}))(require('../components/plugins/PluginsContainer'));
+    pluginsState: state && state.controls,
+    monitoredState: getMonitoredState(state, ConfigUtils.getConfigProp('monitorState'))
+}))(ModulePluginsContainer);
 
 class Embedded extends React.Component {
     static propTypes = {
         params: PropTypes.object,
         plugins: PropTypes.object,
-        pluginsConfig: PropTypes.object
+        pluginsConfig: PropTypes.object,
+        onInit: PropTypes.func
     };
 
     static defaultProps = {
@@ -33,16 +34,21 @@ class Embedded extends React.Component {
         pluginsConfig: {
             desktop: [],
             mobile: []
-        }
+        },
+        onInit: () => {}
     };
+
+    UNSAFE_componentWillMount() {
+        this.props.onInit();
+    }
 
     render() {
         return (<PluginsContainer key="embedded" id="mapstore2-embedded" className="mapstore2-embedded"
             pluginsConfig={this.props.pluginsConfig}
             plugins={this.props.plugins}
             params={this.props.params}
-            />);
+        />);
     }
 }
 
-module.exports = Embedded;
+export default Embedded;

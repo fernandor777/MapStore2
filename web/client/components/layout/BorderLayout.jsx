@@ -1,4 +1,4 @@
-const React = require('react');
+import React from 'react';
 /**
  * A components that renders the content to fill 100% width and height, with possible header,footer, left and right.
  * Made using flex layout.
@@ -19,23 +19,24 @@ const React = require('react');
  *  /></BorderLayout>
  *
  */
-module.exports = ({children, header, footer, columns, height}) =>
-    (<div style={{
+export default ({id, children, header, footer, columns, height, style = {}, className, bodyClassName = "ms2-border-layout-body" }) =>
+    (<div id={id} className={className} style={{
         display: "flex",
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        overflow: "hidden"
-        }}>
+        overflow: "hidden",
+        ...style
+    }}>
         {header}
-        <div className={"ms2-border-layout-body"} style={{
+        <div className={bodyClassName} style={{
             display: "flex",
             flex: 1,
             overflowY: "auto"
-            }}>
-            <main className="ms2-border-layout-content" style={{flex: 1}}>
+        }}>
+            <div className="ms2-border-layout-content" style={{flex: 1, overflowX: 'hidden'}}>
                 {height ? <div style={{height}}>{children}</div> : children}
-            </main>
+            </div>
             {height ? <div style={{height}}>{columns}</div> : columns}
         </div>
         {footer}

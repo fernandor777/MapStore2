@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {
+import {
     FEATURE_TYPE_SELECTED,
     FEATURE_TYPE_LOADED,
     FEATURE_TYPE_ERROR,
@@ -18,13 +18,13 @@ const {
     QUERY_ERROR,
     RESET_QUERY,
     UPDATE_QUERY,
-    TOGGLE_SYNC_WMS
-} = require('../actions/wfsquery');
-
-const {QUERY_FORM_RESET} = require('../actions/queryform');
-const {RESET_CONTROLS} = require('../actions/controls');
-
-const assign = require('object-assign');
+    TOGGLE_SYNC_WMS,
+    TOGGLE_LAYER_FILTER
+} from '../actions/wfsquery';
+import { SET_SYNC_TOOL } from '../actions/featuregrid';
+import { QUERY_FORM_RESET } from '../actions/queryform';
+import { RESET_CONTROLS } from '../actions/controls';
+import assign from 'object-assign';
 
 const extractData = (feature) => {
     return ['STATE_NAME', 'STATE_ABBR', 'SUB_REGION', 'STATE_FIPS' ].map((attribute) => ({
@@ -50,7 +50,8 @@ const initialState = {
     data: {},
     result: null,
     resultError: null,
-    syncWmsFilter: false
+    syncWmsFilter: false,
+    isLayerFilter: false
 };
 
 function query(state = initialState, action) {
@@ -125,7 +126,8 @@ function query(state = initialState, action) {
             isNew: false,
             result: null,
             filterObj: null,
-            searchUrl: null
+            searchUrl: null,
+            filters: null
         });
     case RESET_QUERY: {
         return assign({}, state, {
@@ -135,9 +137,13 @@ function query(state = initialState, action) {
     }
     case TOGGLE_SYNC_WMS:
         return assign({}, state, {syncWmsFilter: !state.syncWmsFilter});
+    case SET_SYNC_TOOL:
+        return assign({}, state, {syncWmsFilter: action.syncWmsFilter});
+    case TOGGLE_LAYER_FILTER:
+        return assign({}, state, {isLayerFilter: !state.isLayerFilter});
     default:
         return state;
     }
 }
 
-module.exports = query;
+export default query;

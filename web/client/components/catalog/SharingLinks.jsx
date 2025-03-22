@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,12 +5,14 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const SharingLink = require('./SharingLink');
-const Message = require('../I18N/Message');
-const {Popover, Button, Glyphicon} = require('react-bootstrap');
+import React from 'react';
 
-const OverlayTrigger = require('../misc/OverlayTrigger');
+import PropTypes from 'prop-types';
+import SharingLink from './SharingLink';
+import Message from '../I18N/Message';
+import { Popover, Glyphicon } from 'react-bootstrap';
+import Button from '../misc/Button';
+import OverlayTrigger from '../misc/OverlayTrigger';
 
 class SharingLinks extends React.Component {
     static propTypes = {
@@ -30,15 +31,18 @@ class SharingLinks extends React.Component {
         }
         const {links, buttonSize, ...other} = this.props;
         const sharingLinks = links.map((link, index) => <SharingLink key={index} url={link.url} labelId={link.labelId} {...other}/>);
-        const popover = <Popover className="links-popover" id="links-popover">{sharingLinks}</Popover>;
+        const popover = (<Popover className="links-popover" id="links-popover">
+            <h5><Message msgId="catalog.share"/></h5>
+            {sharingLinks}
+        </Popover>);
         return (
             <OverlayTrigger container={this.props.popoverContainer} positionLeft={150} placement="top" trigger="click" overlay={popover}>
-                <Button bsSize={buttonSize} bsStyle="primary">
-                    <Glyphicon glyph="link"/>&nbsp;<Message msgId="catalog.share"/>
+                <Button bsSize={buttonSize} className="square-button-md" bsStyle="primary">
+                    <Glyphicon glyph="link"/>
                 </Button>
             </OverlayTrigger>
         );
     }
 }
 
-module.exports = SharingLinks;
+export default SharingLinks;

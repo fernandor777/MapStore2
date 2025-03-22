@@ -6,8 +6,9 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {
+import {
     SET_PRINT_PARAMETER,
+    ADD_PRINT_PARAMETER,
     PRINT_CAPABILITIES_LOADED,
     PRINT_CAPABILITIES_ERROR,
     CONFIGURE_PRINT_MAP,
@@ -17,16 +18,18 @@ const {
     PRINT_CREATED,
     PRINT_ERROR,
     PRINT_CANCEL
-} = require('../actions/print');
+} from '../actions/print';
 
-const {TOGGLE_CONTROL} = require('../actions/controls');
-const {isObject} = require('lodash');
+import { TOGGLE_CONTROL } from '../actions/controls';
+import { isObject, get } from 'lodash';
+import assign from 'object-assign';
 
-const assign = require('object-assign');
+import set from "lodash/set";
 
 const initialSpec = {
     antiAliasing: true,
-    iconSize: 24,
+    iconsWidth: 24,
+    iconsHeight: 24,
     legendDpi: 96,
     fontFamily: "Verdana",
     fontSize: 8,
@@ -34,7 +37,13 @@ const initialSpec = {
     italic: false,
     resolution: 96,
     name: '',
-    description: ''
+    description: '',
+    outputFormat: "pdf",
+    rotation: 0
+};
+
+const getSheetName = (name = '') => {
+    return name.split('_')[0];
 };
 
 function print(state = {spec: initialSpec, capabilities: null, map: null, isLoading: false, pdfUrl: null}, action) {
@@ -46,13 +55,9 @@ function print(state = {spec: initialSpec, capabilities: null, map: null, isLoad
         return state;
     }
     case PRINT_CAPABILITIES_LOADED: {
-        let sheetName = action.capabilities
-                && action.capabilities.layouts
-                && action.capabilities.layouts.length
-                && action.capabilities.layouts[0].name;
-        if (sheetName && sheetName.indexOf('_') !== -1) {
-            sheetName = sheetName.substring(0, sheetName.indexOf("_"));
-        }
+        const layouts = get(action, 'capabilities.layouts', [{name: 'A4'}]);
+        const sheetName = layouts.filter(l => getSheetName(l.name) === state.spec.sheet).length ?
+            state.spec.sheet : getSheetName(layouts[0].name);
         return assign({}, state, {
             capabilities: action.capabilities,
             spec: assign({}, state.spec || {}, {
@@ -65,15 +70,23 @@ function print(state = {spec: initialSpec, capabilities: null, map: null, isLoad
         });
     }
     case SET_PRINT_PARAMETER: {
-        return assign({}, state, {
-            spec: assign({}, state.spec, {[action.name]: action.value})
+        return {...state, spec: set({...state.spec}, action.name, action.value)};
+    }
+    case ADD_PRINT_PARAMETER: {
+        const exists = get(state.spec, action.name);
+        if (!exists) {
+            return {...state, spec: set({...state.spec}, action.name, action.value)};
         }
-            );
+        return state;
     }
     case CONFIGURE_PRINT_MAP: {
 
         const layers = action.layers.map((layer) => {
-            return layer.title ? assign({}, layer, {title: isObject(layer.title) ? layer.title.default : layer.title}) : layer;
+            return layer.title ? assign({}, layer, {
+                title: isObject(layer.title) && action.currentLocale && layer.title[action.currentLocale]
+                || isObject(layer.title) && layer.title.default
+                || layer.title
+            }) : layer;
         });
 
         return assign({}, state, {
@@ -83,30 +96,36 @@ function print(state = {spec: initialSpec, capabilities: null, map: null, isLoad
                 scaleZoom: action.scaleZoom,
                 scale: action.scale,
                 layers,
-                projection: action.projection
+                size: action.size ?? state.map?.size,
+                projection: action.projection,
+                useFixedScales: action.useFixedScales
             },
             error: null
         }
-            );
+        );
     }
     case CHANGE_PRINT_ZOOM_LEVEL: {
         const diff = action.zoom - state.map.scaleZoom;
         return assign({}, state, {
             map: assign({}, state.map, {
                 scaleZoom: action.zoom,
-                zoom: state.map.zoom + diff,
+                zoom: state.map.zoom + diff >= 0 ? state.map.zoom + diff : 0,
                 scale: action.scale
             })
         }
-            );
+        );
     }
     case CHANGE_MAP_PRINT_PREVIEW: {
         return assign({}, state, {
             map: assign({}, state.map, {
-                size: action.size
+                size: action.size,
+                zoom: action.zoom,
+                scaleZoom: action.zoom,
+                bbox: action.bbox,
+                center: action.center
             })
         }
-            );
+        );
     }
     case PRINT_SUBMITTING: {
         return assign({}, state, {isLoading: true, pdfUrl: null, error: null});
@@ -128,4 +147,4 @@ function print(state = {spec: initialSpec, capabilities: null, map: null, isLoad
     }
 }
 
-module.exports = print;
+export default print;

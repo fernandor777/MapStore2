@@ -1,11 +1,12 @@
 
-const {connect} = require('react-redux');
+import { connect } from 'react-redux';
+import AttributeSelector from '../../../components/data/featuregrid/AttributeSelector';
+import { getCustomizedAttributes, selectedLayerFieldsSelector } from '../../../selectors/featuregrid';
+import { customizeAttribute } from '../../../actions/featuregrid';
 
-const AttributeSelector = require('../../../components/data/featuregrid/AttributeSelector');
-const {getCustomizedAttributes} = require('../../../selectors/featuregrid');
-const {customizeAttribute} = require('../../../actions/featuregrid');
-module.exports = connect((state) => ({
-    attributes: getCustomizedAttributes(state)
+export default connect((state) => ({
+    attributes: getCustomizedAttributes(state),
+    fields: selectedLayerFieldsSelector(state)
 }), {
     onChange: (name, value) => customizeAttribute(name, "hide", value)
 }

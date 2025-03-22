@@ -6,14 +6,13 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var expect = require('expect');
+import expect from 'expect';
 
-const configureMockStore = require('redux-mock-store').default;
-const {createEpicMiddleware, combineEpics } = require('redux-observable');
-const {configureMap, mapInfoLoaded} = require('../../actions/config');
-const {SHOW_NOTIFICATION} = require('../../actions/notifications');
-
-const {manageAutoMapUpdate} = require('../automapupdate');
+import configureMockStore from 'redux-mock-store';
+import { createEpicMiddleware, combineEpics } from 'redux-observable';
+import { configureMap, mapInfoLoaded } from '../../actions/config';
+import { SHOW_NOTIFICATION } from '../../actions/notifications';
+import { manageAutoMapUpdate } from '../automapupdate';
 const rootEpic = combineEpics(manageAutoMapUpdate);
 const epicMiddleware = createEpicMiddleware(rootEpic);
 const mockStore = configureMockStore([epicMiddleware]);
@@ -26,6 +25,60 @@ describe('automapupdate Epics', () => {
 
     afterEach(() => {
         epicMiddleware.replaceEpic(rootEpic);
+    });
+
+    it('should do nothing', (done) => {
+        // any map configuration with an id is considered "legacy" (MapStore1 version)
+        let configuration = configureMap({
+            "map": {
+                "layers": []
+            }
+        }, "id");
+        // cannot edit, the notification should not fire
+        let information = mapInfoLoaded({
+            canEdit: false
+        }, "id");
+
+        store.dispatch(configuration);
+        store.dispatch(information);
+
+        setTimeout( () => {
+            try {
+                const actions = store.getActions();
+                expect(actions.length).toBe(2);
+            } catch (e) {
+                done(e);
+            }
+            done();
+        }, 1000);
+
+    });
+
+    it('should still do nothing', (done) => {
+        // any map configuration with an id is considered "legacy" (MapStore1 version)
+        let configuration = configureMap({
+            "map": {
+                "layers": [{ "type": "wms"}]
+            }
+        }, "id");
+        // cannot edit, the notification should not fire
+        let information = mapInfoLoaded({
+            canEdit: false
+        }, "id");
+
+        store.dispatch(configuration);
+        store.dispatch(information);
+
+        setTimeout( () => {
+            try {
+                const actions = store.getActions();
+                expect(actions.length).toBe(2);
+            } catch (e) {
+                done(e);
+            }
+            done();
+        }, 1000);
+
     });
 
     it('trigger update map', (done) => {
@@ -52,7 +105,7 @@ describe('automapupdate Epics', () => {
                 });
 
             } catch (e) {
-                return done(e);
+                done(e);
             }
             done();
         }, 1000);

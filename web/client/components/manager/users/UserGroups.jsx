@@ -1,4 +1,5 @@
-const PropTypes = require('prop-types');
+import PropTypes from 'prop-types';
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,17 +8,14 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-// const Message = require('../I18N/Message');
-const Select = require('react-select');
-const Message = require('../../I18N/Message');
-const {findIndex} = require('lodash');
+import React from 'react';
 
-require('react-select/dist/react-select.css');
+import Select from 'react-select';
 
-// const ConfirmModal = require('./modals/ConfirmModal');
-// const GroupManager = require('./GroupManager');
-
+import Message from '../../I18N/Message';
+import { findIndex } from 'lodash';
+import SecurityUtils from '../../../utils/SecurityUtils';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 class UserCard extends React.Component {
     static propTypes = {
         // props
@@ -43,35 +41,44 @@ class UserCard extends React.Component {
     };
 
     getDefaultGroups = () => {
-        return this.props.groups.filter((group) => group.groupName === "everyone");
+        return this.props.groups.filter((group) => group.groupName === SecurityUtils.USER_GROUP_ALL);
     };
 
     getOptions = () => {
         return this.props.groups.map((group) => ({
             label: group.groupName,
             value: group.id,
-            clearableValue: group.groupName !== "everyone"
+            clearableValue: group.groupName !== SecurityUtils.USER_GROUP_ALL
         }));
     };
-
+    customValueRenderer = (option) => {
+        return ( <OverlayTrigger
+            placement="top"
+            overlay={<Tooltip id={`tooltip-${option.value}`}>{option.label}</Tooltip>}
+        ><div className="Select-value-label" data-tip={option.label}> {option.label}</div>
+        </OverlayTrigger>);
+    };
     renderGroupsSelector = () => {
         return (<Select key="groupSelector"
-        clearable={false}
-        isLoading={this.props.groups.length === 0 }
-        name="user-groups-selector"
-        multi
-        value={ (this.props.user && this.props.user.groups ? this.props.user.groups : this.getDefaultGroups() ).map(group => group.id) }
-        options={this.getOptions()}
-        onChange={this.onChange}
+            clearable={false}
+            isLoading={this.props.groups.length === 0 }
+            name="user-groups-selector"
+            multi
+            value={ (this.props.user && this.props.user.groups ? this.props.user.groups : this.getDefaultGroups() ).map(group => group.id) }
+            options={this.getOptions()}
+            onChange={this.onChange}
+            style={{marginTop: "10px"}}
+            // * NOTE: valueRenderer: is responsible for custom rendering for shown selected values in react-select version 1.3.0
+            valueRenderer={this.customValueRenderer}
         />);
     };
 
     render() {
         return this.props.groups ? (
-           <div key="groups-page">
-             <span><Message msgId="users.selectedGroups" /></span>
-             {this.renderGroupsSelector()}
-         </div>
+            <div style={{marginTop: "10px"}} key="groups-page">
+                <span><Message msgId="users.selectedGroups"/></span>
+                {this.renderGroupsSelector()}
+            </div>
         ) : null;
     }
 }
@@ -80,4 +87,4 @@ class UserCard extends React.Component {
 
 */
 
-module.exports = UserCard;
+export default UserCard;

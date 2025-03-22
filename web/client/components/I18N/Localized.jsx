@@ -1,4 +1,5 @@
-const PropTypes = require('prop-types');
+import PropTypes from 'prop-types';
+
 /**
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -6,27 +7,41 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
+import React from 'react';
 
-const {IntlProvider} = require('react-intl');
+import { IntlProvider } from 'react-intl';
 
 class Localized extends React.Component {
     static propTypes = {
         locale: PropTypes.string,
         messages: PropTypes.object,
-        loadingError: PropTypes.string
+        loadingError: PropTypes.string,
+        localeKey: PropTypes.bool
     };
 
     static childContextTypes = {
         locale: PropTypes.string,
-        messages: PropTypes.object
+        messages: PropTypes.object,
+        localeKey: PropTypes.bool
     };
-
+    static defaultProps = {
+        localeKey: true
+    };
     getChildContext() {
         return {
             locale: this.props.locale,
             messages: this.props.messages
         };
+    }
+
+    componentDidMount() {
+        this.updateDocumentLangAttribute();
+    }
+
+    componentDidUpdate(prevProps) {
+        if (this.props.locale !== prevProps.locale) {
+            this.updateDocumentLangAttribute();
+        }
     }
 
     render() {
@@ -37,9 +52,9 @@ class Localized extends React.Component {
                 children = children();
             }
 
-            return (<IntlProvider key={this.props.locale} locale={this.props.locale}
-                 messages={this.flattenMessages(this.props.messages)}
-                >
+            return (<IntlProvider {...this.props.localeKey && { key: this.props.locale }} locale={this.props.locale}
+                messages={this.flattenMessages(this.props.messages)}
+            >
                 {children}
             </IntlProvider>);
             // return React.Children.only(children);
@@ -60,6 +75,12 @@ class Localized extends React.Component {
             };
         }, {});
     };
+
+    updateDocumentLangAttribute() {
+        if (document?.documentElement) {
+            document.documentElement.setAttribute("lang", this.props.locale);
+        }
+    }
 }
 
-module.exports = Localized;
+export default Localized;

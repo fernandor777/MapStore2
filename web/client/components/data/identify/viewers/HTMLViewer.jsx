@@ -1,5 +1,4 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
  *
@@ -7,9 +6,10 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
+import React from 'react';
 
-const HtmlRenderer = require('../../../misc/HtmlRenderer');
+import PropTypes from 'prop-types';
+import HtmlRenderer from '../../../misc/HtmlRenderer';
 
 const regexpBody = /^[\s\S]*<body>([\s\S]*)<\/body>[\s\S]*$/i;
 const regexpStyle = /(<style[\s\=\w\/\"]*>[^<]*<\/style>)/i;
@@ -24,7 +24,7 @@ class HTMLViewer extends React.Component {
     }
 
     render() {
-        let response = this.props.response;
+        let response = this.props.response || '';
         // gets css rules from the response and removes which are related to body tag.
         let styleMatch = regexpStyle.exec(response);
         let style = styleMatch && styleMatch.length === 2 ? regexpStyle.exec(response)[1] : "";
@@ -35,4 +35,4 @@ class HTMLViewer extends React.Component {
     }
 }
 
-module.exports = HTMLViewer;
+export default HTMLViewer;

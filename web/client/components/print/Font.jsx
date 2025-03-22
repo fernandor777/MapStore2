@@ -1,4 +1,4 @@
-const PropTypes = require('prop-types');
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,9 +7,13 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const Choice = require('./Choice');
-const {Grid, Row, Col, FormControl, Button, Glyphicon} = require('react-bootstrap');
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Grid, Row, Col, Glyphicon } from 'react-bootstrap';
+
+import Choice from './Choice';
+import Button from '../misc/Button';
+import IntlNumberFormControl from '../I18N/IntlNumberFormControl';
 
 class Font extends React.Component {
     static propTypes = {
@@ -40,8 +44,8 @@ class Font extends React.Component {
         this.props.onChangeFamily(family);
     };
 
-    onChangeSize = (e) => {
-        this.props.onChangeSize(parseFloat(e.target.value));
+    onChangeSize = (val) => {
+        this.props.onChangeSize(parseInt(val, 10));
     };
 
     render() {
@@ -58,7 +62,7 @@ class Font extends React.Component {
                             selected={this.props.family}/>
                     </Col>
                     <Col xs={3}>
-                        <FormControl ref="size" type="number" value={this.props.size} onChange={this.onChangeSize}/>
+                        <IntlNumberFormControl ref="size" type="number" value={this.props.size} min={0} precision={0} onChange={this.onChangeSize}/>
                     </Col>
                     <Col xs={2}>
                         <Button bsStyle="primary" bsSize="small" active={this.props.bold} onClick={this.toggleBold}><Glyphicon glyph="bold"/></Button>
@@ -80,4 +84,4 @@ class Font extends React.Component {
     };
 }
 
-module.exports = Font;
+export default Font;

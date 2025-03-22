@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -6,16 +5,17 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const ConfigUtils = require('../../../../utils/ConfigUtils');
-const ProxyUtils = require('../../../../utils/ProxyUtils');
-const {isEqual} = require('lodash');
-const html2canvas = require('html2canvas');
-const canvg = require('canvg-browser');
+import PropTypes from 'prop-types';
+import React from 'react';
+import ConfigUtils from '../../../../utils/ConfigUtils';
+import {getProxyUrl} from '../../../../utils/ProxyUtils';
+import {isEqual} from 'lodash';
+import html2canvas from 'html2canvas';
+import canvg from 'canvg-browser';
 
-const {Promise} = require('es6-promise');
+import {Promise} from 'es6-promise';
 
-require("./snapshotMapStyle.css");
+import "./snapshotMapStyle.css";
 
 /**
  * GrabMap for Leaflet uses HTML2CANVAS to generate the image for the existing
@@ -58,7 +58,7 @@ class GrabLMap extends React.Component {
     componentDidMount() {
         this.mapDiv = document.getElementById(this.props.mapId);
         this.proxy = null;
-        let proxyUrl = ProxyUtils.getProxyUrl();
+        let proxyUrl = getProxyUrl();
         if (proxyUrl) {
             if ( typeof proxyUrl === 'object') {
                 proxyUrl = proxyUrl.url;
@@ -73,7 +73,7 @@ class GrabLMap extends React.Component {
         }
     }
 
-    componentWillReceiveProps(nextProps) {
+    UNSAFE_componentWillReceiveProps(nextProps) {
         let mapIsLoading = this.mapIsLoading(nextProps.layers);
         let mapChanged = this.mapChanged(nextProps);
         if (this.previousTimeout) {
@@ -223,12 +223,12 @@ class GrabLMap extends React.Component {
                 newCanvas.width = newCanvas.width + left;
                 resetLayerStyles(l);
                 return html2canvas(l, {
-                        // you have to provide a canvas to avoid html2canvas to crop the image
+                    // you have to provide a canvas to avoid html2canvas to crop the image
                     canvas: newCanvas,
                     logging: false,
                     proxy: this.proxy,
                     allowTaint: props && props.allowTaint,
-                        // TODO: improve to useCORS if every source has CORS enabled
+                    // TODO: improve to useCORS if every source has CORS enabled
                     useCORS: props && props.allowTaint
                 });
             }, this);
@@ -260,12 +260,12 @@ class GrabLMap extends React.Component {
                         let newCanvas = this.refs.canvas.cloneNode();
                         newCanvas.width = newCanvas.width + left;
                         html2canvas(markers, {
-                                // you have to provide a canvas to avoid html2canvas to crop the image
+                            // you have to provide a canvas to avoid html2canvas to crop the image
                             canvas: newCanvas,
                             logging: false,
                             proxy: this.proxy,
                             allowTaint: props && props.allowTaint,
-                                // TODO: improve to useCORS if every source has CORS enabled
+                            // TODO: improve to useCORS if every source has CORS enabled
                             useCORS: props && props.allowTaint
                         }).then( (c) => {
                             let cx = finalCanvas.getContext("2d");
@@ -335,4 +335,4 @@ class GrabLMap extends React.Component {
     };
 }
 
-module.exports = GrabLMap;
+export default GrabLMap;

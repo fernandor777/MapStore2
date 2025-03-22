@@ -1,4 +1,5 @@
-const PropTypes = require('prop-types');
+import PropTypes from 'prop-types';
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,17 +8,15 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {Grid, Row, Col} = require('react-bootstrap');
-const ColorPicker = require('./ColorPicker');
-const StyleCanvas = require('./StyleCanvas');
-const MarkNameSelector = require('./MarkNameSelector');
+import React from 'react';
 
-const numberLocalizer = require('react-widgets/lib/localizers/simple-number');
+import { Grid, Row, Col } from 'react-bootstrap';
+import ColorPicker from './ColorPicker';
+import StyleCanvas from './StyleCanvas';
+import MarkNameSelector from './MarkNameSelector';
+import numberLocalizer from 'react-widgets/lib/localizers/simple-number';
 numberLocalizer();
-const {NumberPicker} = require('react-widgets');
-require('react-widgets/lib/less/react-widgets.less');
-
+import { NumberPicker } from 'react-widgets';
 class StylePoint extends React.Component {
     static propTypes = {
         shapeStyle: PropTypes.object,
@@ -69,7 +68,15 @@ class StylePoint extends React.Component {
                                     onChangeColor={(color) => {if (color) { this.props.setStyleParameter("color", color); } }} />
                             </Col>
                             <Col xs={8} style={{paddingRight: 0, paddingLeft: 30}}>
-                                <NumberPicker disabled={this.props.shapeStyle.marker} onChange={(number) => {this.props.setStyleParameter("width", number); }} min={1} max={15} step={1} value={this.props.shapeStyle.width}/>
+                                <NumberPicker
+                                    disabled={this.props.shapeStyle.marker}
+                                    min={1} max={15} step={1}
+                                    value={this.props.shapeStyle.width}
+                                    onChange={(number) => {
+                                        if (this.props.shapeStyle.width !== number) {
+                                            this.props.setStyleParameter("width", number);
+                                        }
+                                    }}  />
                             </Col>
                         </Row>
                         <Row style={{marginTop: 4}}>
@@ -82,13 +89,21 @@ class StylePoint extends React.Component {
                                     onChangeColor={(color) => { if (color) { this.props.setStyleParameter("fill", color); } }} />
                             </Col>
                             <Col xs={8} style={{paddingRight: 0, paddingLeft: 30}}>
-                                <NumberPicker disabled={this.props.shapeStyle.marker} onChange={(number) => {this.props.setStyleParameter("radius", number); }} min={1} max={50} step={1} value={this.props.shapeStyle.radius}/>
+                                <NumberPicker
+                                    disabled={this.props.shapeStyle.marker}
+                                    min={1} max={50} step={1}
+                                    value={this.props.shapeStyle.radius}
+                                    onChange={(number) => {
+                                        if (this.props.shapeStyle.radius !== number) {
+                                            this.props.setStyleParameter("radius", number);
+                                        }
+                                    }} />
                             </Col>
                         </Row>
                     </Col>
                 </Row>
-                </Grid>);
+            </Grid>);
     }
 }
 
-module.exports = StylePoint;
+export default StylePoint;

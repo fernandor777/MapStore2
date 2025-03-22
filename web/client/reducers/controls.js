@@ -6,8 +6,16 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {TOGGLE_CONTROL, SET_CONTROL_PROPERTY, RESET_CONTROLS} = require('../actions/controls');
-const assign = require('object-assign');
+import {
+    TOGGLE_CONTROL,
+    SET_CONTROL_PROPERTY,
+    SET_CONTROL_PROPERTIES,
+    RESET_CONTROLS
+} from '../actions/controls';
+
+import assign from 'object-assign';
+import {IDENTIFY_IS_MOUNTED} from "../actions/mapInfo";
+
 /**
  * Manages the state of the controls in MapStore2
  * The root elements of the state returned by this reducers ar variable, but they have
@@ -66,6 +74,11 @@ function controls(state = {}, action) {
                 [action.property]: action.value
             })
         });
+    case SET_CONTROL_PROPERTIES: {
+        return assign({}, state, {
+            [action.control]: assign({}, state[action.control], action.properties)
+        });
+    }
     case RESET_CONTROLS: {
         const newControls = Object.keys(state).filter(c => (action.skip || []).indexOf(c) === -1);
         const resetted = newControls.reduce((previous, controlName) => {
@@ -77,9 +90,18 @@ function controls(state = {}, action) {
         }, {});
         return assign({}, state, resetted);
     }
+    case IDENTIFY_IS_MOUNTED: {
+        return {
+            ...state,
+            info: {
+                ...state.info,
+                available: action.isMounted
+            }
+        };
+    }
     default:
         return state;
     }
 }
 
-module.exports = controls;
+export default controls;

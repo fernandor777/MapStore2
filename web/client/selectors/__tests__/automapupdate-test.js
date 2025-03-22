@@ -6,8 +6,10 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const expect = require('expect');
-const {getWMSLayers, refreshingLayers} = require('../automapupdate');
+import expect from 'expect';
+
+import { getWMSLayers, refreshingLayers } from '../automapupdate';
+import reducer from '../../reducers/layers';
 
 const state = {
     layers: {
@@ -34,5 +36,12 @@ describe('Test automapupdate selectors', () => {
         expect(layers).toExist();
 
         expect(layers.length).toBe(1);
+    });
+
+    it('getWMSLayers works with initial state', () => {
+        const emptyState = {
+            layers: reducer(undefined, { type: "TEST" })
+        };
+        expect(getWMSLayers(emptyState).length).toBe(0);
     });
 });

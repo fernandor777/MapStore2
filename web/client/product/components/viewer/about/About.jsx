@@ -1,4 +1,3 @@
-var PropTypes = require('prop-types');
 /**
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -6,14 +5,18 @@ var PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const InfoButton = require('../../../../components/buttons/InfoButton');
-const Dialog = require('../../../../components/misc/Dialog');
-const AboutContent = require('./AboutContent');
-const I18N = require('../../../../components/I18N/I18N');
-const aboutImg = require('../../../assets/img/Blank.gif');
-const assign = require('object-assign');
-const {Glyphicon} = require('react-bootstrap');
+
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Glyphicon } from 'react-bootstrap';
+
+import InfoButton from '../../../../components/buttons/InfoButton';
+import Dialog from '../../../../components/misc/Dialog';
+import { Message } from '../../../../components/I18N/I18N';
+import AboutContent from './AboutContent';
+import aboutImg from '../../../assets/img/Blank.gif';
+import VersionInfo from './VersionInfo';
+
 
 class About extends React.Component {
     static propTypes = {
@@ -21,7 +24,14 @@ class About extends React.Component {
         modalConfig: PropTypes.object,
         withButton: PropTypes.bool,
         enabled: PropTypes.bool,
-        onClose: PropTypes.func
+        version: PropTypes.string,
+        githubUrl: PropTypes.string,
+        commit: PropTypes.string,
+        message: PropTypes.string,
+        date: PropTypes.string,
+        onClose: PropTypes.func,
+        showAboutContent: PropTypes.bool,
+        showVersionInfo: PropTypes.bool
     };
 
     static defaultProps = {
@@ -37,23 +47,66 @@ class About extends React.Component {
         },
         withButton: true,
         enabled: false,
-        onClose: () => {}
+        onClose: () => {},
+        showAboutContent: true,
+        showVersionInfo: true
     };
 
     render() {
-        return this.props.withButton ? (<InfoButton
-            {...this.props.modalConfig}
-            image={aboutImg}
-            title={<I18N.Message msgId="about_title"/>}
-            btnType="image"
-            className="map-logo"
-            body={
-                <AboutContent/>
-            }/>) : (<Dialog id="mapstore-about" style={assign({}, {display: this.props.enabled ? "block" : "none"})}>
-                <span role="header"><span className="about-panel-title"><I18N.Message msgId="about_title"/></span><button onClick={this.props.onClose} className="about-panel-close close">{this.props.modalConfig.closeGlyph ? <Glyphicon glyph={this.props.modalConfig.closeGlyph}/> : <span>×</span>}</button></span>
-                <div role="body"><AboutContent/></div>
-            </Dialog>);
+        if (this.props.enabled) {
+
+            if (this.props.withButton) {
+                return (
+                    <InfoButton
+                        {...this.props.modalConfig}
+                        image={aboutImg}
+                        title={<Message msgId="about_title"/>}
+                        btnType="image"
+                        className="map-logo"
+                        body={<>
+                            {this.props.showVersionInfo && <VersionInfo
+                                version={this.props.version}
+                                message={this.props.message}
+                                commit={this.props.commit}
+                                date={this.props.date}
+                                githubUrl={this.props.githubUrl}
+                            />}
+                            {this.props.showAboutContent && <AboutContent/>}
+                        </>
+                        }
+                    />
+                );
+            }
+            return (
+                <Dialog
+                    id="mapstore-about"
+                    style={{zIndex: 1992, paddingTop: 0}}
+                    modal
+                    draggable
+                >
+                    <span role="header">
+                        <span className="about-panel-title">
+                            <Message msgId="about_title"/>
+                        </span>
+                        <button onClick={this.props.onClose} className="about-panel-close close">
+                            {this.props.modalConfig.closeGlyph ? <Glyphicon glyph={this.props.modalConfig.closeGlyph}/> : <span>×</span>}
+                        </button>
+                    </span>
+                    <div role="body">
+                        {this.props.showVersionInfo && <VersionInfo
+                            version={this.props.version}
+                            message={this.props.message}
+                            commit={this.props.commit}
+                            date={this.props.date}
+                            githubUrl={this.props.githubUrl}
+                        />}
+                        {this.props.showAboutContent && <AboutContent/>}
+                    </div>
+                </Dialog>
+            );
+        }
+        return null;
     }
 }
 
-module.exports = About;
+export default About;

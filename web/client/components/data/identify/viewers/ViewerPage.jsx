@@ -1,4 +1,5 @@
-const PropTypes = require('prop-types');
+import PropTypes from 'prop-types';
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,12 +8,13 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
+import React from 'react';
+import { getDefaultViewer } from '../../../../utils/MapInfoUtils';
 
-module.exports = class extends React.Component {
+export default class extends React.Component {
     static propTypes = {
         format: PropTypes.string,
-        viewers: PropTypes.object,
+        viewers: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
         response: PropTypes.oneOfType([PropTypes.string, PropTypes.object, PropTypes.node]),
         layer: PropTypes.object
     };
@@ -58,7 +60,7 @@ module.exports = class extends React.Component {
     };
 
     renderPage = () => {
-        const Viewer = this.props.viewers[this.props.format];
+        const Viewer = typeof this.props.viewers === 'function' ? this.props.viewers : getDefaultViewer(this.props.format, this.props.viewers);
         if (Viewer) {
             return <Viewer response={this.props.response} layer={this.props.layer}/>;
         }
@@ -67,11 +69,11 @@ module.exports = class extends React.Component {
 
     render() {
         return (<div
-            style={{width: "100%", height: "100%", overflow: "auto"}}
+            style={{width: "100%", height: "100%", overflowX: 'auto'}}
             onTouchMove={this.onTouchMove}
             onTouchStart={this.onTouchStart}
             onTouchEnd={this.onTouchEnd}>
-                {this.renderPage()}
+            {this.renderPage()}
         </div>);
     }
-};
+}

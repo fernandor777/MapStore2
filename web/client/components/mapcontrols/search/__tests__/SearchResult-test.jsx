@@ -5,12 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
+import expect from 'expect';
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var SearchResult = require('../SearchResult');
-const TestUtils = require('react-dom/test-utils');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import SearchResult from '../SearchResult';
+import TestUtils from 'react-dom/test-utils';
 const item = {
     properties: {
         prop1: 1,
@@ -62,5 +62,20 @@ describe("test the NominatimResult", () => {
         expect(elem).toExist();
         ReactDOM.findDOMNode(elem).click();
         expect(spy.calls.length).toEqual(1);
+    });
+
+    it('test tools', () => {
+        let called = false;
+        const tools = [{
+            glyph: 'plus',
+            onClick: (e) => {e.stopPropagation(); called = true;}
+        }];
+        ReactDOM.render(<SearchResult item={item} tools={tools}/>, document.getElementById('container'));
+        const searchResultElem = document.getElementsByClassName('search-result')[0];
+        expect(searchResultElem).toExist();
+        const toolButton = document.querySelector('.search-result button');
+        expect(toolButton).toExist();
+        TestUtils.Simulate.click(toolButton);
+        expect(called).toBe(true);
     });
 });

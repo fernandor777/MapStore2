@@ -6,15 +6,18 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {
-    USERMANAGER_GETUSERS, USERMANAGER_EDIT_USER, USERMANAGER_EDIT_USER_DATA, USERMANAGER_UPDATE_USER, USERMANAGER_DELETE_USER,
-    USERMANAGER_GETGROUPS, USERS_SEARCH_TEXT_CHANGED
-} = require('../actions/users');
+import {
+    USERMANAGER_GETUSERS,
+    USERMANAGER_EDIT_USER,
+    USERMANAGER_EDIT_USER_DATA,
+    USERMANAGER_UPDATE_USER,
+    USERMANAGER_DELETE_USER,
+    USERMANAGER_GETGROUPS,
+    USERS_SEARCH_TEXT_CHANGED
+} from '../actions/users';
 
-const {UPDATEGROUP, STATUS_CREATED, DELETEGROUP, STATUS_DELETED} = require('../actions/usergroups');
-const assign = require('object-assign');
-
-const {findIndex} = require('lodash');
+import { UPDATEGROUP, STATUS_CREATED, DELETEGROUP, STATUS_DELETED } from '../actions/usergroups';
+import assign from 'object-assign';
 /**
  * Reducer for a user
  * * It contains the following parts:
@@ -60,7 +63,7 @@ function users(state = {
                     status: action.status,
                     ...action.user
                 })}
-                );
+            );
             // this to catch user loaded but window already closed
         } else if (action.status === "loading" || action.status === "new" || !action.status) {
             return assign({}, state, {
@@ -73,22 +76,7 @@ function users(state = {
     case USERMANAGER_EDIT_USER_DATA: {
         let k = action.key;
         let currentUser = state.currentUser;
-        if ( k.indexOf("attribute") === 0) {
-            let attrs = (currentUser.attribute || []).concat();
-            let attrName = k.split(".")[1];
-            let attrIndex = findIndex(attrs, (att) => att.name === attrName);
-            if (attrIndex >= 0) {
-                attrs[attrIndex] = {name: attrName, value: action.newValue};
-            } else {
-                attrs.push({name: attrName, value: action.newValue});
-            }
-
-            currentUser = assign({}, currentUser, {
-                attribute: attrs
-            });
-        } else {
-            currentUser = assign({}, currentUser, {[k]: action.newValue} );
-        }
+        currentUser = assign({}, currentUser, {[k]: action.newValue} );
         return assign({}, state, {
             currentUser: assign({}, {...currentUser, status: "modified"})
         });
@@ -150,4 +138,4 @@ function users(state = {
         return state;
     }
 }
-module.exports = users;
+export default users;

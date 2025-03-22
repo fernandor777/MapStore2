@@ -1,16 +1,19 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const {Glyphicon, Button, Tooltip} = require('react-bootstrap');
-const OverlayTrigger = require('../../components/misc/OverlayTrigger');
-const Sidebar = require('react-sidebar').default;
-const Message = require('../../components/I18N/Message');
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Glyphicon, Tooltip } from 'react-bootstrap';
+import Sidebar from 'react-sidebar';
+
+import OverlayTrigger from '../../components/misc/OverlayTrigger';
+import { Resizable } from 'react-resizable';
+import Message from '../../components/I18N/Message';
+import Button from '../../components/misc/Button';
 
 class Menu extends React.Component {
     static propTypes = {
@@ -25,14 +28,20 @@ class Menu extends React.Component {
         width: PropTypes.number,
         dynamicWidth: PropTypes.number,
         overlapMap: PropTypes.bool,
-        changeMapStyle: PropTypes.func
+        changeMapStyle: PropTypes.func,
+        layout: PropTypes.object,
+        resizable: PropTypes.bool,
+        onResize: PropTypes.func
     };
 
     static defaultProps = {
         docked: false,
         single: false,
         width: 300,
-        overlapMap: true
+        overlapMap: true,
+        layout: {},
+        resizable: false,
+        onResize: () => {}
     };
 
     componentDidMount() {
@@ -49,6 +58,10 @@ class Menu extends React.Component {
         }
     }
 
+    getWidth = () => {
+        return this.props.dynamicWidth || this.props.width;
+    };
+
     renderChildren = (child, index) => {
         const props = {
             key: child.key ? child.key : index,
@@ -62,8 +75,8 @@ class Menu extends React.Component {
     renderButtons = () => {
         return this.props.children.map((child) => {
             const button = (<Button key={child.props.eventKey} bsSize="large" className={(child.props.buttonConfig && child.props.buttonConfig.buttonClassName) ? child.props.buttonConfig.buttonClassName : "square-button"} onClick={this.props.onChoose.bind(null, child.props.eventKey, this.props.activeKey === child.props.eventKey)} bsStyle={this.props.activeKey === child.props.eventKey ? 'default' : 'primary'}>
-                        {child.props.glyph ? <Glyphicon glyph={child.props.glyph} /> : child.props.icon}
-                    </Button>);
+                {child.props.glyph ? <Glyphicon glyph={child.props.glyph} /> : child.props.icon}
+            </Button>);
             if (child.props.buttonConfig && child.props.buttonConfig.tooltip) {
                 const tooltip = <Tooltip key={"tooltip." + child.props.eventKey} id={"tooltip." + child.props.eventKey}><Message msgId={child.props.buttonConfig.tooltip}/></Tooltip>;
                 return (
@@ -85,24 +98,26 @@ class Menu extends React.Component {
                     {this.renderButtons()}
                 </div>
             </div>)
-         : (<div className="navHeader" style={{width: "100%", minHeight: "35px"}}>
-            <span className="title">{this.props.title}</span>
-            <Glyphicon glyph="1-close" className="no-border btn-default" onClick={this.props.onToggle} style={{cursor: "pointer"}}/>
-        </div>);
-        return (<div className={"nav-content"}>
+            : (<div className="navHeader" style={{width: "100%", minHeight: "35px"}}>
+                <span className="title">{this.props.title}</span>
+                <Glyphicon glyph="1-close" className="no-border btn-default" onClick={this.props.onToggle} style={{cursor: "pointer"}}/>
+            </div>);
+        const content = (<div className={"nav-content"}>
             {header}
             <div className={"nav-body"}>
-            {this.props.children.filter((child) => !this.props.single || this.props.activeKey === child.props.eventKey).map(this.renderChildren)}
+                {this.props.children.filter((child) => !this.props.single || this.props.activeKey === child.props.eventKey).map(this.renderChildren)}
             </div>
         </div>);
+        return this.props.resizable ? <Resizable axis="x" resizeHandles={['e']} width={this.getWidth()} onResize={this.resize}>{content}</Resizable> : content;
     };
 
     render() {
         return (
             <Sidebar styles={{
                 sidebar: {
+                    ...this.props.layout,
                     zIndex: 1022,
-                    width: this.props.dynamicWidth || this.props.width
+                    width: this.getWidth()
                 },
                 overlay: {
                     zIndex: 1021
@@ -122,6 +137,12 @@ class Menu extends React.Component {
             </Sidebar>
         );
     }
+
+
+    resize = (event, { size }) => {
+        this.props.onResize(size.width);
+    };
+
 }
 
-module.exports = Menu;
+export default Menu;

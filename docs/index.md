@@ -1,61 +1,37 @@
+<!-- markdownlint-disable-file MD041 -->
+![MapStore Logo](https://github.com/geosolutions-it/MapStore2/blob/master/MapStore2.png?raw=true){: .center}
 
+# MapStore
 
+[MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) is an highly modular **Open Source** WebGIS framework developed by [GeoSolutions](https://www.geosolutionsgroup.com/) to create, manage and securely
+share maps and mashups. This simple and intuitive framework is able to mix map contents provided by Google Maps, OpenStreetMap,
+Bing or other servers compliant to OGC standards like WFS, CSW, WMC, WMS, WMTS and TMS.
+[MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) is used to find, view and query published geospatial data and to integrate multiple remote sources into a single map; the result is
+an high quality and user friendly framework that allows different kind of use cases by harmonizing remote data with smart and advanced
+functionalities (like chart widgets, dashboards, timelines and others).
+[MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) resources are not only related to Maps but also [Dashboards](https://mapstore.readthedocs.io/en/latest/user-guide/exploring-dashboards/) and [Stories](https://mapstore.readthedocs.io/en/latest/user-guide/exploring-stories/); in [MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) you can create your own innovative and fascinating
+[Application Context](https://mapstore.readthedocs.io/en/latest/user-guide/managing-contexts/) where users can save, manage and share its own resources by also managing access permissions to other groups of users.
 
-![MapStore Logo](https://github.com/geosolutions-it/MapStore2/blob/master/MapStore2.png?raw=true)
+[MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) is not only a product but also a WebGIS framework. As a standard geoportal product, it is a web-based product that allows to provide a powerful and interactive geospatial WebGIS, it provides a direct and real-time access to geospatial data warehouses and it supports the most common  standards formats available for geospatial data.
+[MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) also provides advanced spatial analysis capabilities that can be used to build WebGIS solutions through a powerful, dynamic and open
+geospatial application. Since [MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) is also a framework, you can use it to build your own WebGIS applications by using its plugins and modules.
 
-**[MapStore](http://mapstore2.geo-solutions.it/)** is a framework to build _web mapping_ applications using standard mapping libraries, such as _OpenLayers 3_ and _Leaflet_.
+Last but not the least, [MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) is map agnostic and ensures the greatest flexibility: its abstraction tier allows to work with different web mapping libraries.
+The mapping engines currently supported by [MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) are [OpenLayers](https://openlayers.org/) (used by default for desktops), [LeafletJS](https://leafletjs.com/) (used by default for mobile devices) and [Cesium 3D viewer](https://cesium.com/platform/cesiumjs/).
 
-MapStore has several example applications:
+[MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) has been designed from the beginning to provide a coherent and comprehensive experience across different devices types.
 
- * **[MapViewer / Composer](http://mapstore2.geo-solutions.it/mapstore/)** is a simple viewer of preconfigured maps (optionally stored in a database using GeoStore), and a composer of your own maps.
- * **[The Playground](http://dev.mapstore2.geo-solutions.it/mapstore/examples/plugins/)** a tool to built a custom UI using the framework plugins
+**MapStore  is based on OpenLayers, Leaflet and ReactJS, and is licensed under the Simplified BSD license.**
 
+## Supported Browsers
 
-MapStore 2 is based on OpenLayers 3, Leaflet and ReactJS, and is licensed under the GPLv3 license.
+The browsers supported by [MapStore](https://mapstore.geosolutionsgroup.com/mapstore/#/) are *Google Chrome*, *Microsoft Edge*, *Mozilla Firefox* and *Safari*. Ensure to have the latest version installed.
 
-[![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fold_left.svg?style=social&label=Follow%20%40mapstore2)](https://twitter.com/mapstore2)
+## Quick Start
 
+You can either choose to download a standalone binary package or a WAR file to quickly start playing with MapStore. See the [Quick Start](quick-start.md#quick-start) documentation for more details.
 
-Quick Start
------------
+## Documentation
 
-You can either choose to download a standalone *binary package* or a *WAR file* to quickly start playing with MapStore2.
-
-Binary package
---------------
-Download the binary package file from the latest release [here](https://github.com/geosolutions-it/MapStore2/releases/latest).
-
-Go to the location where you saved the zip file, unzip the contents and run:
-
-Windows: `mapstore2_startup.bat`
-
-Linux: `./mapstore2_startup.sh`
-
-Point your browser to: [http://localhost:8082/mapstore](http://localhost:8082/mapstore)
-
-To stop MapStore2 simply do:
-
-Windows: `mapstore2_shutdown.bat`
-
-Linux: `./mapstore2_shutdown.sh`
-
-
-WAR file
---------
-Download the WAR file from the latest release [here](https://github.com/geosolutions-it/MapStore2/releases/latest).
-
-[All the releases](https://github.com/geosolutions-it/MapStore2/releases)
-
-After downloading the MapStore2 war file, install it in your java web container (e.g. Tomcat), with usual procedures for the container (normally you only need to copy the war file in the webapps subfolder).
-
-If you don't have a java web container you can download Apache Tomcat from [here](https://tomcat.apache.org/download-70.cgi) and install it. You will also need a Java7 [JRE](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html)
-
-Then you can access MapStore2 using the following URL (assuming the web container is on the standard 8080 port):
-
-[http://localhost:8080/mapstore](http://localhost:8080/mapstore)
-
-Use the default credentials (admin / admin) to login and start creating your maps!
-
-# Documentation
- * [Developers Guide](developer-guide/)
- * [Users Guide] TBD
+* [Users Guide](user-guide/home-page.md#home-page)
+* [Developers Guide](developer-guide/index.md#quick-setup-and-run)

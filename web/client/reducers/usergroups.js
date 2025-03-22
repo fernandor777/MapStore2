@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const {
+import {
     GETGROUPS,
     SEARCHUSERS,
     EDITGROUP,
@@ -14,8 +14,9 @@ const {
     DELETEGROUP,
     UPDATEGROUP,
     SEARCHTEXTCHANGED
-} = require('../actions/usergroups');
-const assign = require('object-assign');
+} from '../actions/usergroups';
+
+import assign from 'object-assign';
 function usergroups(state = {
     start: 0,
     limit: 12
@@ -47,7 +48,7 @@ function usergroups(state = {
                     status: action.status,
                     ...action.group
                 })}
-                );
+            );
             // this to catch user loaded but window already closed
         } else if (action.status === "loading" || action.status === "new" || !action.status) {
             return assign({}, state, {
@@ -104,7 +105,8 @@ function usergroups(state = {
             return assign({}, state, {
                 availableUsersError: null,
                 availableUsersLoading: false,
-                availableUsers: action.users
+                availableUsers: action.users,
+                availableUsersCount: action.count
             });
         }
         case "error": {
@@ -121,4 +123,4 @@ function usergroups(state = {
         return state;
     }
 }
-module.exports = usergroups;
+export default usergroups;

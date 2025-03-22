@@ -6,14 +6,14 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-var expect = require('expect');
+import expect from 'expect';
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var ResultsProps = require('../ResultsProps');
-var ServicesList = require('../ServicesList');
-var WFSOptionalProps = require('../WFSOptionalProps');
-var WFSServiceProps = require('../WFSServiceProps');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ResultsProps from '../ResultsProps';
+import ServicesList from '../ServicesList';
+import WFSOptionalProps from '../WFSOptionalProps';
+import WFSServiceProps from '../WFSServiceProps';
 
 
 describe("test text search service config components", () => {

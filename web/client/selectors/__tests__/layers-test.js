@@ -6,10 +6,46 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const expect = require('expect');
-const {layersSelector, layerSelectorWithMarkers, groupsSelector, selectedNodesSelector, layerFilterSelector, layerSettingSelector, backgroundControlsSelector, currentBackgroundSelector, tempBackgroundSelector} = require('../layers');
+import expect from 'expect';
+
+import {
+    getSelectedLayers,
+    getLayerFromName,
+    getLayerFromId,
+    layersSelector,
+    layerSelectorWithMarkers,
+    groupsSelector,
+    selectedNodesSelector,
+    layerFilterSelector,
+    layerSettingSelector,
+    layerMetadataSelector,
+    wfsDownloadSelector,
+    backgroundControlsSelector,
+    currentBackgroundSelector,
+    tempBackgroundSelector,
+    centerToMarkerSelector,
+    getLayersWithDimension,
+    elementSelector,
+    queryableSelectedLayersSelector,
+    getAdditionalLayerFromId,
+    getTitleSelector
+} from '../layers';
 
 describe('Test layers selectors', () => {
+    it('test getLayerFromName', () => {
+        let layer = getLayerFromName({}, "ws:layer_1");
+        expect(layer).toNotExist();
+        layer = getLayerFromName({layers: {flat: [{name: "ws:layer_1"}]}}, "ws:layer_1");
+        expect(layer).toExist();
+        expect(layer).toEqual({name: "ws:layer_1"});
+    });
+    it('test getLayerFromId', () => {
+        let layer = getLayerFromId({}, "layer_1");
+        expect(layer).toNotExist();
+        layer = getLayerFromId({layers: {flat: [{id: "layer_1"}]}}, "layer_1");
+        expect(layer).toExist();
+        expect(layer).toEqual({id: "layer_1"});
+    });
     it('test layersSelector from config', () => {
         const props = layersSelector({config: {layers: [{type: "osm"}]}});
 
@@ -31,6 +67,12 @@ describe('Test layers selectors', () => {
         expect(props[0].type).toBe("osm");
     });
 
+    it('test layersSelector without layers', () => {
+        const props = layersSelector({});
+        expect(props).toExist();
+        expect(props.length).toBe(0);
+    });
+
     it('test layerSelectorWithMarkers with no markers', () => {
         const props = layerSelectorWithMarkers({config: {layers: [{type: "osm"}]}});
 
@@ -45,8 +87,8 @@ describe('Test layers selectors', () => {
                 latlng: {lat: 45, lng: 43}
             }
         }});
-
-        expect(props.length).toBe(2);
+        // 1 for marker, 1 for highlight
+        expect(props.length).toBe(3);
         expect(props[1].type).toBe("vector");
     });
     it('test layerSelectorWithMarkers with geocoder marker as lat lon', () => {
@@ -80,7 +122,7 @@ describe('Test layers selectors', () => {
                     "type": "Polygon",
                     "coordinates": [
                         [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0],
-                       [100.0, 1.0], [100.0, 0.0] ]
+                            [100.0, 1.0], [100.0, 0.0] ]
                     ]
                 },
                 "properties": {
@@ -92,6 +134,127 @@ describe('Test layers selectors', () => {
         expect(props[1].type).toBe("vector");
     });
 
+    it('test layerSelectorWithMarkers with default style', () => {
+        const props = layerSelectorWithMarkers({config: {layers: [{type: "osm"}]}, search: {
+            markerPosition: {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [0, 0]
+                }
+            }
+        }});
+        expect(props.length).toBe(2);
+        expect(props[1].type).toBe("vector");
+        const {defaultIconStyle} = require('../../utils/SearchUtils');
+
+        expect(props[1].style).toEqual(defaultIconStyle);
+    });
+
+    it('test layerSelectorWithMarkers with custom style', () => {
+        const style = {
+            color: '#ff0000'
+        };
+
+        const {defaultIconStyle} = require('../../utils/SearchUtils');
+
+        const props = layerSelectorWithMarkers({config: {layers: [{type: "osm"}]}, search: {
+            markerPosition: {
+                type: "Feature",
+                geometry: {
+                    type: "Point",
+                    coordinates: [0, 0]
+                }
+            },
+            style
+        }});
+        expect(props.length).toBe(2);
+        expect(props[1].type).toBe("vector");
+        expect(props[1].style).toEqual({...defaultIconStyle, ...style});
+    });
+
+
+    it('test layerSelectorWithMarkers with override layers from additionallayers', () => {
+        const state = {
+            additionallayers: [
+                {
+                    id: 'layer_001',
+                    owner: 'styleeditor',
+                    actionType: 'override',
+                    settings: {
+                        name: 'workspace:layer_001',
+                        properties: {
+                            pop: 500000
+                        }
+                    },
+                    options: {
+                        style: 'generic'
+                    }
+                }
+            ],
+            layers: {
+                flat: [
+                    {
+                        type: 'wms',
+                        id: 'layer_001',
+                        style: ''
+                    }
+                ]
+            }
+        };
+        const props = layerSelectorWithMarkers(state);
+        expect(props.length).toBe(1);
+        expect(props[0]).toEqual({
+            type: 'wms',
+            id: 'layer_001',
+            style: 'generic'
+        });
+    });
+    it('test layerSelectorWithMarkers with overlay layers from additionallayers', () => {
+        const state = {
+            additionallayers: [
+                {
+                    id: 'layer_002',
+                    owner: 'styleeditor',
+                    actionType: 'overlay',
+                    settings: {
+                        name: 'workspace:layer_001',
+                        properties: {
+                            pop: 500000
+                        }
+                    },
+                    options: {
+                        type: "vector",
+                        name: 'layer_002',
+                        id: 'layer_002',
+                        style: 'generic'
+                    }
+                }
+            ],
+            layers: {
+                flat: [
+                    {
+                        type: 'wms',
+                        id: 'layer_001',
+                        style: ''
+                    }
+                ]
+            }
+        };
+        const props = layerSelectorWithMarkers(state);
+        expect(props.length).toBe(2);
+        expect(props[0]).toEqual({
+            type: 'wms',
+            id: 'layer_001',
+            style: ''
+        });
+        expect(props[1]).toEqual({
+            type: "vector",
+            name: 'layer_002',
+            id: 'layer_002',
+            style: 'generic'
+        });
+    });
     it('test groupsSelector from layers flat one group', () => {
         const props = groupsSelector({layers: {
             flat: [{type: "osm", id: "layer1", group: "group1"}, {type: "wms", id: "layer2", group: "group1"}],
@@ -148,6 +311,26 @@ describe('Test layers selectors', () => {
     it('test layerSettingSelector no state', () => {
         const props = layerSettingSelector({});
         expect(props).toEqual({expanded: false, options: {opacity: 1}});
+    });
+
+    it('test layerMetadataSelector', () => {
+        const props = layerMetadataSelector({layers: {layerMetadata: {expanded: true}}});
+        expect(props).toEqual({expanded: true});
+    });
+
+    it('test layerMetadataSelector no state', () => {
+        const props = layerMetadataSelector({});
+        expect(props).toEqual({expanded: false, metadataRecord: {}, maskLoading: false});
+    });
+
+    it('test wfsDownloadSelector', () => {
+        const props = wfsDownloadSelector({ controls: { layerdownload: { enabled: true } } });
+        expect(props).toEqual({ expanded: true });
+    });
+
+    it('test wfsDownloadSelector no state', () => {
+        const props = wfsDownloadSelector({});
+        expect(props).toEqual({ expanded: false });
     });
 
     it('test backgroundControlsSelector', () => {
@@ -315,5 +498,408 @@ describe('Test layers selectors', () => {
         expect(props).toEqual({});
     });
 
+    it('test centerToMarkerSelector', () => {
+        let props = centerToMarkerSelector({});
+        expect(props).toEqual(false);
+
+        props = centerToMarkerSelector({
+            mapInfo: {
+                centerToMarker: false
+            }
+        });
+        expect(props).toEqual(false);
+
+        props = centerToMarkerSelector({
+            mapInfo: {
+                centerToMarker: true
+            }
+        });
+        expect(props).toEqual(true);
+    });
+    it('test getLayerWidDimension', () => {
+        const state = {
+            layers: {
+                flat: [{
+                    group: 'test',
+                    id: 'layer001',
+                    visibility: true,
+                    dimensions: [{
+                        name: 'time'
+                    }]
+                },
+                {
+                    group: 'test',
+                    id: 'layer002',
+                    visibility: true,
+                    dimensions: [{
+                        name: 'time'
+                    }, {
+                        name: 'elevation'
+                    }]
+                }]
+            }
+        };
+        expect(getLayersWithDimension(state, 'time').length).toBe(2);
+        expect(getLayersWithDimension(state, 'elevation').length).toBe(1);
+        expect(getLayersWithDimension(state, 'reference').length).toBe(0);
+    });
+
+    it('test elementSelector with a sub group node and a layer node', () => {
+        let settings = {
+            "expanded": true,
+            "node": "first.second",
+            "nodeType": "groups",
+            "options": {}
+        };
+        const flat = [
+            {
+                id: 'topp:states__6',
+                format: 'image/png8',
+                search: {
+                    url: 'https://demo.geo-solutions.it:443/geoserver/wfs',
+                    type: 'wfs'
+                },
+                name: 'topp:states',
+                opacity: 1,
+                description: 'This is some census data on the states.',
+                title: 'USA Population',
+                type: 'wms',
+                url: 'https://demo.geo-solutions.it:443/geoserver/wms',
+                bbox: {
+                    crs: 'EPSG:4326',
+                    bounds: {
+                        minx: -124.73142200000001,
+                        miny: 24.955967,
+                        maxx: -66.969849,
+                        maxy: 49.371735
+                    }
+                },
+                visibility: true,
+                singleTile: false,
+                allowedSRS: {},
+                dimensions: [],
+                hideLoading: false,
+                handleClickOnLayer: false,
+                catalogURL: 'https://demo.geo-solutions.it/geoserver/csw?request=GetRecordById&service=CSW&version=2.0.2&elementSetName=full&id=topp:states',
+                useForElevation: false,
+                hidden: false,
+                params: {
+                    layers: 'topp:states'
+                },
+                loading: false,
+                loadingError: false,
+                group: 'first.second.third'
+            }
+        ];
+        const groups = [
+            {
+                id: 'first',
+                title: 'first',
+                name: 'first',
+                nodes: [
+                    {
+                        id: 'first.second',
+                        title: 'second',
+                        name: 'second',
+                        nodes: [
+                            {
+                                id: 'first.second.third',
+                                title: 'third',
+                                name: 'third',
+                                nodes: [
+                                    'topp:states__6'
+                                ],
+                                expanded: true
+                            }
+                        ],
+                        expanded: true
+                    }
+                ],
+                expanded: true
+            }
+        ];
+        // group node
+        let state = {
+            layers: {
+                flat,
+                groups,
+                settings
+            }
+        };
+        let element = {
+            "id": "first.second",
+            "title": "second",
+            "name": "second",
+            "nodes": [
+                {
+                    "id": "first.second.third",
+                    "title": "third",
+                    "name": "third",
+                    "nodes": [
+                        {
+                            "id": "topp:states__6",
+                            "format": "image/png8",
+                            "search": {
+                                "url": "https://demo.geo-solutions.it:443/geoserver/wfs",
+                                "type": "wfs"
+                            },
+                            "name": "topp:states",
+                            "opacity": 1,
+                            "description": "This is some census data on the states.",
+                            "title": "USA Population",
+                            "type": "wms",
+                            "url": "https://demo.geo-solutions.it:443/geoserver/wms",
+                            "bbox": {
+                                "crs": "EPSG:4326",
+                                "bounds": {
+                                    "minx": -124.73142200000001,
+                                    "miny": 24.955967,
+                                    "maxx": -66.969849,
+                                    "maxy": 49.371735
+                                }
+                            },
+                            "visibility": true,
+                            "singleTile": false,
+                            "allowedSRS": {},
+                            "dimensions": [],
+                            "hideLoading": false,
+                            "handleClickOnLayer": false,
+                            "catalogURL": "https://demo.geo-solutions.it/geoserver/csw?request=GetRecordById&service=CSW&version=2.0.2&elementSetName=full&id=topp:states",
+                            "useForElevation": false,
+                            "hidden": false,
+                            "params": {
+                                "layers": "topp:states"
+                            },
+                            "loading": false,
+                            "loadingError": false,
+                            "group": "first.second.third",
+                            "expanded": false,
+                            inactive: false
+                        }
+                    ],
+                    "expanded": true,
+                    "visibility": true,
+                    inactive: false
+                }
+            ],
+            "expanded": true,
+            "visibility": true,
+            inactive: false
+        };
+        expect(elementSelector(state)).toEqual(element);
+
+        // layer node
+        settings = {
+            "expanded": true,
+            "node": "topp:states__6",
+            "nodeType": "layers",
+            "options": {
+                "opacity": 1
+            }
+        };
+        state = {
+            layers: {
+                flat,
+                groups,
+                settings
+            }
+        };
+        element = {
+            "id": "topp:states__6",
+            "format": "image/png8",
+            "search": {
+                "url": "https://demo.geo-solutions.it:443/geoserver/wfs",
+                "type": "wfs"
+            },
+            "name": "topp:states",
+            "opacity": 1,
+            "description": "This is some census data on the states.",
+            "title": "USA Population",
+            "type": "wms",
+            "url": "https://demo.geo-solutions.it:443/geoserver/wms",
+            "bbox": {
+                "crs": "EPSG:4326",
+                "bounds": {
+                    "minx": -124.73142200000001,
+                    "miny": 24.955967,
+                    "maxx": -66.969849,
+                    "maxy": 49.371735
+                }
+            },
+            "visibility": true,
+            "singleTile": false,
+            "allowedSRS": {},
+            "dimensions": [],
+            "hideLoading": false,
+            "handleClickOnLayer": false,
+            "catalogURL": "https://demo.geo-solutions.it/geoserver/csw?request=GetRecordById&service=CSW&version=2.0.2&elementSetName=full&id=topp:states",
+            "useForElevation": false,
+            "hidden": false,
+            "params": {
+                "layers": "topp:states"
+            },
+            "loading": false,
+            "loadingError": false,
+            "group": "first.second.third"
+        };
+        expect(elementSelector(state)).toEqual(element);
+    });
+    it('test queryableSelectedLayersSelector', () => {
+        const queryableSelectedLayers = [
+            {
+                type: 'wms',
+                visibility: true,
+                id: 'mapstore:states__7'
+            },
+            {
+                type: 'wms',
+                visibility: true,
+                id: 'mapstore:Types__6'
+            },
+            {
+                type: 'wms',
+                visibility: true,
+                id: 'mapstore:Meteorite_Landings_from_NASA_Open_Data_Portal__5'
+            }
+        ];
+        const state = {
+            layers: {
+                flat: [
+                    {
+                        id: 'mapnik__0',
+                        group: 'background',
+                        type: 'osm',
+                        visibility: true
+                    },
+                    {
+                        id: 'Night2012__1',
+                        group: 'background',
+                        type: 'tileprovider',
+                        visibility: false
+                    },
+                    {
+                        type: 'wms',
+                        visibility: true,
+                        id: 'mapstore:DE_USNG_UTM18__8'
+                    },
+                    ...queryableSelectedLayers
+                ],
+                selected: [
+                    'mapstore:states__7',
+                    'mapstore:Types__6',
+                    'mapstore:Meteorite_Landings_from_NASA_Open_Data_Portal__5'
+                ]
+            }
+        };
+        expect(queryableSelectedLayersSelector(state)).toEqual(queryableSelectedLayers);
+    });
+    it('test getAdditionalLayerFromId selector', () => {
+        const state = {
+            additionallayers: [
+                {
+                    id: 'layer_001',
+                    options: {
+                        id: 'layer_001'
+                    }
+                }
+            ]
+        };
+        const props = getAdditionalLayerFromId(state, 'layer_001');
+        expect(props.id).toBe('layer_001');
+    });
+
+    it('test getSelectedLayers selector', () => {
+        const queryableSelectedLayers = [
+            {
+                type: 'wms',
+                visibility: true,
+                id: 'mapstore:states__7'
+            },
+            {
+                type: 'wms',
+                visibility: true,
+                id: 'mapstore:Types__6'
+            }
+        ];
+        const state = {
+            layers: {
+                flat: [
+                    {
+                        id: 'mapnik__0',
+                        group: 'background',
+                        type: 'osm',
+                        visibility: true
+                    },
+                    {
+                        id: 'Night2012__1',
+                        group: 'background',
+                        type: 'tileprovider',
+                        visibility: false
+                    },
+                    {
+                        type: 'wms',
+                        visibility: true,
+                        id: 'mapstore:DE_USNG_UTM18__8'
+                    },
+                    ...queryableSelectedLayers
+                ],
+                selected: [
+                    'mapstore:states__7',
+                    'mapstore:Types__6',
+                    'mapstore:Meteorite_Landings_from_NASA_Open_Data_Portal__5',
+                    'Default'
+                ]
+            }
+        };
+        expect(getSelectedLayers(state)).toEqual(queryableSelectedLayers);
+    });
+    describe('getTitleSelector', () => {
+        it('getTitleSelector with non localized title', () =>{
+            const state = {
+                layers: {
+                    flat: [
+                        {
+                            id: 'TEST_LAYER',
+                            type: 'osm',
+                            visibility: true,
+                            title: 'TITLE_LAYER'
+                        },
+                        {
+                            id: 'TEST_LAYER_2',
+                            type: 'osm',
+                            visibility: true
+                        }
+                    ]
+                }
+            };
+            expect(getTitleSelector(state, 'TEST_LAYER')).toBe('TITLE_LAYER');
+        });
+        it('getTitleSelector with localized title', () =>{
+            const state = {
+                layers: {
+                    flat: [
+                        {
+                            id: 'TEST_LAYER',
+                            type: 'osm',
+                            visibility: true,
+                            title: {
+                                "default": 'TITLE_LAYER',
+                                "it-IT": 'Livel'
+                            }
+                        },
+                        {
+                            id: 'TEST_LAYER_2',
+                            type: 'osm',
+                            visibility: true
+                        }
+                    ]
+                },
+                locale: {
+                    current: "it-IT"
+                }
+            };
+            expect(getTitleSelector(state, 'TEST_LAYER')).toBe('Livel');
+        });
+    });
 
 });

@@ -6,12 +6,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var expect = require('expect');
-var React = require('react');
-var ReactDOM = require('react-dom');
-var Font = require('../Font');
+import expect from 'expect';
 
-var ReactTestUtils = require('react-dom/test-utils');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import Font from '../Font';
+import ReactTestUtils from 'react-dom/test-utils';
 
 const fonts = ['Font1', 'Font2'];
 
@@ -70,8 +70,7 @@ describe("Test the Font component", () => {
         const cmp = ReactDOM.render(<Font onChangeSize={changeHandler}/>, document.getElementById("container"));
         expect(cmp).toExist();
         const node = ReactDOM.findDOMNode(cmp);
-        ReactTestUtils.Simulate.change(node.getElementsByTagName('input')[0]);
-
+        ReactTestUtils.Simulate.change(node.getElementsByTagName('input')[0], {target: {value: 10}});
         expect(called).toBe(true);
     });
 

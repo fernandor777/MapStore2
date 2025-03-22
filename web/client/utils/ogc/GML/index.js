@@ -1,4 +1,4 @@
-const {isArray} = require('lodash');
+const isArray = require('lodash/isArray');
 const isGML2 = (version) => version.indexOf("2.") === 0;
 const closePolygon = (coords) => {
     if (coords.length >= 3) {
@@ -41,7 +41,7 @@ const polygonElement = (coordinates, srsName, version) => {
             return coordinate[0] + (gml2 ? "," : " ") + coordinate[1];
         });
         const exterior = (gml2 ? "outerBoundaryIs" : "exterior");
-        const interior = (gml2 ? "innerBoundaryIs" : "exterior");
+        const interior = (gml2 ? "innerBoundaryIs" : "interior");
         gmlPolygon +=
             (index < 1 ? '<gml:' + exterior + '>' : '<gml:' + interior + '>') +
                     '<gml:LinearRing>' +
@@ -87,40 +87,40 @@ const processOGCGeometry = (version, geometry) => {
     let ogc = '';
     const srsName = geometry.projection || "EPSG:4326";
     switch (geometry.type) {
-        case "Point":
-            ogc += pointElement(geometry.coordinates,
-                srsName, version);
-            break;
-        case "MultiPoint":
-            ogc += '<gml:MultiPoint srsName="' + (geometry.projection || "EPSG:4326") + '">';
+    case "Point":
+        ogc += pointElement(geometry.coordinates,
+            srsName, version);
+        break;
+    case "MultiPoint":
+        ogc += '<gml:MultiPoint srsName="' + (geometry.projection || "EPSG:4326") + '">';
 
-                    // //////////////////////////////////////////////////////////////////////////
-                    // Coordinates of a MultiPoint are an array of positions
-                    // //////////////////////////////////////////////////////////////////////////
-            geometry.coordinates.forEach((element) => {
-                let point = element;
-                if (point) {
-                    ogc += "<gml:pointMember>";
-                    ogc += pointElement(point, srsName, version);
-                    ogc += "</gml:pointMember>";
-                }
-            });
+        // //////////////////////////////////////////////////////////////////////////
+        // Coordinates of a MultiPoint are an array of positions
+        // //////////////////////////////////////////////////////////////////////////
+        geometry.coordinates.forEach((element) => {
+            let point = element;
+            if (point) {
+                ogc += "<gml:pointMember>";
+                ogc += pointElement(point, srsName, version);
+                ogc += "</gml:pointMember>";
+            }
+        });
 
-            ogc += '</gml:MultiPoint>';
-            break;
-        case "LineString":
-            ogc += lineStringElement(geometry.coordinates,
-              srsName, version);
-            break;
-        case "MultiLineString":
+        ogc += '</gml:MultiPoint>';
+        break;
+    case "LineString":
+        ogc += lineStringElement(geometry.coordinates,
+            srsName, version);
+        break;
+    case "MultiLineString":
         const multyLineTagName = version === "3.2" ? "MultiCurve" : "MultiLineString";
         const lineMemberTagName = version === "3.2" ? "curveMember" : "lineStringMember";
 
         ogc += `<gml:${multyLineTagName} srsName="${srsName}">`;
 
-                // //////////////////////////////////////////////////////////////////////////
-                // Coordinates of a MultiPolygon are an array of Polygon coordinate arrays
-                // //////////////////////////////////////////////////////////////////////////
+        // //////////////////////////////////////////////////////////////////////////
+        // Coordinates of a MultiPolygon are an array of Polygon coordinate arrays
+        // //////////////////////////////////////////////////////////////////////////
         geometry.coordinates.forEach((element) => {
             if (element) {
                 ogc += "<gml:" + lineMemberTagName + ">";
@@ -130,31 +130,31 @@ const processOGCGeometry = (version, geometry) => {
         });
         ogc += '</gml:' + multyLineTagName + '>';
         break;
-        case "Polygon":
-            ogc += polygonElement(geometry.coordinates,
-                srsName, version);
-            break;
-        case "MultiPolygon":
-            const multyPolygonTagName = version === "3.2" ? "MultiSurface" : "MultiPolygon";
-            const polygonMemberTagName = version === "3.2" ? "surfaceMembers" : "polygonMember";
+    case "Polygon":
+        ogc += polygonElement(geometry.coordinates,
+            srsName, version);
+        break;
+    case "MultiPolygon":
+        const multyPolygonTagName = version === "3.2" ? "MultiSurface" : "MultiPolygon";
+        const polygonMemberTagName = version === "3.2" ? "surfaceMembers" : "polygonMember";
 
-            ogc += `<gml:${multyPolygonTagName} srsName="${srsName}">`;
+        ogc += `<gml:${multyPolygonTagName} srsName="${srsName}">`;
 
-                    // //////////////////////////////////////////////////////////////////////////
-                    // Coordinates of a MultiPolygon are an array of Polygon coordinate arrays
-                    // //////////////////////////////////////////////////////////////////////////
-            geometry.coordinates.forEach((element) => {
-                let polygon = element;
-                if (polygon) {
-                    ogc += "<gml:" + polygonMemberTagName + ">";
-                    ogc += polygonElement(polygon, srsName, version);
-                    ogc += "</gml:" + polygonMemberTagName + ">";
-                }
-            });
-            ogc += '</gml:' + multyPolygonTagName + '>';
-            break;
-        default:
-            break;
+        // //////////////////////////////////////////////////////////////////////////
+        // Coordinates of a MultiPolygon are an array of Polygon coordinate arrays
+        // //////////////////////////////////////////////////////////////////////////
+        geometry.coordinates.forEach((element) => {
+            let polygon = element;
+            if (polygon) {
+                ogc += "<gml:" + polygonMemberTagName + ">";
+                ogc += polygonElement(polygon, srsName, version);
+                ogc += "</gml:" + polygonMemberTagName + ">";
+            }
+        });
+        ogc += '</gml:' + multyPolygonTagName + '>';
+        break;
+    default:
+        break;
     }
     return ogc;
 };

@@ -6,10 +6,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-module.exports = [
+export default [
     {
         translationHTML: 'drawerMenu',
-        selector: '#drawer-menu-button'
+        selector: '.ms-drawer-menu-button'
     },
     {
         translation: 'searchBar',
@@ -40,7 +40,7 @@ module.exports = [
     },
     {
         translation: 'identifyButton',
-        selector: '#identifyBar-container',
+        selector: '#navigationBar-container .glyphicon.glyphicon-option-horizontal',
         position: 'top'
     }
 ];

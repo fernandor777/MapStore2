@@ -6,26 +6,30 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-const React = require('react');
-const {connect} = require('react-redux');
-const assign = require('object-assign');
-const {Glyphicon, Button} = require('react-bootstrap');
-const ConfirmButton = require('../components/buttons/ConfirmButton');
-const Dialog = require('../components//misc/Dialog');
-const Portal = require('../components/misc/Portal');
-const Message = require('./locale/Message');
-const {isEqual} = require('lodash');
-const {toggleControl} = require('../actions/controls');
-const {setSearchConfigProp, updateService, restServiceConfig} = require('../actions/searchconfig');
+import React from 'react';
 
-require('../components/mapcontrols/searchservicesconfig/SearchServices.css');
+import { connect } from 'react-redux';
+import { createSelector } from 'reselect';
+import { Glyphicon } from 'react-bootstrap';
+import ConfirmButton from '../components/buttons/ConfirmButton';
+import Dialog from '../components//misc/Dialog';
+import Portal from '../components/misc/Portal';
+import Message from './locale/Message';
+import get from 'lodash/get';
+import isEqual from 'lodash/isEqual';
+import { toggleControl } from '../actions/controls';
+import { setSearchConfigProp, updateService, restServiceConfig } from '../actions/searchconfig';
+import ServiceList from '../components/mapcontrols/searchservicesconfig/ServicesList.jsx';
+import WFSServiceProps from '../components/mapcontrols/searchservicesconfig/WFSServiceProps.jsx';
+import ResultsProps from '../components/mapcontrols/searchservicesconfig/ResultsProps.jsx';
+import WFSOptionalProps from '../components/mapcontrols/searchservicesconfig/WFSOptionalProps.jsx';
+import PropTypes from 'prop-types';
+import ButtonMisc from '../components/misc/Button';
+import tooltip from '../components/misc/enhancers/tooltip';
+import { createPlugin } from '../utils/PluginsUtils';
+import searchconfigReducer from '../reducers/searchconfig';
 
-const SearchServicesButton = require('./searchservicesconfig/ToggleButton');
-const ServiceList = require('../components/mapcontrols/searchservicesconfig/ServicesList.jsx');
-const WFSServiceProps = require('../components/mapcontrols/searchservicesconfig/WFSServiceProps.jsx');
-const ResultsProps = require('../components/mapcontrols/searchservicesconfig/ResultsProps.jsx');
-const WFSOptionalProps = require('../components/mapcontrols/searchservicesconfig/WFSOptionalProps.jsx');
-const PropTypes = require('prop-types');
+const Button = tooltip(ButtonMisc);
 
 /**
  * Text Search Services Editor Plugin. Allow to add and edit additional
@@ -39,6 +43,7 @@ const PropTypes = require('prop-types');
  * @prop {string} cfg.id identifier of the Plugin
  * @prop {object} cfg.panelStyle inline style for the panel
  * @prop {string} cfg.panelClassName className for the panel
+ * @prop {string} cfg.containerClassName className for the container
  */
 class SearchServicesConfigPanel extends React.Component {
     static propTypes = {
@@ -46,12 +51,13 @@ class SearchServicesConfigPanel extends React.Component {
         enabled: PropTypes.bool,
         panelStyle: PropTypes.object,
         panelClassName: PropTypes.string,
+        containerClassName: PropTypes.string,
         closeGlyph: PropTypes.string,
         titleText: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
         toggleControl: PropTypes.func,
         pages: PropTypes.arrayOf(PropTypes.shape({
-                Element: PropTypes.func.isRequired,
-                validate: PropTypes.func.isRequired
+            Element: PropTypes.func.isRequired,
+            validate: PropTypes.func.isRequired
         })),
         page: PropTypes.number,
         service: PropTypes.object,
@@ -78,6 +84,7 @@ class SearchServicesConfigPanel extends React.Component {
             backgroundColor: "white"
         },
         panelClassName: "toolbar-panel",
+        containerClassName: '',
         closeGlyph: "1-close",
         titleText: <Message msgId="search.configpaneltitle" />,
         closePanel: () => {},
@@ -118,7 +125,7 @@ class SearchServicesConfigPanel extends React.Component {
                         <Message msgId="search.addbtn" />
                     </Button>
                 </span>);
-        }else if (page === pages.length - 1) {
+        } else if (page === pages.length - 1) {
             return (
                 <span role="footer">
                     <Button onClick={this.prev} bsStyle="primary">
@@ -133,9 +140,9 @@ class SearchServicesConfigPanel extends React.Component {
             <span role="footer">
                 {page === 1 && this.isDirty() ? (
                     <ConfirmButton onConfirm={this.prev} bsStyle="primary"
-                    confirming={{text: <Message msgId="search.cancelconfirm" />}}
+                        confirming={{text: <Message msgId="search.cancelconfirm" />}}
                         text={(<Message msgId="search.cancelbtn" />)}/>
-                    ) : (
+                ) : (
                     <Button onClick={this.prev} bsStyle="primary">
                         <Message msgId={page === 1 ? "search.cancelbtn" : "search.prevbtn"} />
                     </Button>)
@@ -147,20 +154,24 @@ class SearchServicesConfigPanel extends React.Component {
     };
 
     render() {
-        const {enabled, pages, page, id, panelStyle, panelClassName, titleText, closeGlyph, onPropertyChange, service, textSearchConfig = {}} = this.props;
+        const { enabled, pages, page, id, panelStyle, panelClassName, titleText, closeGlyph, onPropertyChange, service, textSearchConfig = {}, containerClassName} = this.props;
         const Section = pages && pages[page] || null;
         return enabled ? (
             <Portal>
-                <Dialog id={id} style={panelStyle} className={panelClassName}>
+                <Dialog id={id} style={{...panelStyle, display: enabled ? 'block' : 'none'}} containerClassName={containerClassName}className={panelClassName} draggable={false} modal>
                     <span role="header">
                         <span>{titleText}</span>
                         { this.isDirty() ? (
                             <ConfirmButton className="close" confirming={{
                                 text: <Message msgId="search.cancelconfirm" />, className: "btn btn-sm btn-warning services-config-editor-confirm-close"}} onConfirm={this.onClose} bsStyle="primary" text={(<Glyphicon glyph={closeGlyph}/>)}/>) : (<button onClick={this.onClose} className="close">{closeGlyph ? <Glyphicon glyph={closeGlyph}/> : <span>×</span>}</button>)
-                            }
+                        }
                     </span>
                     <div role="body" className="services-config-editor">
-                        <Section.Element services={textSearchConfig.services} override={textSearchConfig.override} onPropertyChange={onPropertyChange} service={service}/>
+                        <Section.Element
+                            services={textSearchConfig.services}
+                            override={textSearchConfig.override}
+                            onPropertyChange={onPropertyChange}
+                            service={service}/>
                     </div>
                     {this.renderFooter()}
                 </Dialog>
@@ -170,7 +181,6 @@ class SearchServicesConfigPanel extends React.Component {
     onClose = () => {
         this.props.toggleControl("searchservicesconfig");
         this.props.restServiceConfig(0);
-        this.props.toggleControl("settings");
     };
 
     addService = () => {
@@ -184,7 +194,7 @@ class SearchServicesConfigPanel extends React.Component {
         const {page} = this.props;
         if (page > 1) {
             this.props.onPropertyChange("page", page - 1);
-        }else if (page === 1 ) {
+        } else if (page === 1 ) {
             this.props.restServiceConfig(0);
         }
     };
@@ -203,30 +213,68 @@ class SearchServicesConfigPanel extends React.Component {
 }
 
 const SearchServicesPlugin = connect(({controls = {}, searchconfig = {}}) => ({
-    enabled: controls.searchservicesconfig && controls.searchservicesconfig.enabled || false,
+    enabled: get(controls, "searchservicesconfig.enabled", false),
     pages: [ServiceList, WFSServiceProps, ResultsProps, WFSOptionalProps],
-    page: searchconfig && searchconfig.page || 0,
-    service: searchconfig && searchconfig.service,
-    initServiceValues: searchconfig && searchconfig.init_service_values,
-    textSearchConfig: searchconfig && searchconfig.textSearchConfig,
+    page: get(searchconfig, "page", 0),
+    service: get(searchconfig, "service", {}),
+    initServiceValues: get(searchconfig, "init_service_values", {}),
+    textSearchConfig: get(searchconfig, "textSearchConfig", {}),
     editIdx: searchconfig && searchconfig.editIdx
-    }), {
-        toggleControl,
-        onPropertyChange: setSearchConfigProp,
-        restServiceConfig,
-        updateService})(SearchServicesConfigPanel);
+}), {
+    toggleControl,
+    onPropertyChange: setSearchConfigProp,
+    restServiceConfig,
+    updateService})(SearchServicesConfigPanel);
 
-module.exports = {
-    SearchServicesConfigPlugin: assign(SearchServicesPlugin, {
-        Settings: {
-            tool:
-                <SearchServicesButton key="searchservices"
-                text={<Message msgId="search.searchservicesbutton" />}
-            />,
-            position: 4
-        }
-    }),
-    reducers: {
-        searchconfig: require('../reducers/searchconfig')
+function SearchServiceButton({
+    activeTool,
+    enabled,
+    onToggleControl
+}) {
+
+    if (activeTool === 'addressSearch') {
+        return (<Button
+            bsStyle="default"
+            pullRight
+            className="square-button-md no-border"
+            tooltipId="search.searchservicesbutton"
+            tooltipPosition="bottom"
+            onClick={() => {
+                if (!enabled) {
+                    onToggleControl('searchservicesconfig');
+                }
+            }}
+        >
+            <Glyphicon glyph="cog"/>
+        </Button>);
     }
-};
+
+    return null;
+}
+
+const ConnectedSearchServicesConfigButton = connect(
+    createSelector([
+        state => state.search || null,
+        state => state?.controls?.searchservicesconfig?.enabled || false
+    ], (searchState, enabled) => ({
+        activeTool: get(searchState, 'activeSearchTool', 'addressSearch'),
+        enabled
+    })),
+    {
+        onToggleControl: toggleControl
+    }
+)(SearchServiceButton);
+
+export default createPlugin('SearchServicesConfig', {
+    component: SearchServicesPlugin,
+    containers: {
+        Search: {
+            name: 'SearchServicesConfigButton',
+            target: 'button',
+            component: ConnectedSearchServicesConfigButton
+        }
+    },
+    reducers: {
+        searchconfig: searchconfigReducer
+    }
+});

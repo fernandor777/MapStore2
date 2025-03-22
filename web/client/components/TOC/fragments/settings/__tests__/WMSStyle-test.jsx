@@ -6,20 +6,20 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var ReactTestUtils = require('react-dom/test-utils');
-var WMSStyle = require('../WMSStyle');
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ReactTestUtils from 'react-dom/test-utils';
 
-var expect = require('expect');
+import WMSStyle from '../WMSStyle';
 
 describe('test  Layer Properties General module component', () => {
     beforeEach((done) => {
         document.body.innerHTML = '<div id="container"></div>';
         setTimeout(done);
     });
-
     afterEach((done) => {
+
         ReactDOM.unmountComponentAtNode(document.getElementById("container"));
         document.body.innerHTML = '';
         setTimeout(done);
@@ -60,12 +60,12 @@ describe('test  Layer Properties General module component', () => {
         };
         const handlers = {
             retrieveLayerData: () => {},
-            updateSettings: () => {}
+            onChange: () => {}
         };
         let spyRetrive = expect.spyOn(handlers, "retrieveLayerData");
-        let spyUpdate = expect.spyOn(handlers, "updateSettings");
+        let spyUpdate = expect.spyOn(handlers, "onChange");
 
-        const comp = ReactDOM.render(<WMSStyle element={l} settings={settings} retrieveLayerData={handlers.retrieveLayerData} updateSettings={handlers.updateSettings}/>, document.getElementById("container"));
+        const comp = ReactDOM.render(<WMSStyle element={l} settings={settings} retrieveLayerData={handlers.retrieveLayerData} onChange={handlers.onChange}/>, document.getElementById("container"));
         expect(comp).toExist();
         // refresh layers list button click
         const buttons = ReactTestUtils.scryRenderedDOMComponentsWithTag( comp, "button" );

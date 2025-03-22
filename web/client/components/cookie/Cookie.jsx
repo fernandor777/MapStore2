@@ -5,11 +5,15 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
 */
-const PropTypes = require('prop-types');
-const React = require('react');
-const {Button, Glyphicon, Col} = require('react-bootstrap');
-const Message = require('../../components/I18N/Message');
-const MoreDetails = require('./MoreDetails');
+import PropTypes from 'prop-types';
+
+import React from 'react';
+import { Glyphicon, Col } from 'react-bootstrap';
+import Button from '../misc/Button';
+import Message from '../../components/I18N/Message';
+import MoreDetails from './MoreDetails';
+import { getApi } from '../../api/userPersistedStorage';
+
 /**
   * Component used to show a panel with the information about cookies
   * @class Cookies
@@ -93,31 +97,31 @@ class Cookie extends React.Component {
         return this.props.show ? (
             <div className={this.props.seeMore ? "mapstore-cookie-panel see-more" : "mapstore-cookie-panel not-see-more"}>
                 <div role="header" className="cookie-header" style={{height: this.props.seeMore ? "44px" : "0px"}}>
-                    {this.props.seeMore ? <Glyphicon glyph="1-close" onClick={() => this.props.onMoreDetails(false)}/> : null }
+                    {this.props.seeMore ? <Glyphicon className="cookie-close-btn" glyph="1-close" onClick={() => this.props.onMoreDetails(false)}/> : null }
                 </div>
                 <div role="body" className="cookie-body-container">
                     {!this.props.externalCookieUrl && this.props.seeMore ? (
                         <MoreDetails html={this.props.html}/>
                     ) : (<div className="cookie-message">
-                            <Message msgId="cookie.info"/>
-                        </div>) }
+                        <Message msgId="cookie.info"/>
+                    </div>) }
                     <br/>
                     {!this.props.seeMore ?
-                    (<div className="cookie-action">
+                        (<div className="cookie-action">
 
-                        <Col xs={6} sm={4} className="action-button">
-                            {this.renderAcceptButton()}
-                        </Col>
-                        <Col xs={6} sm={4} className="action-button">
-                            {this.renderMoreDetails()}
-                        </Col>
-                        <Col xs={6} sm={4} className="action-button">
-                            {this.renderLeaveButton()}
-                        </Col>
-                        <Col xs={12}>
-                            <br></br>
-                        </Col>
-                    </div>) : null }
+                            <Col xs={6} sm={4} className="action-button">
+                                {this.renderAcceptButton()}
+                            </Col>
+                            <Col xs={6} sm={4} className="action-button">
+                                {this.renderMoreDetails()}
+                            </Col>
+                            <Col xs={6} sm={4} className="action-button">
+                                {this.renderLeaveButton()}
+                            </Col>
+                            <Col xs={12}>
+                                <br></br>
+                            </Col>
+                        </div>) : null }
                 </div>
             </div>
         ) : null;
@@ -126,8 +130,12 @@ class Cookie extends React.Component {
         this.props.onMoreDetails(!this.props.seeMore);
     }
     accept = () => {
-        localStorage.setItem("cookies-policy-approved", true);
+        try {
+            getApi().setItem("cookies-policy-approved", true);
+        } catch (e) {
+            console.error(e);
+        }
         this.props.onSetCookieVisibility(false);
     }
 }
-module.exports = Cookie;
+export default Cookie;

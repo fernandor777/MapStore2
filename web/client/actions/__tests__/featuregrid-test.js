@@ -6,36 +6,92 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const expect = require('expect');
-const {
-    SELECT_FEATURES, selectFeatures,
-    changePage, CHANGE_PAGE,
-    sort, SORT_BY,
-    setSelectionOptions, SET_SELECTION_OPTIONS,
-    MODES, TOGGLE_MODE, toggleEditMode, toggleViewMode,
-    featureModified, FEATURES_MODIFIED,
-    createNewFeatures, CREATE_NEW_FEATURE,
-    saveChanges, SAVE_CHANGES,
-    saveSuccess, SAVE_SUCCESS,
-    deleteFeatures, DELETE_SELECTED_FEATURES,
-    startEditingFeature, START_EDITING_FEATURE,
-    featureSaving, SAVING,
-    saveError, SAVE_ERROR,
-    clearChanges, CLEAR_CHANGES,
-    geometryChanged, GEOMETRY_CHANGED,
-    startDrawingFeature, START_DRAWING_FEATURE,
-    deleteGeometry, DELETE_GEOMETRY,
-    deleteGeometryFeature, DELETE_GEOMETRY_FEATURE,
-    clearChangeConfirmed, CLEAR_CHANGES_CONFIRMED,
-    deleteFeaturesConfirm, DELETE_SELECTED_FEATURES_CONFIRM,
-    openFeatureGrid, OPEN_FEATURE_GRID,
-    closeFeatureGrid, CLOSE_FEATURE_GRID,
-    closeFeatureGridConfirm, CLOSE_FEATURE_GRID_CONFIRM,
-    closeFeatureGridConfirmed, FEATURE_GRID_CLOSE_CONFIRMED,
-    updateFilter, UPDATE_FILTER,
-    zoomAll, ZOOM_ALL,
-    openAdvancedSearch, OPEN_ADVANCED_SEARCH
-} = require('../featuregrid');
+import expect from 'expect';
+
+import { isEmpty, isEqual } from 'lodash';
+
+import {
+    launchUpdateFilterFunc,
+    LAUNCH_UPDATE_FILTER_FUNC,
+    SELECT_FEATURES,
+    selectFeatures,
+    changePage,
+    CHANGE_PAGE,
+    sort,
+    SORT_BY,
+    setSelectionOptions,
+    SET_SELECTION_OPTIONS,
+    MODES,
+    TOGGLE_MODE,
+    toggleEditMode,
+    toggleViewMode,
+    featureModified,
+    FEATURES_MODIFIED,
+    createNewFeatures,
+    CREATE_NEW_FEATURE,
+    saveChanges,
+    SAVE_CHANGES,
+    saveSuccess,
+    SAVE_SUCCESS,
+    deleteFeatures,
+    DELETE_SELECTED_FEATURES,
+    startEditingFeature,
+    START_EDITING_FEATURE,
+    featureSaving,
+    SAVING,
+    saveError,
+    SAVE_ERROR,
+    clearChanges,
+    CLEAR_CHANGES,
+    geometryChanged,
+    GEOMETRY_CHANGED,
+    startDrawingFeature,
+    START_DRAWING_FEATURE,
+    deleteGeometry,
+    DELETE_GEOMETRY,
+    deleteGeometryFeature,
+    DELETE_GEOMETRY_FEATURE,
+    clearChangeConfirmed,
+    CLEAR_CHANGES_CONFIRMED,
+    deleteFeaturesConfirm,
+    DELETE_SELECTED_FEATURES_CONFIRM,
+    openFeatureGrid,
+    OPEN_FEATURE_GRID,
+    closeFeatureGrid,
+    CLOSE_FEATURE_GRID,
+    closeFeatureGridConfirm,
+    CLOSE_FEATURE_GRID_CONFIRM,
+    closeFeatureGridConfirmed,
+    FEATURE_GRID_CLOSE_CONFIRMED,
+    updateFilter,
+    UPDATE_FILTER,
+    zoomAll,
+    ZOOM_ALL,
+    openAdvancedSearch,
+    OPEN_ADVANCED_SEARCH,
+    initPlugin,
+    INIT_PLUGIN,
+    sizeChange,
+    SIZE_CHANGE,
+    START_SYNC_WMS,
+    startSyncWMS,
+    storeAdvancedSearchFilter,
+    STORE_ADVANCED_SEARCH_FILTER,
+    setUp,
+    SET_UP,
+    setTimeSync,
+    SET_TIME_SYNC,
+    featureGridQueryResult,
+    GRID_QUERY_RESULT,
+    moreFeatures,
+    LOAD_MORE_FEATURES,
+    toggleShowAgain,
+    TOGGLE_SHOW_AGAIN_FLAG,
+    setSyncTool,
+    SET_SYNC_TOOL,
+    setViewportFilter,
+    SET_VIEWPORT_FILTER
+} from '../featuregrid';
 
 const idFeature = "2135";
 const feature = {
@@ -60,10 +116,30 @@ describe('Test correctness of featurgrid actions', () => {
         expect(retval.features.length).toBe(features.length);
         expect(retval.type).toBe(DELETE_GEOMETRY_FEATURE);
     });
+    it('Test deleteGeometryFeature action creator', () => {
+        const retval = launchUpdateFilterFunc({});
+        expect(retval).toBeTruthy();
+        expect(retval.updateFilterAction).toBeTruthy();
+        expect(retval.type).toBe(LAUNCH_UPDATE_FILTER_FUNC);
+    });
     it('Test deleteGeometry action creator', () => {
         const retval = deleteGeometry();
         expect(retval).toExist();
         expect(retval.type).toBe(DELETE_GEOMETRY);
+    });
+    it('Test initPlugin action creator', () => {
+        const someOption = "someValue";
+        const retval = initPlugin({someOption});
+        expect(retval).toExist();
+        expect(retval.type).toBe(INIT_PLUGIN);
+        expect(retval.options.someOption).toBe(someOption);
+
+        // test with empty value, returns empty options
+        const retval2 = initPlugin();
+        expect(retval2).toExist();
+        expect(retval2.type).toBe(INIT_PLUGIN);
+        expect(isEmpty(retval2.options)).toBe(true);
+        expect(isEqual(retval2.options, {})).toBe(true);
     });
     it('Test closeFeatureGridConfirmed action creator', () => {
         const retval = closeFeatureGridConfirmed();
@@ -74,6 +150,11 @@ describe('Test correctness of featurgrid actions', () => {
         const retval = clearChangeConfirmed();
         expect(retval).toExist();
         expect(retval.type).toBe(CLEAR_CHANGES_CONFIRMED);
+    });
+    it('Test toggleShowAgain action creator', () => {
+        const retval = toggleShowAgain();
+        expect(retval).toExist();
+        expect(retval.type).toBe(TOGGLE_SHOW_AGAIN_FLAG);
     });
     it('Test startDrawingFeature action creator', () => {
         const retval = startDrawingFeature();
@@ -191,6 +272,12 @@ describe('Test correctness of featurgrid actions', () => {
         expect(retval).toExist();
         expect(retval.type).toBe(CLOSE_FEATURE_GRID);
     });
+    it('Test closeFeatureGrid with closer', () => {
+        const retval = closeFeatureGrid('closer1');
+        expect(retval).toExist();
+        expect(retval.type).toBe(CLOSE_FEATURE_GRID);
+        expect(retval.closer).toBe('closer1');
+    });
     it('Test closeFeatureGridConfirm', () => {
         const retval = closeFeatureGridConfirm();
         expect(retval).toExist();
@@ -206,6 +293,11 @@ describe('Test correctness of featurgrid actions', () => {
         expect(retval).toExist();
         expect(retval.type).toBe(ZOOM_ALL);
     });
+    it('Test startSyncWMS', () => {
+        const retval = startSyncWMS();
+        expect(retval).toExist();
+        expect(retval.type).toBe(START_SYNC_WMS);
+    });
     it('Test openAdvancedSearch', () => {
         const retval = openAdvancedSearch();
         expect(retval).toExist();
@@ -218,5 +310,67 @@ describe('Test correctness of featurgrid actions', () => {
         expect(retval.type).toBe(UPDATE_FILTER);
         expect(retval.update).toBe(update);
     });
+    it('Test sizeChange', () => {
+        const size = 0.5;
+        const dockProps = {maxDockSize: 0.7, minDockSize: 0.1};
+        const retval = sizeChange(size, dockProps);
+        expect(retval).toExist();
+        expect(retval.type).toBe(SIZE_CHANGE);
+        expect(retval.size).toBe(size);
+        expect(retval.dockProps).toEqual(dockProps);
+    });
+    it('Test storeAdvancedSearchFilter', () => {
+        const filterObj = {name: "A"};
+        const retval = storeAdvancedSearchFilter(filterObj);
+        expect(retval).toExist();
+        expect(retval.type).toBe(STORE_ADVANCED_SEARCH_FILTER);
+        expect(retval.filterObj).toBe(filterObj);
+    });
+    it('Test storeAdvancedSearchFilter', () => {
+        const filterObj = {name: "A"};
+        const retval = storeAdvancedSearchFilter(filterObj);
+        expect(retval).toExist();
+        expect(retval.type).toBe(STORE_ADVANCED_SEARCH_FILTER);
+        expect(retval.filterObj).toBe(filterObj);
+    });
+    it('Test featureGridQueryResult', () => {
+        const pages = [];
+        const retval = featureGridQueryResult(features, pages);
+        expect(retval).toExist();
+        expect(retval.type).toBe(GRID_QUERY_RESULT);
+        expect(retval.features).toBe(features);
+        expect(retval.pages).toBe(pages);
+    });
+    it('Test moreFeatures', () => {
+        const pages = {startPage: 0, endPage: 2};
+        const retval = moreFeatures(pages);
+        expect(retval).toExist();
+        expect(retval.type).toBe(LOAD_MORE_FEATURES);
+        expect(retval.pages).toBe(pages);
+    });
 
+    it('Test setUp', () => {
+        const showFilteredObject = true;
+        expect(setUp({ showFilteredObject })).toEqual({ type: SET_UP, options: { showFilteredObject }});
+        expect(setUp({ showFilteredObject, timeSync: true })).toEqual({ type: SET_UP, options: { showFilteredObject, timeSync: true } });
+
+    });
+    it('setTimeSync', () => {
+        expect(setTimeSync(true)).toEqual({ type: SET_TIME_SYNC, value: true });
+        expect(setTimeSync(false)).toEqual({ type: SET_TIME_SYNC, value: false });
+
+    });
+    it('setSyncTool', () => {
+        expect(setSyncTool(true)).toEqual({ type: SET_SYNC_TOOL, syncWmsFilter: true });
+        expect(setSyncTool(false)).toEqual({ type: SET_SYNC_TOOL, syncWmsFilter: false });
+    });
+    it('Test setViewportFilter action creator', () => {
+        const retval = setViewportFilter(true);
+        const retval2 = setViewportFilter(false);
+        expect(retval).toExist();
+        expect(retval.type).toBe(SET_VIEWPORT_FILTER);
+        expect(retval.value).toExist();
+        expect(retval.value).toBe(true);
+        expect(retval2.value).toBe(false);
+    });
 });

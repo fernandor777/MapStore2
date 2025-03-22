@@ -5,11 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require("react");
-const expect = require('expect');
-const ReactDOM = require('react-dom');
-var ReactTestUtils = require('react-dom/test-utils');
-const GroupGrid = require('../GroupGrid');
+import React from 'react';
+
+import expect from 'expect';
+import ReactDOM from 'react-dom';
+import ReactTestUtils from 'react-dom/test-utils';
+import GroupGrid from '../GroupGrid';
 const group1 = {
     id: 1,
     groupName: "GROUP1",
@@ -43,17 +44,17 @@ describe("Test GroupGrid Component", () => {
         let domNode = ReactDOM.findDOMNode(comp);
         expect(domNode.className).toBe("container-fluid");
         let rows = ReactTestUtils.scryRenderedDOMComponentsWithClass(
-          comp,
-          "row"
+            comp,
+            "row"
         );
         expect(rows).toExist();
-        expect(rows.length).toBe(2);
+        expect(rows.length).toBe(1);
         let card = ReactTestUtils.scryRenderedDOMComponentsWithClass(comp, "gridcard");
         expect(card).toExist();
         expect(card.length).toBe(1);
         let buttons = ReactTestUtils.scryRenderedDOMComponentsWithClass(
-          comp,
-          "gridcard-button"
+            comp,
+            "square-button-md"
         );
         ReactTestUtils.Simulate.click(buttons[0]);
         ReactTestUtils.Simulate.click(buttons[1]);
@@ -66,8 +67,8 @@ describe("Test GroupGrid Component", () => {
         let domNode = ReactDOM.findDOMNode(comp);
         expect(domNode.className).toBe("container-fluid");
         let buttons = ReactTestUtils.scryRenderedDOMComponentsWithClass(
-          comp,
-          "gridcard-button"
+            comp,
+            "square-button-md"
         );
         expect(buttons.length).toBe(0);
     });
@@ -84,8 +85,8 @@ describe("Test GroupGrid Component", () => {
         let domNode = ReactDOM.findDOMNode(comp);
         expect(domNode.className).toBe("container-fluid");
         let buttons = ReactTestUtils.scryRenderedDOMComponentsWithClass(
-          comp,
-          "gridcard-button"
+            comp,
+            "square-button-md"
         );
         expect(buttons.length).toBe(2);
         ReactTestUtils.Simulate.click(buttons[0]);

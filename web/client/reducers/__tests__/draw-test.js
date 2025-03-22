@@ -5,9 +5,16 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const expect = require('expect');
-const draw = require('../draw');
-const {GEOMETRY_CHANGED, SET_CURRENT_STYLE} = require('../../actions/draw');
+import expect from 'expect';
+
+import draw, {defaultSnappingConfig} from '../draw';
+import {
+    GEOMETRY_CHANGED,
+    SET_CURRENT_STYLE, SET_SNAPPING_CONFIG,
+    SET_SNAPPING_LAYER,
+    SNAPPING_IS_LOADING,
+    TOGGLE_SNAPPING
+} from '../../actions/draw';
 
 
 describe('Test the draw reducer', () => {
@@ -78,5 +85,78 @@ describe('Test the draw reducer', () => {
         let state = draw({}, testAction);
         expect(state.tempFeatures).toExist();
         expect(state.tempFeatures[0]).toBe(feature);
+    });
+    it('Snapping tool TOGGLE_SNAPPING', () => {
+        let testAction = {
+            type: TOGGLE_SNAPPING
+        };
+        let state = draw({}, testAction);
+
+        expect(state.snapping).toBe(true);
+    });
+    it('Snapping tool SET_SNAPPING_LAYER', () => {
+        let testAction = {
+            type: SET_SNAPPING_LAYER,
+            snappingLayer: 'layerId',
+            snappingIsLoading: false
+        };
+        let state = draw({ snappingIsLoading: true }, testAction);
+
+        expect(state.snappingLayer).toBe('layerId');
+        expect(state.snappingIsLoading).toBe(false);
+    });
+    it('Snapping tool SNAPPING_IS_LOADING', () => {
+        let testAction = {
+            type: SNAPPING_IS_LOADING
+        };
+        let state = draw({ snappingIsLoading: true }, testAction);
+        expect(state.snappingIsLoading).toBe(false);
+    });
+    it('Snapping tool SET_SNAPPING_CONFIG with no config in state', () => {
+        let testAction = {
+            type: SET_SNAPPING_CONFIG,
+            pluginCfg: {
+                snapTool: true,
+                snapConfig: {
+                    vertex: true,
+                    edge: false
+                }
+            }
+        };
+        let state = draw({}, testAction);
+        expect(state.snapConfig.vertex).toBe(true);
+        expect(state.snapConfig.edge).toBe(false);
+    });
+    it('Snapping tool SET_SNAPPING_CONFIG with no config in state; from defaults', () => {
+        let testAction = {
+            type: SET_SNAPPING_CONFIG
+        };
+        let state = draw({}, testAction);
+        expect(state.snapConfig.vertex).toBe(defaultSnappingConfig.vertex);
+        expect(state.snapConfig.edge).toBe(defaultSnappingConfig.edge);
+        expect(state.snapConfig.pixelTolerance).toBe(defaultSnappingConfig.pixelTolerance);
+        expect(state.snapConfig.strategy).toBe(defaultSnappingConfig.strategy);
+    });
+    it('Snapping tool SET_SNAPPING_CONFIG with config in state; from defaults', () => {
+        let testAction = {
+            type: SET_SNAPPING_CONFIG
+        };
+        let state = draw({ snapConfig: { vertex: true, edge: false }}, testAction);
+        expect(state.snapConfig.vertex).toBe(true);
+        expect(state.snapConfig.edge).toBe(false);
+        expect(state.snapConfig.pixelTolerance).toBe(defaultSnappingConfig.pixelTolerance);
+        expect(state.snapConfig.strategy).toBe(defaultSnappingConfig.strategy);
+    });
+    it('Snapping tool SET_SNAPPING_CONFIG update setting value', () => {
+        let testAction = {
+            type: SET_SNAPPING_CONFIG,
+            prop: 'vertex',
+            value: false
+        };
+        let state = draw({ snapConfig: { vertex: true, edge: false }}, testAction);
+        expect(state.snapConfig.vertex).toBe(false);
+        expect(state.snapConfig.edge).toBe(false);
+        expect(state.snapConfig.pixelTolerance).toBe(defaultSnappingConfig.pixelTolerance);
+        expect(state.snapConfig.strategy).toBe(defaultSnappingConfig.strategy);
     });
 });

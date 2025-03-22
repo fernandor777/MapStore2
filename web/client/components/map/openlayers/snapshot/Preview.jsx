@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -6,10 +5,11 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const ConfigUtils = require('../../../../utils/ConfigUtils');
-const ProxyUtils = require('../../../../utils/ProxyUtils');
-const {isEqual} = require('lodash');
+import PropTypes from 'prop-types';
+import React from 'react';
+import ConfigUtils from '../../../../utils/ConfigUtils';
+import {getProxyUrl} from '../../../../utils/ProxyUtils';
+import isEqual from 'lodash/isEqual';
 
 /**
  * Preview for OpenLayers map generate is a fast system to get the image
@@ -17,7 +17,7 @@ const {isEqual} = require('lodash');
  * if it is not tainted, this can be used also to generate snapshot
  * (extracting the image URL from the canvas).
  */
-class GrabLMap extends React.Component {
+export default class GrabLMap extends React.Component {
     static propTypes = {
         config: ConfigUtils.PropTypes.config,
         layers: PropTypes.array,
@@ -52,7 +52,7 @@ class GrabLMap extends React.Component {
     componentDidMount() {
 
         this.proxy = null;
-        let proxyUrl = ProxyUtils.getProxyUrl();
+        let proxyUrl = getProxyUrl();
         if (proxyUrl) {
             if ( typeof proxyUrl === 'object') {
                 proxyUrl = proxyUrl.url;
@@ -67,7 +67,7 @@ class GrabLMap extends React.Component {
         }
     }
 
-    componentWillReceiveProps(nextProps) {
+    UNSAFE_componentWillReceiveProps(nextProps) {
         if (this.previousTimeout) {
             clearTimeout(this.previousTimeout);
         }
@@ -113,6 +113,7 @@ class GrabLMap extends React.Component {
                 style={{
                     maxWidth: "400px",
                     maxHeight: "400px",
+                    width: "100%",
                     visibility: this.props.active ? "block" : "none"
                 }}
                 ref="canvas" />
@@ -166,5 +167,3 @@ class GrabLMap extends React.Component {
         return this.refs.canvas.toDataURL();
     };
 }
-
-module.exports = GrabLMap;

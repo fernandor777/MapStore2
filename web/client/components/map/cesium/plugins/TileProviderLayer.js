@@ -6,11 +6,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var Layers = require('../../../../utils/cesium/Layers');
-var Cesium = require('../../../../libs/cesium');
-var TileProvider = require('../../../../utils/TileConfigProvider');
-var ConfigUtils = require('../../../../utils/ConfigUtils');
-const ProxyUtils = require('../../../../utils/ProxyUtils');
+import Layers from '../../../../utils/cesium/Layers';
+import * as Cesium from 'cesium';
+import TileProvider from '../../../../utils/TileConfigProvider';
+import ConfigUtils from '../../../../utils/ConfigUtils';
+import {creditsToAttribution} from '../../../../utils/LayersUtils';
+import {getProxyUrl} from '../../../../utils/ProxyUtils';
 
 function splitUrl(originalUrl) {
     let url = originalUrl;
@@ -34,7 +35,7 @@ TileProviderProxy.prototype.getURL = function(resource) {
     if (url.indexOf("//") === 0) {
         url = location.protocol + url;
     }
-    return ProxyUtils.getProxyUrl() + encodeURIComponent(url + queryString);
+    return getProxyUrl() + encodeURIComponent(url + queryString);
 };
 
 function NoProxy() {
@@ -42,15 +43,29 @@ function NoProxy() {
 
 NoProxy.prototype.getURL = (r) => r;
 
-function template(str, data) {
+/**
+ * Returns the URL passed as parameter, replacing all the variables with the values in the data object, except for the variables x, y, z and s, that are reserved for the tile coordinates and server.
+ * @param {string} URL the string to replace
+ * @param {object} data data to use for replacement
+ * @returns {string}
+ */
+export function template(str, data) {
 
-    return str.replace(/(?!(\{?[zyxs]?\}))\{*([\w_]+)*\}/g, function() {
-        let st = arguments[0];
-        let key = arguments[1] ? arguments[1] : arguments[2];
+    return str.replace(/{([^{}]+)}/g, function(textMatched, key) {
+        if (['x', 'y', 'z', 's'].includes(key)) {
+            return textMatched;
+        }
+        if (key === '-x') {
+            return "{reverseX}";
+        }
+        if (key === '-y') {
+            return "{reverseY}";
+        }
+
         let value = data[key];
 
         if (value === undefined) {
-            throw new Error('No value provided for variable ' + st);
+            throw new Error('No value provided for variable ' + key);
 
         } else if (typeof value === 'function') {
             value = value(data);
@@ -59,15 +74,12 @@ function template(str, data) {
     });
 }
 
-Layers.registerType('tileprovider', (options) => {
+const create = (options) => {
     let [url, opt] = TileProvider.getLayerConfig(options.provider, options);
     let proxyUrl = ConfigUtils.getProxyUrl({});
-    let proxy;
-    if (proxyUrl) {
-        proxy = opt.noCors || ProxyUtils.needProxy(url);
-    }
     const cr = opt.credits;
-    const credit = cr ? new Cesium.Credit(cr.text, cr.imageUrl, cr.link) : opt.attribution;
+
+    const credit = cr ? new Cesium.Credit(creditsToAttribution(cr)) : opt.attribution;
     return new Cesium.UrlTemplateImageryProvider({
         url: template(url, opt),
         enablePickFeatures: false,
@@ -75,6 +87,18 @@ Layers.registerType('tileprovider', (options) => {
         maximumLevel: opt.maxZoom,
         minimumLevel: opt.minZoom,
         credit,
-        proxy: proxy ? new TileProviderProxy(proxyUrl) : new NoProxy()
+        proxy: options?.forceProxy ? new TileProviderProxy(proxyUrl) : new NoProxy()
     });
+};
+
+const update = (layer, newOptions, oldOptions) => {
+    if (newOptions.forceProxy !== oldOptions.forceProxy) {
+        return create(newOptions);
+    }
+    return null;
+};
+
+Layers.registerType('tileprovider', {
+    create,
+    update: update
 });

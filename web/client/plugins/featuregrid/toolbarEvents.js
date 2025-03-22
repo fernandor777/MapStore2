@@ -1,25 +1,32 @@
-const {toggleControl} = require('../../actions/controls');
-const {toggleTool,
+import {
+    toggleTool,
     toggleEditMode,
     toggleViewMode,
     closeFeatureGridConfirm,
     saveChanges,
+    setTimeSync,
+    toggleShowAgain,
     createNewFeatures,
     startEditingFeature,
     startDrawingFeature,
     deleteGeometry,
     openAdvancedSearch,
-    zoomAll
-} = require('../../actions/featuregrid');
-const {toggleSyncWms} = require('../../actions/wfsquery');
+    zoomAll,
+    setViewportFilter
+} from '../../actions/featuregrid';
 
-module.exports = {
+import { toggleSyncWms } from '../../actions/wfsquery';
+import {
+    setSnappingLayer, toggleSnapping,
+    setSnappingConfig
+} from "../../actions/draw";
+
+export default {
     createFeature: () => createNewFeatures([{}]),
     saveChanges: () => saveChanges(),
     clearFeatureEditing: () => toggleTool("clearConfirm", true),
     deleteGeometry: () => deleteGeometry(),
     deleteFeatures: () => toggleTool("deleteConfirm", true),
-    download: () => toggleControl("wfsdownload"),
     settings: () => toggleTool("settings"),
     switchEditMode: () => toggleEditMode(),
     startEditingFeature: () => startEditingFeature(),
@@ -28,5 +35,11 @@ module.exports = {
     onClose: () => closeFeatureGridConfirm(),
     showQueryPanel: () => openAdvancedSearch(),
     zoomAll: () => zoomAll(),
-    sync: () => toggleSyncWms()
+    sync: () => toggleSyncWms(),
+    setTimeSync,
+    toggleShowAgain: () => toggleShowAgain(),
+    toggleSnapping: () => toggleSnapping(),
+    setViewportFilter: (value) => setViewportFilter(value),
+    setSnappingLayer: (layerId) => setSnappingLayer(layerId),
+    setSnappingConfig: (value, prop, pluginCfg) => setSnappingConfig(value, prop, pluginCfg)
 };

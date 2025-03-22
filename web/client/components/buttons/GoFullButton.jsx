@@ -1,4 +1,4 @@
-const PropTypes = require('prop-types');
+
 /*
  * Copyright 2017, GeoSolutions Sas.
  * All rights reserved.
@@ -7,13 +7,14 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
+import React from 'react';
+import Button from '../misc/Button';
+import PropTypes from 'prop-types';
 
-const {Button, Glyphicon, Tooltip} = require('react-bootstrap');
-const OverlayTrigger = require('../misc/OverlayTrigger');
-const Message = require('../I18N/Message');
-
-const ConfigUtils = require('../../utils/ConfigUtils');
+import { Glyphicon, Tooltip } from 'react-bootstrap';
+import OverlayTrigger from '../misc/OverlayTrigger';
+import Message from '../I18N/Message';
+import ConfigUtils from '../../utils/ConfigUtils';
 
 /**
  * Button for Go to Full MapStore2.
@@ -37,16 +38,16 @@ class GoFullButton extends React.Component {
         glyph: "share",
         tooltip: "fullscreen.viewLargerMap",
         urlRegex: "^(.*?)embedded.html.*?#\\/(\\d?)",
-        urlReplaceString: "$1#/viewer/leaflet/$2"
+        urlReplaceString: "$1#/viewer/$2"
     };
 
     render() {
         if (!this.display()) return null;
         return (<OverlayTrigger placement="left" overlay={<Tooltip id="gofull-tooltip"><Message msgId={this.props.tooltip}/></Tooltip>}>
-                    <Button className="square-button" bsStyle="primary" onClick={() => this.openFull(this.generateUrl())}>
-                        <Glyphicon glyph={this.props.glyph}/>
-                    </Button>
-                </OverlayTrigger>);
+            <Button className="square-button" bsStyle="primary" onClick={() => this.openFull(this.generateUrl())}>
+                <Glyphicon glyph={this.props.glyph}/>
+            </Button>
+        </OverlayTrigger>);
     }
 
     display = () => {
@@ -74,7 +75,8 @@ class GoFullButton extends React.Component {
             let next = location.href;
             return next.replace(regex, this.props.urlReplaceString);
         }
+        return null;
     };
 }
 
-module.exports = GoFullButton;
+export default GoFullButton;

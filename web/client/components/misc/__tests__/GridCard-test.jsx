@@ -5,12 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const ReactDOM = require('react-dom');
-const GridCard = require('../GridCard.jsx');
-const expect = require('expect');
+import React from 'react';
 
-const TestUtils = require('react-dom/test-utils');
+import ReactDOM from 'react-dom';
+import GridCard from '../GridCard.jsx';
+import expect from 'expect';
+import TestUtils from 'react-dom/test-utils';
 
 describe('This test for GridCard', () => {
     beforeEach((done) => {
@@ -57,8 +57,17 @@ describe('This test for GridCard', () => {
         const testDescription = "testDescription";
         var component = TestUtils.renderIntoDocument(<GridCard header={testName} actions={[{glyph: "test", onClick: () => {}}]}>{testDescription}></GridCard>);
         var button = TestUtils.findRenderedDOMComponentWithTag(
-           component, 'button'
+            component, 'button'
         );
         expect(button).toExist();
+    });
+
+    it('enter triggers onClick event', (done) => {
+        const container = document.getElementById('container');
+        const testName = "test";
+        const testDescription = "testDescription";
+        ReactDOM.render(
+            <GridCard header={testName} onClick={() => {done();}}>{testDescription}</GridCard>, container);
+        TestUtils.Simulate.keyDown(container.firstElementChild, {key: 'Enter'});
     });
 });

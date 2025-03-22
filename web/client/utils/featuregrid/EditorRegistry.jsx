@@ -6,9 +6,9 @@
  * LICENSE file in the root directory of this source tree.
 */
 
-const {find} = require('lodash');
+const find = require('lodash/find');
 const assign = require('object-assign');
-let Editors = assign({}, require('../../components/data/featuregrid/editors/customEditors'));
+let Editors = assign({}, require('../../components/data/featuregrid/editors/customEditors').default);
 
 const isPresent = (editorName) => {
     return Object.keys(Editors).indexOf(editorName) !== -1;
@@ -35,6 +35,7 @@ const getEditor = (type, name, props) => {
 };
 module.exports = {
     get: () => Editors,
+    set: (e) => {Editors = e;},
     register: ({name, editors}) => {
         if (!!editors) {
             Editors[name] = editors;
@@ -54,17 +55,12 @@ module.exports = {
     clean: () => {
         Editors = {};
     },
-    getCustomEditor: ({attribute, url, typeName}, rules = [], {type, props}) => {
+    getCustomEditor: ({attribute, url, typeName}, rules = [], {type, generalProps = {}, props}) => {
         const editor = find(rules, (r) => testRule(r.regex, {attribute, url, typeName }));
         if (!!editor) {
-            return getEditor(type, editor.editor, {...props, ...editor.editorProps || {}});
+            const result = getEditor(type, editor.editor, {...props, ...generalProps, ...editor.editorProps || {}});
+            return result;
         }
         return null;
-    },
-    forceSelection: ( {oldValue, changedValue, data, allowEmpty}) => {
-        if (allowEmpty && changedValue === "") {
-            return "";
-        }
-        return data.indexOf(changedValue) !== -1 ? changedValue : oldValue;
     }
 };

@@ -6,30 +6,49 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const CHANGE_LAYER_PROPERTIES = 'CHANGE_LAYER_PROPERTIES';
-const CHANGE_GROUP_PROPERTIES = 'CHANGE_GROUP_PROPERTIES';
-const TOGGLE_NODE = 'TOGGLE_NODE';
-const CONTEXT_NODE = 'CONTEXT_NODE';
-const SORT_NODE = 'SORT_NODE';
-const REMOVE_NODE = 'REMOVE_NODE';
-const UPDATE_NODE = 'UPDATE_NODE';
-const LAYER_LOADING = 'LAYER_LOADING';
-const LAYER_LOAD = 'LAYER_LOAD';
-const LAYER_ERROR = 'LAYER_ERROR';
-const ADD_LAYER = 'ADD_LAYER';
-const REMOVE_LAYER = 'REMOVE_LAYER';
-const SHOW_SETTINGS = 'SHOW_SETTINGS';
-const HIDE_SETTINGS = 'HIDE_SETTINGS';
-const UPDATE_SETTINGS = 'UPDATE_SETTINGS';
-const REFRESH_LAYERS = 'REFRESH_LAYERS';
-const LAYERS_REFRESHED = 'LAYERS_REFRESHED';
-const LAYERS_REFRESH_ERROR = 'LAYERS_REFRESH_ERROR';
-const BROWSE_DATA = 'LAYERS:BROWSE_DATA';
-const CLEAR_LAYERS = 'LAYERS:CLEAR_LAYERS';
-const SELECT_NODE = 'LAYERS:SELECT_NODE';
-const FILTER_LAYERS = 'LAYERS:FILTER_LAYERS';
+export const CHANGE_LAYER_PROPERTIES = 'CHANGE_LAYER_PROPERTIES';
+export const CHANGE_LAYER_PARAMS = 'LAYERS:CHANGE_LAYER_PARAMS';
+export const CHANGE_GROUP_PROPERTIES = 'CHANGE_GROUP_PROPERTIES';
+export const TOGGLE_NODE = 'TOGGLE_NODE';
+export const CONTEXT_NODE = 'CONTEXT_NODE';
+export const SORT_NODE = 'SORT_NODE';
+export const REMOVE_NODE = 'REMOVE_NODE';
+export const UPDATE_NODE = 'UPDATE_NODE';
+export const MOVE_NODE = 'MOVE_NODE';
+export const LAYER_LOADING = 'LAYER_LOADING';
+export const LAYER_LOAD = 'LAYER_LOAD';
+export const LAYER_ERROR = 'LAYER_ERROR';
+export const ADD_LAYER = 'ADD_LAYER';
+export const ADD_GROUP = 'ADD_GROUP';
+export const REMOVE_LAYER = 'REMOVE_LAYER';
+export const SHOW_SETTINGS = 'SHOW_SETTINGS';
+export const HIDE_SETTINGS = 'HIDE_SETTINGS';
+export const UPDATE_SETTINGS = 'UPDATE_SETTINGS';
+export const REFRESH_LAYERS = 'REFRESH_LAYERS';
+export const UPDATE_LAYERS_DIMENSION = 'LAYERS:UPDATE_LAYERS_DIMENSION';
+export const LAYERS_REFRESHED = 'LAYERS_REFRESHED';
+export const LAYERS_REFRESH_ERROR = 'LAYERS_REFRESH_ERROR';
+export const BROWSE_DATA = 'LAYERS:BROWSE_DATA';
+export const DOWNLOAD = 'LAYERS:DOWNLOAD';
+export const CLEAR_LAYERS = 'LAYERS:CLEAR_LAYERS';
+export const SELECT_NODE = 'LAYERS:SELECT_NODE';
+export const FILTER_LAYERS = 'LAYERS:FILTER_LAYERS';
+export const SHOW_LAYER_METADATA = 'LAYERS:SHOW_LAYER_METADATA';
+export const HIDE_LAYER_METADATA = 'LAYERS:HIDE_LAYER_METADATA';
+export const UPDATE_SETTINGS_PARAMS = 'LAYERS:UPDATE_SETTINGS_PARAMS';
+export const REPLACE_LAYERS = 'LAYERS:REPLACE_LAYERS';
 
-function showSettings(node, nodeType, options) {
+/**
+ * full replacement of layers in layers state
+ * @param {object[]} layers the new layers to replace in the state
+ */
+export function replaceLayers(layers) {
+    return {
+        type: REPLACE_LAYERS,
+        layers
+    };
+}
+export function showSettings(node, nodeType, options) {
     return {
         type: SHOW_SETTINGS,
         node: node,
@@ -38,20 +57,20 @@ function showSettings(node, nodeType, options) {
     };
 }
 
-function hideSettings() {
+export function hideSettings() {
     return {
         type: HIDE_SETTINGS
     };
 }
 
-function updateSettings(options) {
+export function updateSettings(options) {
     return {
         type: UPDATE_SETTINGS,
         options
     };
 }
 
-function changeLayerProperties(layer, properties) {
+export function changeLayerProperties(layer, properties) {
     return {
         type: CHANGE_LAYER_PROPERTIES,
         newProperties: properties,
@@ -60,7 +79,22 @@ function changeLayerProperties(layer, properties) {
     };
 }
 
-function changeGroupProperties(group, properties) {
+/**
+ * Change params for a layer. Useful for WMS layers, when you need to change only the params (i.e. dimension) merging with existing ones.
+ * @memberof actions.layers
+ export * @function
+ * @param {string|string[]} layer id(s) of the layers to change
+ * @param {object} params the params to change
+ */
+export function changeLayerParams(layer, params) {
+    return {
+        type: CHANGE_LAYER_PARAMS,
+        layer,
+        params
+    };
+}
+
+export function changeGroupProperties(group, properties) {
     return {
         type: CHANGE_GROUP_PROPERTIES,
         newProperties: properties,
@@ -69,7 +103,7 @@ function changeGroupProperties(group, properties) {
     };
 }
 
-function toggleNode(node, type, status) {
+export function toggleNode(node, type, status) {
     return {
         type: TOGGLE_NODE,
         node: node,
@@ -78,14 +112,14 @@ function toggleNode(node, type, status) {
     };
 }
 
-function contextNode(node) {
+export function contextNode(node) {
     return {
         type: CONTEXT_NODE,
         node: node
     };
 }
 
-function sortNode(node, order, sortLayers = null) {
+export function sortNode(node, order, sortLayers = null) {
     return {
         type: SORT_NODE,
         node: node,
@@ -94,16 +128,16 @@ function sortNode(node, order, sortLayers = null) {
     };
 }
 
-function removeNode(node, type, properties) {
+export function removeNode(node, type, removeEmpty = false) {
     return {
         type: REMOVE_NODE,
         node: node,
         nodeType: type,
-        properties
+        removeEmpty
     };
 }
 
-function updateNode(node, type, options) {
+export function updateNode(node, type, options) {
     return {
         type: UPDATE_NODE,
         node: node,
@@ -112,14 +146,31 @@ function updateNode(node, type, options) {
     };
 }
 
-function layerLoading(layerId) {
+/**
+ * Move a node in state.groups from one parent to another
+ * @memberof actions.layers
+ export * @function
+ * @param {object} node an id of a node to move
+ * @param {object} groupId an id of a group node to move current node into
+ * @param {number} index a position that inserted node should have(ordering)
+ */
+export function moveNode(node, groupId, index) {
+    return {
+        type: MOVE_NODE,
+        node,
+        groupId,
+        index
+    };
+}
+
+export function layerLoading(layerId) {
     return {
         type: LAYER_LOADING,
         layerId: layerId
     };
 }
 
-function layerLoad(layerId, error) {
+export function layerLoad(layerId, error) {
     return {
         type: LAYER_LOAD,
         layerId,
@@ -127,7 +178,7 @@ function layerLoad(layerId, error) {
     };
 }
 
-function layerError(layerId, tilesCount, tilesErrorCount) {
+export function layerError(layerId, tilesCount, tilesErrorCount) {
     return {
         type: LAYER_ERROR,
         layerId: layerId,
@@ -136,21 +187,39 @@ function layerError(layerId, tilesCount, tilesErrorCount) {
     };
 }
 
-function addLayer(layer, foreground = true) {
+export function addLayer(layer, foreground = true) {
     return {
         type: ADD_LAYER,
         layer,
         foreground
     };
 }
+/**
+ * Add a new group
+ * @memberof actions.layers
+ export * @function
+ * @param {string} group title of group
+ * @param {string} parent parent group described with dot notation (eg parent.nested )
+ * @param {object} options Additional properties to assign to the group. They will override the default ones.
+ * @param {boolean} asFirst added at the top of the groups
+ */
+export function addGroup(group, parent, options, asFirst = false) {
+    return {
+        type: ADD_GROUP,
+        group,
+        parent,
+        options,
+        asFirst
+    };
+}
 
-function removeLayer(layerId) {
+export function removeLayer(layerId) {
     return {
         type: REMOVE_LAYER,
         layerId: layerId
     };
 }
-function refreshLayerVersion(layer, version) {
+export function refreshLayerVersion(layer, version) {
     return {
         type: CHANGE_LAYER_PROPERTIES,
         layer,
@@ -159,7 +228,7 @@ function refreshLayerVersion(layer, version) {
         }
     };
 }
-function refreshLayers(layers, options) {
+export function refreshLayers(layers, options) {
     return {
         type: REFRESH_LAYERS,
         layers,
@@ -167,33 +236,48 @@ function refreshLayers(layers, options) {
     };
 }
 
-function layersRefreshed(layers) {
+export function layersRefreshed(layers) {
     return {
         type: LAYERS_REFRESHED,
         layers
     };
 }
 
-function layersRefreshError(layers, error) {
+export function layersRefreshError(layers, error) {
     return {
         type: LAYERS_REFRESH_ERROR,
         layers,
         error
     };
 }
-function browseData(layer) {
+export function updateLayerDimension(dimension, value, options, layers) {
+    return {
+        type: UPDATE_LAYERS_DIMENSION,
+        dimension,
+        value,
+        options,
+        layers
+    };
+}
+export function browseData(layer) {
     return {
         type: BROWSE_DATA,
         layer
     };
 }
-function clearLayers() {
+export function download(layer) {
+    return {
+        type: DOWNLOAD,
+        layer
+    };
+}
+export function clearLayers() {
     return {
         type: CLEAR_LAYERS
     };
 }
 
-function selectNode(id, nodeType, ctrlKey) {
+export function selectNode(id, nodeType, ctrlKey) {
     return {
         type: SELECT_NODE,
         id,
@@ -202,17 +286,31 @@ function selectNode(id, nodeType, ctrlKey) {
     };
 }
 
-function filterLayers(text) {
+export function filterLayers(text) {
     return {
         type: FILTER_LAYERS,
         text
     };
 }
 
-module.exports = {changeLayerProperties, changeGroupProperties, toggleNode, sortNode, removeNode, contextNode,
-    updateNode, layerLoading, layerLoad, layerError, addLayer, removeLayer, showSettings, hideSettings, updateSettings, refreshLayers,
-    layersRefreshed, layersRefreshError, refreshLayerVersion, browseData, clearLayers, selectNode, filterLayers,
-    CHANGE_LAYER_PROPERTIES, CHANGE_GROUP_PROPERTIES, TOGGLE_NODE, SORT_NODE,
-    REMOVE_NODE, UPDATE_NODE, LAYER_LOADING, LAYER_LOAD, LAYER_ERROR, ADD_LAYER, REMOVE_LAYER,
-    SHOW_SETTINGS, HIDE_SETTINGS, UPDATE_SETTINGS, CONTEXT_NODE, REFRESH_LAYERS, LAYERS_REFRESHED, LAYERS_REFRESH_ERROR, BROWSE_DATA, CLEAR_LAYERS, SELECT_NODE, FILTER_LAYERS
-};
+export function showLayerMetadata(metadataRecord, maskLoading) {
+    return {
+        type: SHOW_LAYER_METADATA,
+        metadataRecord,
+        maskLoading
+    };
+}
+
+export function hideLayerMetadata() {
+    return {
+        type: HIDE_LAYER_METADATA
+    };
+}
+
+export function updateSettingsParams(newParams, update) {
+    return {
+        type: UPDATE_SETTINGS_PARAMS,
+        newParams,
+        update
+    };
+}

@@ -6,23 +6,34 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {connect} = require('react-redux');
-const {bindActionCreators} = require('redux');
-const {initTutorial, startTutorial, updateTutorial, disableTutorial, resetTutorial, closeTutorial, toggleTutorial} = require('../actions/tutorial');
-const presetList = require('./tutorial/preset');
-const assign = require('object-assign');
-const I18N = require('../components/I18N/I18N');
-const {Glyphicon} = require('react-bootstrap');
-const {createSelector} = require('reselect');
-const {tutorialSelector} = require('../selectors/tutorial');
-const {closeTutorialEpic, switchTutorialEpic} = require('../epics/tutorial');
+import assign from 'object-assign';
+import React from 'react';
+import { Glyphicon } from 'react-bootstrap';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { createSelector } from 'reselect';
+
+import {
+    closeTutorial,
+    disableTutorial,
+    initTutorial,
+    resetTutorial,
+    startTutorial,
+    toggleTutorial,
+    updateTutorial
+} from '../actions/tutorial';
+import I18N from '../components/I18N/I18N';
+import TutorialComp from '../components/tutorial/Tutorial';
+import epics from '../epics/tutorial';
+import { tutorialSelector } from '../selectors/tutorial';
+import presetList from './tutorial/preset';
 
 /**
  * Tutorial plugin. Enables the steps of tutorial.
  * @prop {string} cfg.preset overrides the default_tutorial with another from the preset folder
  * @prop {object} cfg.presetList overrides preset list of MapStore2
  * @prop {boolean} cfg.showCheckbox shows/hides checkbox to disable tutorial next autostart
+ * @prop {object} cfg.scrollIntoViewOptions options applied to Element.scrollIntoView, {"block": "end"}
  * @prop {number} cfg.scrollOffset changes the scroll offset
  * @memberof plugins
  * @class Tutorial
@@ -86,6 +97,35 @@ const {closeTutorialEpic, switchTutorialEpic} = require('../epics/tutorial');
  *   ...
  *  }
  * ...
+ * // translation file example with actions
+ * // action param could be an object or array of objects
+ * // action type are triggered on tour actions and they could be `start`, `next` and `back`
+ * ...
+ *  "tutorial": {
+ *   ...
+ *   "myIntroTranslation": {
+ *    "title": "My intro title",
+ *    "text": "My intro description",
+ *    "action": { start: { type: 'MY_START_ACTION' }}
+ *   },
+ *    "myTranslation": {
+ *    "title": "My first step title",
+ *    "text": "My first step description",
+ *    "action": { back: { type: 'MY_BACK_ACTION' }}
+ *   },
+ *   "mySecondStepTranslation": {
+ *    "title": "My second step title",
+ *    "text": "My second step description",
+ *    "action": { next: { type: 'MY_NEXT_ACTION' }}
+ *   },
+ *   "myTranslationHTML": {
+ *    "title": "<div style="color:blue;">My html step title</div>",
+ *    "text": "<div style="color:red;">My html step description</div>",
+ *    "action": { next: [{ type: 'MY_FIRST_ACTION' }, { type: 'MY_SECOND_ACTION' }]}
+ *   }
+ *   ...
+ *  }
+ * ...
  */
 
 const tutorialPluginSelector = createSelector([tutorialSelector],
@@ -111,32 +151,47 @@ const Tutorial = connect(tutorialPluginSelector, (dispatch) => {
         }, dispatch)
     };
 }, (stateProps, dispatchProps, ownProps) => ({
-        ...stateProps,
-        ...dispatchProps,
-        ...ownProps,
-        presetList: {
-            ...presetList,
-            ...ownProps.presetList
-        }
-}))(require('../components/tutorial/Tutorial'));
+    ...stateProps,
+    ...dispatchProps,
+    ...ownProps,
+    presetList: {
+        ...presetList,
+        ...ownProps.presetList
+    }
+}))(TutorialComp);
 
-module.exports = {
+export default {
     TutorialPlugin: assign(Tutorial, {
         BurgerMenu: {
             name: 'tutorial',
-            position: 1000,
+            position: 1200,
+            tooltip: "tutorial.title",
             text: <I18N.Message msgId="tutorial.title"/>,
             icon: <Glyphicon glyph="book"/>,
             action: toggleTutorial,
             priority: 2,
             doNotHide: true
+        },
+        SidebarMenu: {
+            name: 'tutorial',
+            position: 1200,
+            tooltip: "tutorial.title",
+            text: <I18N.Message msgId="tutorial.title"/>,
+            icon: <Glyphicon glyph="book"/>,
+            action: toggleTutorial,
+            selector: (state) => {
+                return {
+                    bsStyle: state.tutorial.enabled  ? 'primary' : 'tray',
+                    active: state.tutorial.enabled || false
+
+                };
+            },
+            priority: 1,
+            doNotHide: true
         }
     }),
     reducers: {
-        tutorial: require('../reducers/tutorial')
+        tutorial: require('../reducers/tutorial').default
     },
-    epics: {
-        closeTutorialEpic,
-        switchTutorialEpic
-    }
+    epics
 };

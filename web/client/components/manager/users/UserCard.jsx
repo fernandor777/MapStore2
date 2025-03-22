@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,23 +6,28 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-// const Message = require('../I18N/Message');
-const GridCard = require('../../misc/GridCard');
-const {Button, Glyphicon} = require('react-bootstrap');
-const Message = require('../../../components/I18N/Message');
+import PropTypes from 'prop-types';
+import React from 'react';
+import {  Glyphicon } from 'react-bootstrap';
+
+import GridCard from '../../misc/GridCard';
+
+import Message from '../../../components/I18N/Message';
+import Button from '../../misc/Button';
 
 
-// const ConfirmModal = require('./modals/ConfirmModal');
-
-require('./style/usercard.css');
+import './style/usercard.css';
 
 class UserCard extends React.Component {
     static propTypes = {
         // props
         style: PropTypes.object,
         user: PropTypes.object,
+        titleStyle: PropTypes.object,
+        headerStyle: PropTypes.object,
         innerItemStyle: PropTypes.object,
+        avatarStyle: PropTypes.object,
+        nameStyle: PropTypes.object,
         actions: PropTypes.array
     };
 
@@ -34,25 +38,47 @@ class UserCard extends React.Component {
             backgroundPosition: "center",
             backgroundRepeat: "repeat-x"
         },
-        innerItemStyle: {"float": "left",
+        titleStyle: {
+            display: "flex"
+        },
+        headerStyle: {
+            flexGrow: 1,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+            width: 0
+        },
+        innerItemStyle: {},
+        avatarStyle: {
             margin: "10px"
+        },
+        nameStyle: {
+            borderBottom: "1px solid #ddd",
+            fontSize: 18,
+            fontWeight: "bold",
+            overflow: "auto",
+            wordWrap: "break-word",
+            minHeight: "1.5em"
         }
     };
 
     renderStatus = () => {
         return (<div key="status" className="user-status" style={{position: "absolute", bottom: 0, left: "10px", margin: "10px 10px 0 10px"}}>
-           <div><strong><Message msgId="users.statusTitle"/></strong></div>
-           {this.props.user.enabled ?
-               <Glyphicon glyph="ok-sign"/> :
-               <Glyphicon glyph="minus-sign"/>}
-       </div>);
+            <div><strong><Message msgId="users.statusTitle"/></strong></div>
+            {this.props.user.enabled ?
+                <Glyphicon glyph="ok-sign"/> :
+                <Glyphicon glyph="minus-sign"/>}
+        </div>);
     };
 
     renderGroups = () => {
         return (<div key="groups" className="groups-container" style={this.props.innerItemStyle}><div><strong><Message msgId="users.groupTitle"/></strong></div>
-    <div className="groups-list">{this.props.user && this.props.user.groups ? this.props.user.groups.map((group) => (<div className="group-item" key={"group-" + group.id}>{group.groupName}</div>)) : null}</div>
-
-     </div>);
+            <div className="groups-list">
+                {this.props.user && this.props.user.groups ? this.props.user.groups
+                    .filter(({ groupName } = {}) => groupName)
+                    .map(({ id, groupName } = {}) => (<div className="group-item" key={"group-" + id}>{groupName}</div>)) : null}
+            </div>
+        </div>);
     };
 
     renderRole = () => {
@@ -62,25 +88,37 @@ class UserCard extends React.Component {
     };
 
     renderAvatar = () => {
-        return (<div key="avatar" className="avatar-containter" style={this.props.innerItemStyle} ><Button bsStyle="primary" type="button" className="square-button">
+        return (<div key="avatar" className="avatar-containter" style={this.props.avatarStyle} ><Button bsStyle="primary" type="button" className="square-button">
             <Glyphicon glyph="user" />
-            </Button></div>);
+        </Button></div>);
     };
+
+    renderName = () => {
+        return (<div key="name" style={this.props.nameStyle}>{this.props.user.name}</div>);
+    };
+
+    renderHeader = () => {
+        return <div style={this.props.headerStyle}>{this.props.user.name}</div>;
+    }
 
     render() {
         return (
-           <GridCard className="user-thumb" style={this.props.style} header={this.props.user.name}
+            <GridCard className="user-thumb" style={this.props.style} titleStyle={this.props.titleStyle} header={this.renderHeader()}
                 actions={this.props.actions}
-               >
-            <div className="user-data-container">
-                {this.renderAvatar()}
-                {this.renderRole()}
-                {this.renderGroups()}
-            </div>
-             {this.renderStatus()}
-           </GridCard>
+            >
+                <div className="user-data-container">
+                    {this.renderAvatar()}
+                    <div className="user-card-info-container">
+                        {this.renderName()}
+                        <div className="user-card-rolegroups-container">
+                            {this.renderRole()}
+                            {this.renderGroups()}
+                        </div>
+                    </div>
+                </div>
+                {this.renderStatus()}
+            </GridCard>
         );
     }
 }
-
-module.exports = UserCard;
+export default UserCard;

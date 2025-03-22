@@ -1,16 +1,17 @@
- /**
+/**
   * Copyright 2017, GeoSolutions Sas.
   * All rights reserved.
   *
   * This source code is licensed under the BSD-style license found in the
   * LICENSE file in the root directory of this source tree.
   */
-const React = require('react');
-const ReactDOM = require('react-dom');
-const ReactTestUtils = require('react-dom/test-utils');
-const StringFilter = require('../StringFilter');
 
-const expect = require('expect');
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ReactTestUtils from 'react-dom/test-utils';
+
+import StringFilter from '../StringFilter';
 
 describe('Test for StringFilter component', () => {
     beforeEach((done) => {
@@ -33,6 +34,15 @@ describe('Test for StringFilter component', () => {
         const el = document.getElementsByClassName("form-control input-sm")[0];
         expect(el).toExist();
         expect(el.value).toBe("TEST");
+    });
+    it('test the text field with the ilike default operator in attribute table', () => {
+        ReactDOM.render(<StringFilter value={"TEST"} type="string" isWithinAttrTbl />, document.getElementById("container"));
+        const el = document.getElementsByClassName("form-control input-sm")[0];
+        expect(el).toExist();
+        expect(el.value).toBe("TEST");
+        const operatorEl = document.querySelector('.rw-input');
+        expect(operatorEl).toExist();
+        expect(operatorEl.innerHTML).toEqual("ilike");
     });
     it('Test StringFilter onChange', () => {
         const actions = {

@@ -6,10 +6,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-module.exports = [
+export default [
     {
         translation: 'drawerMenu',
-        selector: '#drawer-menu-button'
+        selector: '.ms-drawer-menu-button'
     },
     {
         translation: 'home',

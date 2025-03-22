@@ -5,14 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const ReactDOM = require('react-dom');
+import React from 'react';
 
-const SpatialFilter = require('../SpatialFilter.jsx');
-
-const {featureCollection} = require('../../../../test-resources/featureCollectionZone.js');
-
-const expect = require('expect');
+import ReactDOM from 'react-dom';
+import SpatialFilter from '../SpatialFilter.jsx';
+import { featureCollection } from '../../../../test-resources/featureCollectionZone.js';
+import expect from 'expect';
 
 describe('SpatialFilter', () => {
 
@@ -65,9 +63,8 @@ describe('SpatialFilter', () => {
         const spatialFilterDOMNode = expect(ReactDOM.findDOMNode(spatialfilter));
         expect(spatialFilterDOMNode).toExist();
 
-        let spatialPanel = spatialFilterDOMNode.actual.childNodes[0].childNodes[1].id;
+        let spatialPanel = spatialFilterDOMNode.actual.querySelector('.mapstore-switch-panel');
         expect(spatialPanel).toExist();
-        expect(spatialPanel).toBe("spatialFilterPanel");
 
         let combosPanel = spatialFilterDOMNode.actual.getElementsByClassName('panel-body');
         expect(combosPanel).toExist();
@@ -78,7 +75,7 @@ describe('SpatialFilter', () => {
 
         let logicHeader = containerFluid.childNodes[0];
         expect(logicHeader).toExist();
-        expect(logicHeader.className).toBe("logicHeader filter-field-row row");
+        expect(logicHeader.className).toBe("logicHeader inline-form filter-field-row filter-field-fixed-row row");
 
         let operationPanelRows = combosPanel[2].getElementsByClassName('row');
         expect(operationPanelRows.length).toBe(2);

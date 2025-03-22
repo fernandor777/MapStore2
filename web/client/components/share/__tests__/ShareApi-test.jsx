@@ -6,13 +6,13 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const expect = require('expect');
-const React = require('react');
-const ReactDOM = require('react-dom');
-const ShareApi = require('../ShareApi');
-const ReactTestUtils = require('react-dom/test-utils');
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ShareApi from '../ShareApi';
+import ReactTestUtils from 'react-dom/test-utils';
 
-describe("The ShareEmbed component", () => {
+describe("The ShareAPI component", () => {
     beforeEach((done) => {
         document.body.innerHTML = '<div id="container"></div>';
         setTimeout(done);
@@ -37,10 +37,46 @@ describe("The ShareEmbed component", () => {
         const cmpSharePanel = ReactDOM.render(<ShareApi shareUrl={url} shareConfigUrl={shareConfigUrl}/>, document.getElementById("container"));
         expect(cmpSharePanel).toExist();
 
-        const textareaEmbed = ReactDOM.findDOMNode(ReactTestUtils.scryRenderedDOMComponentsWithTag(cmpSharePanel, "textarea")[0]);
-        expect(textareaEmbed).toExist();
-        expect(textareaEmbed.value.indexOf(url) !== -1).toBe(true);
-        expect(textareaEmbed.value.indexOf(shareConfigUrl) !== -1).toBe(true);
+        const codeEmbed = ReactDOM.findDOMNode(ReactTestUtils.scryRenderedDOMComponentsWithTag(cmpSharePanel, "code")[0]);
+        expect(codeEmbed).toExist();
+        expect(codeEmbed.innerText.indexOf(url) !== -1).toBe(true);
+        expect(codeEmbed.innerText.indexOf(shareConfigUrl) !== -1).toBe(true);
+    });
+
+    it('add version to API template', () => {
+        const url = location.href;
+        const shareConfigUrl = 'configurl';
+        const version = '18e36c9e2ce1cbf57648907ec177e02f0118764d';
+        const cmpSharePanel = ReactDOM.render(<ShareApi shareUrl={url} shareConfigUrl={shareConfigUrl} version={version}/>, document.getElementById("container"));
+        expect(cmpSharePanel).toExist();
+
+        const codeEmbed = ReactDOM.findDOMNode(ReactTestUtils.scryRenderedDOMComponentsWithTag(cmpSharePanel, "code")[0]);
+        expect(codeEmbed).toExist();
+        expect(codeEmbed.innerText.indexOf('?' + version) !== -1).toBe(true);
+    });
+
+    it('add version ${mapstore2.version} to API template', () => {
+        const url = location.href;
+        const shareConfigUrl = 'configurl';
+        const version = '${mapstore2.version}';
+        const cmpSharePanel = ReactDOM.render(<ShareApi shareUrl={url} shareConfigUrl={shareConfigUrl} version={version}/>, document.getElementById("container"));
+        expect(cmpSharePanel).toExist();
+
+        const codeEmbed = ReactDOM.findDOMNode(ReactTestUtils.scryRenderedDOMComponentsWithTag(cmpSharePanel, "code")[0]);
+        expect(codeEmbed).toExist();
+        expect(codeEmbed.innerText.indexOf('?' + version) !== -1).toBe(false);
+    });
+
+    it('add no-version to API template', () => {
+        const url = location.href;
+        const shareConfigUrl = 'configurl';
+        const version = 'no-version';
+        const cmpSharePanel = ReactDOM.render(<ShareApi shareUrl={url} shareConfigUrl={shareConfigUrl} version={version}/>, document.getElementById("container"));
+        expect(cmpSharePanel).toExist();
+
+        const codeEmbed = ReactDOM.findDOMNode(ReactTestUtils.scryRenderedDOMComponentsWithTag(cmpSharePanel, "code")[0]);
+        expect(codeEmbed).toExist();
+        expect(codeEmbed.innerText.indexOf('?' + version) !== -1).toBe(false);
     });
 
 });

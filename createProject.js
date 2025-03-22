@@ -1,115 +1,153 @@
-const projectName = process.argv[2];
-const projectVersion = process.argv[3];
-const projectDescription = process.argv[4];
-const repoURL = process.argv[5];
-const outFolder = process.argv[6];
+let projectType = process.argv[2];
+let projectName = process.argv[3];
+let projectVersion = process.argv[4];
+let projectDescription = process.argv[5];
+let repoURL = process.argv[6];
+let outFolder = process.argv[7];
+const project = require('./utility/projects/projectLib');
+const denodeify = require('denodeify');
+const readline = require('readline-promise').default;
 
-if (!projectName || !projectVersion || !projectDescription || !repoURL || !outFolder) {
-    console.log('Usage: node ./createProject.js <projectName> <projectVersion> <projectDescription> <GitHUB repo URL> <outputFolder>');
-    process.exit(1);
-}
+const paramsDesc = [{
+    label: 'Project Type (standard): ',
+    name: 'projectType',
+    "default": 'standard',
+    validate: () => true
+}, {
+    label: 'MapStore base branch (master):',
+    name: 'branch',
+    "default": 'master',
+    validate: () => true
+}, {
+    label: 'Project Name: ',
+    name: 'projectName',
+    "default": '',
+    validate: (val) => val !== ''
+}, {
+    label: 'Project Version (1.0.0): ',
+    name: 'projectVersion',
+    "default": '1.0.0',
+    validate: () => true
+}, {
+    label: 'Project Description (Project Name): ',
+    name: 'projectDescription',
+    "default": '',
+    validate: () => true
+}, {
+    label: 'Repository URL: ',
+    name: 'repoURL',
+    "default": undefined,
+    validate: () => true
+}, {
+    label: 'Output folder: ',
+    name: 'outFolder',
+    "default": '',
+    validate: (val) => val !== ''
+}];
 
-const fs = require('fs');
-const ncp = require('ncp').ncp;
+function doWork(params) {
+    const fs = require('fs');
+    const mkdirp = denodeify(require('mkdirp'));
+    const readdir = denodeify(fs.readdir);
 
-const mkdirp = require('mkdirp');
-
-const initGit = () => {
-    console.log('Creating git repo...');
-
-    const git = require('simple-git')( outFolder );
-    git.init(function() {
-        git.submoduleAdd('https://github.com/geosolutions-it/MapStore2.git', 'MapStore2', function() {
-            console.log('git repo OK...');
-        });
-    });
-};
-
-const copyTemplates = (level, path, callback) => {
-    console.log('Copying templated files...');
-    fs.readdir('./project' + path, function(err, files) {
-        if (err) {
-            return console.log(err);
-        }
-        files.forEach(function(file, index) {
-            fs.stat('./project' + path + '/' + file, function(err, stats) {
-            if (err) {
-                return console.log(err);
-            }
-            if (stats.isFile()) {
-                fs.readFile('./project' + path + '/' + file, 'UTF-8', function(err, data) {
-                    data = data.replace(/__PROJECTNAME__/g, projectName);
-                    data = data.replace(/__PROJECTDESCRIPTION__/g, projectDescription);
-                    data = data.replace(/__REPOURL__/g, repoURL);
-
-                    mkdirp(outFolder + path, function(err) {
-                        if (err) console.error(err);
-                        else {
-                            fs.writeFile(outFolder + path + '/' + file, data, 'UTF-8', function(err) {
-                                if (err) {
-                                    return console.log(err);
-                                }
-                                console.log('Copied ' + file);
-                                if (level === 0 && index === files.length - 1) {
-                                    initGit();
-                                } else if (index === files.length - 1 && callback) {
-                                    callback.call();
-                                }
-                            });
-                        }
-                    });
-                });
-            } else if (stats.isDirectory()) {
-                if (file !== 'static') {
-                    copyTemplates(level + 1, path + '/' + file, function() {
-                        if (level === 0 && index === files.length - 1) {
-                            initGit();
-                        } else if (index === files.length - 1 && callback) {
-                            callback.call();
-                        }
-                    });
+    const options = {
+        name: params.projectName,
+        version: params.projectVersion,
+        description: params.projectDescription || params.projectName,
+        repository: params.repoURL || "",
+        eslintConfig: {
+            "extends": [
+                "@mapstore/eslint-config-mapstore"
+            ],
+            parserOptions: {
+                babelOptions: {
+                    "configFile": "./MapStore2/build/babel.config.js"
                 }
             }
+        },
+        scripts: require('./utility/projects/projectScripts.json'),
+        dependencies: {
+            "mapstore2": "file:MapStore2"
+        }
+    };
+
+    const projectFolder = './project/' + params.projectType;
+
+    readdir(projectFolder)
+        .then(() => {
+            return mkdirp(params.outFolder);
+        })
+        .then(() => {
+            process.stdout.write('Out folder created (' + params.outFolder + ')\n');
+            return project.createPackageJSON(options, params.outFolder);
+        })
+        .then(() => {
+            process.stdout.write('package.json file created\n');
+            return project.copyStaticFiles(projectFolder + '/static', params.outFolder, options, ['.editorconfig', 'LICENSE.txt', 'Dockerfile']);
+        })
+        .then(() => {
+            process.stdout.write('copied static files\n');
+            return project.copyTemplates('docker', params.outFolder + "/docker", options);
+        })
+        .then(() => {
+            process.stdout.write('docker folder\n');
+            process.stdout.write('Copying template files\n');
+            return project.copyTemplates(projectFolder + '/templates', params.outFolder, options);
+        })
+        .then(() => {
+            process.stdout.write('Templates copied\n');
+            return project.initGit(params.outFolder);
+        })
+        .then(() => {
+            process.stdout.write('git init\n');
+            return project.updateSubmoduleBranch(params.outFolder, params.branch);
+        })
+        .then(() => {
+            return project.createFirstCommit(params.outFolder);
+        })
+        .then(() => {
+            process.stdout.write('git repo OK!\n');
+            process.exit();
+        })
+        .catch((err) => {
+            process.stderr.write(err + '\n');
         });
-        });
-    });
-};
-
-const copyStaticFiles = () => {
-    console.log('Copying static files...');
-    let copied = 0;
-    ['.editorconfig', '.eslintrc', '.eslintignore', 'LICENSE.txt', '.babelrc'].map(function(fileName) {
-        const toWrite = fs.createWriteStream(outFolder + '/' + fileName);
-        fs.createReadStream(fileName).pipe(toWrite);
-        console.log('Copied ' + fileName);
-        return toWrite;
-    }).forEach(function(stream) {
-        stream.on('finish', function() {
-            copied++;
-            if (copied === 4) {
-                ncp('./project/static', outFolder, function(err) {
-                    if (err) {
-                        return console.log(err);
-                    }
-                    copyTemplates(0, '');
-                });
-            }
-        });
-    });
-};
-
-function createPackageJSON() {
-    console.log('Creating package.json...');
-
-    const packageJSON = require('./package.json');
-    packageJSON.name = projectName;
-    packageJSON.version = projectVersion;
-    packageJSON.description = projectDescription;
-    packageJSON.repository = repoURL;
-    packageJSON.scripts = require('./projectScripts.json');
-
-    fs.writeFile(outFolder + '/package.json', JSON.stringify(packageJSON, null, 4), copyStaticFiles);
-    console.log('package.json OK');
 }
 
-createPackageJSON();
+function readParam(rl, params, result) {
+    return new Promise((resolve, reject) => {
+        if (params.length === 0) {
+            resolve(result);
+        } else {
+            const [param, ...other] = params;
+            rl.questionAsync(param.label).then((answer) => {
+                result[param.name] = answer || param.default;
+                if (param.validate(result[param.name])) {
+                    resolve(readParam(rl, other, result));
+                } else {
+                    reject(new Error(`the ${param.name}: ${answer} is not valid`));
+                }
+            });
+        }
+    });
+}
+
+function readParams() {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+    return readParam(rl, paramsDesc, {});
+}
+if (process.argv.length === 2) {
+    readParams().then((params) => {
+        doWork(params);
+    }).catch((e) => {
+        throw new Error(e.message);
+    });
+} else if (!projectType || !projectName || !projectVersion || !projectDescription || !repoURL || !outFolder) {
+    process.stdout.write('Usage: node ./createProject.js <projectType> <projectName> <projectVersion> <projectDescription> <GitHUB repo URL> <outputFolder>\n');
+    throw new Error("Wrong parameters!");
+} else {
+    doWork({projectType, projectName, projectDescription, projectVersion, repoURL, outFolder});
+}

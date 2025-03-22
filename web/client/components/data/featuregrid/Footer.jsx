@@ -1,15 +1,20 @@
-const React = require('react');
-const Message = require('../../I18N/Message');
-const {Button, Glyphicon, Grid, Row, Col} = require('react-bootstrap');
-const Spinner = require('react-spinkit');
-const toPage = ({startIndex = 0, maxFeatures = 1, totalFeatures = 0, resultSize} = {}) => ({
-    page: Math.ceil(startIndex / maxFeatures),
-    resultSize,
-    size: maxFeatures,
-    total: totalFeatures,
-    maxPages: Math.ceil(totalFeatures / maxFeatures) - 1
-});
-module.exports = (props = {
+/*
+ * Copyright 2018, GeoSolutions Sas.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+import React from 'react';
+import { Col, Glyphicon, Grid, Row } from 'react-bootstrap';
+import Spinner from 'react-spinkit';
+
+import Button from '../../misc/Button';
+import { toPage } from '../../../utils/FeatureGridUtils';
+import Message from '../../I18N/Message';
+
+export default (props = {
     loading: false,
     onPageChange: () => {}
 }) => {
@@ -17,9 +22,10 @@ module.exports = (props = {
     return (<Grid className="bg-body data-grid-bottom-toolbar" fluid style={{width: "100%"}}>
         <Row className="featuregrid-toolbar-margin">
             <Col md={3}>
-                <span><Message msgId="featuregrid.resultInfo" msgParams={{start: page * size + 1, end: page * size + resultSize, total}} /></span>
+                <span><Message msgId={props.virtualScroll && "featuregrid.resultInfoVirtual" || "featuregrid.resultInfo"} msgParams={{start: page * size + 1, end: page * size + resultSize, total, selected: props.selected ?? 0}} /></span>
+                &nbsp;{props.selected > 0 ? <span><Message msgId="featuregrid.selectedInfo" msgParams={{ selected: props.selected ?? 0 }} /></span> : null}
             </Col>
-            <Col className="text-center" md={6}>
+            { !props.virtualScroll ? (<Col className="text-center" md={6}>
                 <Button
                     key="first-page"
                     onClick={() => props.onPageChange(0)}
@@ -43,8 +49,8 @@ module.exports = (props = {
                     className="no-border last-page"
                     disabled={page >= maxPages}
                 ><Glyphicon glyph="step-forward"/></Button>
-        </Col><Col md={3}>
-            {props.loading ? <span style={{"float": "right"}} ><Message msgId="loading" /><Spinner spinnerName="circle" style={{"float": "right"}}noFadeIn/></span> : null}
-        </Col>
-    </Row></Grid>);
+            </Col>) : null} <Col md={3}>
+                {props.loading ? <span style={{"float": "right"}} ><Message msgId="loading" /><Spinner spinnerName="circle" style={{"float": "right"}}noFadeIn/></span> : null}
+            </Col>
+        </Row></Grid>);
 };

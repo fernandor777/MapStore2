@@ -5,16 +5,14 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const {connect} = require('react-redux');
+import { connect } from 'react-redux';
 
-
-const assign = require('object-assign');
-const globeswitcher = require('../reducers/globeswitcher');
-const epics = require('../epics/globeswitcher');
-const {toggle3d} = require('../actions/globeswitcher');
-const {mapTypeSelector, isCesium} = require('../selectors/maptype');
-const {createSelector} = require('reselect');
-const GlobeViewSwitcherButton = require('../components/buttons/GlobeViewSwitcherButton');
+import { changeVisualizationMode } from '../actions/maptype';
+import { mapTypeSelector } from '../selectors/maptype';
+import { createSelector } from 'reselect';
+import GlobeViewSwitcherButton from '../components/buttons/GlobeViewSwitcherButton';
+import { VisualizationModes, getVisualizationModeFromMapLibrary } from '../utils/MapTypeUtils';
+import { createPlugin } from '../utils/PluginsUtils';
 
 /**
   * GlobeViewSwitcher Plugin. A button that toggles to 3d mode
@@ -26,19 +24,22 @@ const GlobeViewSwitcherButton = require('../components/buttons/GlobeViewSwitcher
   *
   */
 
-let globeSelector = createSelector([mapTypeSelector, isCesium], (mapType = "leaflet", cesium) => ({
-    active: cesium,
-    options: {
-        originalMapType: mapType
-    }
-}));
+const globeSelector = createSelector(
+    [mapTypeSelector],
+    (mapType) => ({
+        active: getVisualizationModeFromMapLibrary(mapType) === VisualizationModes._3D
+    })
+);
 const GlobeViewSwitcher = connect(globeSelector, {
-    onClick: (pressed, options) => toggle3d(pressed, options.originalMapType)
+    onClick: (pressed) => changeVisualizationMode(pressed ? VisualizationModes._3D : VisualizationModes._2D)
 })(GlobeViewSwitcherButton);
 
-module.exports = {
-    GlobeViewSwitcherPlugin: assign(GlobeViewSwitcher, {
-        disablePluginIf: "{state('featuregridmode') === 'EDIT'}",
+export default createPlugin('GlobeViewSwitcher', {
+    component: GlobeViewSwitcher,
+    options: {
+        disablePluginIf: "{state('featuregridmode') === 'EDIT'}"
+    },
+    containers: {
         Toolbar: {
             name: '3d',
             position: 10,
@@ -46,9 +47,5 @@ module.exports = {
             tool: true,
             priority: 1
         }
-    }),
-    reducers: {
-        globeswitcher
-    },
-    epics
-};
+    }
+});

@@ -1,4 +1,4 @@
-const PropTypes = require('prop-types');
+
 /**
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -7,25 +7,31 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {Button, Col, Grid, Row, Image, Glyphicon, Table, Panel, Alert} = require('react-bootstrap');
-const {DateFormat} = require('../../I18N/I18N');
-require("./css/snapshot.css");
+import './css/snapshot.css';
 
-const ConfigUtils = require('../../../utils/ConfigUtils');
-const shotingImg = require('./shoting.gif');
-const notAvailable = require('./not-available.png');
-const {isEqual} = require('lodash');
+import {isEqual} from 'lodash';
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Alert, Col, Glyphicon, Grid, Image, Panel, Row, Table} from 'react-bootstrap';
+
+import ConfigUtils from '../../../utils/ConfigUtils';
+import Button from '../../misc/Button';
+import {DateFormat} from '../../I18N/I18N';
+import Message from '../../I18N/Message';
+import Dialog from '../../misc/Dialog';
+import Portal from '../../misc/Portal';
+import BasicSpinner from '../../misc/spinners/BasicSpinner/BasicSpinner';
+import notAvailable from './not-available.png';
+import shotingImg from './shoting.gif';
+import snapshotSupportComp from './SnapshotSupport';
+import PanelHeader from "../../misc/panels/PanelHeader";
+import { MapLibraries } from '../../../utils/MapTypeUtils';
+
 let SnapshotSupport;
-const BasicSpinner = require('../../misc/spinners/BasicSpinner/BasicSpinner');
-const Dialog = require('../../misc/Dialog');
-
-const Message = require('../../I18N/Message');
-
 /**
  * SnapshotPanel allow to export a snapshot of the current map, showing a
  * preview of the snapshot, with some info about the map.
- * It prevent the user to Export snapshot with Google or Bing backgrounds.
+ * It prevents the user to Export snapshot with Google or Bing backgrounds.
  * It shows also the status of the current snapshot generation queue.
  */
 class SnapshotPanel extends React.Component {
@@ -49,8 +55,7 @@ class SnapshotPanel extends React.Component {
         downloadingMsg: PropTypes.node,
         timeout: PropTypes.number,
         mapType: PropTypes.string,
-        wrap: PropTypes.bool,
-        wrapWithPanel: PropTypes.bool,
+        floatingPanel: PropTypes.bool,
         panelStyle: PropTypes.object,
         panelClassName: PropTypes.string,
         toggleControl: PropTypes.func,
@@ -75,29 +80,30 @@ class SnapshotPanel extends React.Component {
         googleBingErrorMsg: "snapshot.googleBingError",
         downloadingMsg: "snapshot.downloadingSnapshots",
         timeout: 1000,
-        mapType: 'leaflet',
-        wrap: false,
-        wrapWithPanel: false,
+        mapType: MapLibraries.OPENLAYERS,
+        floatingPanel: true,
         panelStyle: {
-            minWidth: "720px",
+            minWidth: "600px",
+            maxWidth: "100%",
             zIndex: 100,
             position: "absolute",
             overflow: "auto",
             top: "60px",
             right: "100px"
         },
-        panelClassName: "snapshot-panel",
+        panelClassName: "snapshot-panel ms-side-panel",
         closeGlyph: "1-close",
-        buttonStyle: "primary"
+        buttonStyle: "primary",
+        bounds: '#container'
     };
 
-    componentWillMount() {
-        SnapshotSupport = require('./SnapshotSupport')(this.props.mapType);
+    UNSAFE_componentWillMount() {
+        SnapshotSupport = snapshotSupportComp(this.props.mapType);
     }
 
-    componentWillReceiveProps(newProps) {
+    UNSAFE_componentWillReceiveProps(newProps) {
         if (newProps.mapType !== this.props.mapType) {
-            SnapshotSupport = require('./SnapshotSupport')(newProps.mapType);
+            SnapshotSupport = snapshotSupportComp(newProps.mapType);
         }
     }
 
@@ -106,32 +112,32 @@ class SnapshotPanel extends React.Component {
     }
 
     renderLayers = () => {
-        let items = this.props.layers.map((layer, i) => {
+        return this.props.layers.map((layer, i) => {
             if (layer.visibility) {
                 return <li key={i}>{layer.title}</li>;
             }
+            return null;
         });
-        return items;
     };
 
     renderButton = (enabled) => {
         return (<Button bsStyle={this.props.buttonStyle} bsSize="xs" disabled={!enabled}
-                onClick={this.onClick}>
-                <Glyphicon glyph="floppy-save" disabled={{}}/>&nbsp;<Message msgId={this.props.saveBtnText}/>
-                </Button>);
+            onClick={this.onClick}>
+            <Glyphicon glyph="floppy-save" disabled={{}}/>&nbsp;<Message msgId={this.props.saveBtnText}/>
+        </Button>);
     };
 
     renderError = () => {
         if (this.props.snapshot.error) {
             return (<Row className="text-center" style={{marginTop: "5px"}}>
-                    <h4><span className="label label-danger"> {this.props.snapshot.error}
-                    </span></h4></Row>);
+                <h4><span className="label label-danger"> {this.props.snapshot.error}
+                </span></h4></Row>);
         } else if (this.isBingOrGoogle()) {
             return (<Row className="text-center" style={{marginTop: "5px"}}>
-                    <h4><span className="label label-danger">{this.getgoogleBingError()}
-                    </span></h4></Row>);
+                <h4><span className="label label-danger">{this.getgoogleBingError()}
+                </span></h4></Row>);
         }
-
+        return null;
     };
 
     mapIsLoading = (layers) => {
@@ -156,16 +162,16 @@ class SnapshotPanel extends React.Component {
         return [
             <div style={{display: snapshotReady && !bingOrGoogle ? "block" : "none" }} key="snapshotPreviewContainer">
                 { !bingOrGoogle ? <SnapshotSupport.Preview
-                ref="snapshotPreview"
-                timeout={this.props.timeout}
-                config={this.props.map}
-                layers={this.props.layers.filter((l) => {return l.visibility; })}
-                snapstate={this.props.snapshot}
-                onStatusChange={this.props.onStatusChange}
-                active={this.props.active && !bingOrGoogle}
-                allowTaint
-                drawCanvas={snapshotReady && !bingOrGoogle}
-                browser={this.props.browser}/> : null}
+                    ref="snapshotPreview"
+                    timeout={this.props.timeout}
+                    config={this.props.map}
+                    layers={this.props.layers.filter((l) => {return l.visibility; })}
+                    snapstate={this.props.snapshot}
+                    onStatusChange={this.props.onStatusChange}
+                    active={this.props.active && !bingOrGoogle}
+                    allowTaint
+                    drawCanvas={snapshotReady && !bingOrGoogle}
+                    browser={this.props.browser}/> : null}
             </div>,
             <Image key="snapshotLoader" src={replaceImage} style={{margin: "0 auto", display: snapshotReady && !bingOrGoogle ? "none" : "block" }} responsive/>
         ];
@@ -180,6 +186,7 @@ class SnapshotPanel extends React.Component {
         if (this.props.snapshot.queue && this.props.snapshot.queue.length > 0) {
             return <div key="counter" style={{margin: "20px"}}>{this.renderDownloadMessage()}<BasicSpinner value={this.props.snapshot.queue.length} /> </div>;
         }
+        return null;
     };
 
     renderDownloadMessage = () => {
@@ -187,38 +194,45 @@ class SnapshotPanel extends React.Component {
     };
 
     wrap = (panel) => {
-        if (this.props.wrap) {
-            if (this.props.wrapWithPanel) {
-                return (<Panel id={this.props.id} header={<span><span className="snapshot-panel-title"><Message msgId="snapshot.title"/></span><span className="settings-panel-close panel-close" onClick={this.props.toggleControl}></span></span>} style={this.props.panelStyle} className={this.props.panelClassName}>
-                    {panel}
-                </Panel>);
-            }
-            return (<Dialog id="mapstore-snapshot-panel" style={this.props.style}>
-                <span role="header"><span className="snapshot-panel-title"><Message msgId="snapshot.title"/></span><button onClick={this.props.toggleControl} className="print-panel-close close">{this.props.closeGlyph ? <Glyphicon glyph={this.props.closeGlyph}/> : <span>×</span>}</button></span>
-                {panel}
-            </Dialog>);
+        if (this.props.floatingPanel) {
+            return (
+                <Portal>
+                    <Dialog id="mapstore-snapshot-panel" style={this.props.panelStyle} bounds={this.props.bounds}>
+                        <span role="header"><span className="snapshot-panel-title"><Message msgId="snapshot.title"/></span><button onClick={this.props.toggleControl} className="print-panel-close close">{this.props.closeGlyph ? <Glyphicon glyph={this.props.closeGlyph}/> : <span>×</span>}</button></span>
+                        {panel}
+                    </Dialog>
+                </Portal>
+            );
         }
-        return panel;
+        return (
+            <Panel
+                id={this.props.id}
+                header={<PanelHeader position="right" bsStyle="primary" title={<Message msgId="snapshot.title"/>} glyph="camera" onClose={this.props.toggleControl} />}
+                style={this.props.panelStyle}
+                className={this.props.panelClassName}>
+                {panel}
+            </Panel>);
     };
 
     renderTaintedMessage = () => {
         if (this.props.snapshot && this.props.snapshot && this.props.snapshot.tainted) {
             return <Alert bsStyle="warning"><Message msgId="snapshot.taintedMessage" /></Alert>;
         }
+        return null;
     };
 
     render() {
         let bingOrGoogle = this.isBingOrGoogle();
         let snapshotReady = this.isSnapshotReady();
         return this.props.active ? this.wrap(
-            <Grid role="body" className="snapshot-panel" fluid>
+            <Grid role="body" className="snapshot-inner-panel" fluid>
                 <Row key="main">
                     <Col key="previewCol" xs={7} sm={7} md={7}>{this.renderPreview()}</Col>
                     <Col key="dataCol" xs={5} sm={5} md={5}>
-                       <Table responsive>
+                        <Table responsive>
                             <tbody>
-                               <tr>
-                                <td><Message msgId="snapshot.date"/></td><td> <DateFormat dateParams={this.props.dateFormat}/></td>
+                                <tr>
+                                    <td><Message msgId="snapshot.date"/></td><td> <DateFormat dateParams={this.props.dateFormat}/></td>
                                 </tr>
                                 <tr><td><Message msgId="snapshot.layers"/></td><td><ul>{this.renderLayers()}</ul></td></tr>
                                 <tr><td><Message msgId="snapshot.size"/></td><td>{this.renderSize()}</td>
@@ -276,4 +290,4 @@ class SnapshotPanel extends React.Component {
     };
 }
 
-module.exports = SnapshotPanel;
+export default SnapshotPanel;

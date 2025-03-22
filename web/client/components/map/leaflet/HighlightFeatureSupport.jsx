@@ -1,4 +1,4 @@
-const PropTypes = require('prop-types');
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,8 +7,9 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {findIndex} = require('lodash');
+import React from 'react';
+import PropTypes from 'prop-types';
+import {findIndex} from 'lodash/findIndex';
 
 class HighlightFeatureSupport extends React.Component {
     static propTypes = {
@@ -51,7 +52,7 @@ class HighlightFeatureSupport extends React.Component {
         return nx.status !== pr.status || nx.layer !== pr.layer || nx.status === 'update' && nx.features.toString() !== pr.features.toString();
     }
 
-    componentWillUpdate(np) {
+    UNSAFE_componentWillUpdate(np) {
         switch (np.status) {
         case "enabled": {
             this.setLayer();
@@ -145,4 +146,4 @@ class HighlightFeatureSupport extends React.Component {
     };
 }
 
-module.exports = HighlightFeatureSupport;
+export default HighlightFeatureSupport;

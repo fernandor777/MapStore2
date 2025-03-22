@@ -6,11 +6,13 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const expect = require('expect');
-const {
+import expect from 'expect';
+
+import {
     PRINT_CAPABILITIES_LOADED,
     PRINT_CAPABILITIES_ERROR,
     SET_PRINT_PARAMETER,
+    ADD_PRINT_TRANSFORMER,
     CONFIGURE_PRINT_MAP,
     CHANGE_PRINT_ZOOM_LEVEL,
     CHANGE_MAP_PRINT_PREVIEW,
@@ -20,13 +22,14 @@ const {
     PRINT_CANCEL,
     loadPrintCapabilities,
     setPrintParameter,
+    addPrintTransformer,
     configurePrintMap,
     changePrintZoomLevel,
     changeMapPrintPreview,
     printSubmit,
     printSubmitting,
     printCancel
-} = require('../print');
+} from '../print';
 
 describe('Test correctness of the print actions', () => {
 
@@ -62,8 +65,17 @@ describe('Test correctness of the print actions', () => {
         expect(retVal.value).toBe('val');
     });
 
+    it('addPrintTransformer', () => {
+        const retVal = addPrintTransformer('transformerName', () => "mycustom_transformer", 1.5);
+        expect(retVal).toExist();
+        expect(retVal.type).toBe(ADD_PRINT_TRANSFORMER);
+        expect(retVal.name).toBe('transformerName');
+        expect(retVal.transformer()).toBe('mycustom_transformer');
+        expect(retVal.position).toBe(1.5);
+    });
+
     it('configurePrintMap', () => {
-        const retVal = configurePrintMap({x: 1, y: 1}, 5, 6, 2.0, [], 'EPSG:4326');
+        const retVal = configurePrintMap({x: 1, y: 1}, 5, 6, 2.0, [], 'EPSG:4326', 'en-US');
         expect(retVal).toExist();
         expect(retVal.type).toBe(CONFIGURE_PRINT_MAP);
         expect(retVal.center).toExist();
@@ -74,6 +86,22 @@ describe('Test correctness of the print actions', () => {
         expect(retVal.layers).toExist();
         expect(retVal.layers.length).toBe(0);
         expect(retVal.projection).toBe('EPSG:4326');
+        expect(retVal.currentLocale).toBe('en-US');
+    });
+    it('configurePrintMap with useFixedScales', () => {
+        const retVal = configurePrintMap({x: 1, y: 1}, 5, 6, 2.0, [], 'EPSG:4326', 'en-US', true);
+        expect(retVal).toExist();
+        expect(retVal.type).toBe(CONFIGURE_PRINT_MAP);
+        expect(retVal.center).toExist();
+        expect(retVal.center.x).toBe(1);
+        expect(retVal.zoom).toBe(5);
+        expect(retVal.scaleZoom).toBe(6);
+        expect(retVal.scale).toBe(2.0);
+        expect(retVal.layers).toExist();
+        expect(retVal.layers.length).toBe(0);
+        expect(retVal.projection).toBe('EPSG:4326');
+        expect(retVal.currentLocale).toBe('en-US');
+        expect(retVal.useFixedScales).toBe(true);
     });
 
     it('changePrintZoomLevel', () => {

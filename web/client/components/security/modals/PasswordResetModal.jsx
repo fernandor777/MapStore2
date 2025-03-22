@@ -1,4 +1,4 @@
-const PropTypes = require('prop-types');
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -7,13 +7,15 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const PasswordReset = require('../forms/PasswordReset');
-const Message = require('../../../components/I18N/Message');
-const {Button} = require('react-bootstrap');
-const Modal = require('../../misc/Modal');
+import PropTypes from 'prop-types';
+import Spinner from '../../layout/Spinner';
+import React from 'react';
 
-const Spinner = require('react-spinkit');
+import PasswordReset from '../forms/PasswordReset';
+import Message from '../../../components/I18N/Message';
+import Button from '../../layout/Button';
+import Modal from '../../misc/Modal';
+import FlexBox from '../../layout/FlexBox';
 
 /**
  * A Modal window to show password reset form
@@ -35,7 +37,8 @@ class PasswordResetModal extends React.Component {
         buttonSize: PropTypes.string,
         includeCloseButton: PropTypes.bool,
         changed: PropTypes.bool,
-        error: PropTypes.object
+        error: PropTypes.object,
+        loading: PropTypes.bool
     };
 
     static defaultProps = {
@@ -49,7 +52,8 @@ class PasswordResetModal extends React.Component {
         closeGlyph: "",
         style: {},
         buttonSize: "small",
-        includeCloseButton: true
+        includeCloseButton: true,
+        loading: false
     };
 
     state = {
@@ -58,7 +62,7 @@ class PasswordResetModal extends React.Component {
         password: ''
     };
 
-    componentWillReceiveProps(nextProps) {
+    UNSAFE_componentWillReceiveProps(nextProps) {
         let newUser = nextProps.user;
         let oldUser = this.props.user;
         let userChange = newUser !== oldUser;
@@ -76,27 +80,27 @@ class PasswordResetModal extends React.Component {
     };
 
     getFooter = () => {
-        return (<span role="footer"><div style={{"float": "left"}}>{this.renderLoading()}</div>
-        <Button
-            ref="passwordChangeButton"
-            key="passwordChangeButton"
-            bsStyle="primary"
-            bsSize={this.props.buttonSize}
-            disabled={!this.state.passwordValid}
-            onClick={() => {
-                this.setState({loading: true});
-                this.onPasswordChange();
-            }}><Message msgId="user.changePwd"/></Button>
-        {this.props.includeCloseButton ? <Button
-            key="closeButton"
-            ref="closeButton"
-            bsSize={this.props.buttonSize}
-            onClick={this.props.onClose}><Message msgId="close"/></Button> : <span/>}
-        </span>);
+        return (<FlexBox centerChildrenVertically  gap="sm">
+            <FlexBox.Fill />
+            {this.props.includeCloseButton ? <Button
+                key="closeButton"
+                ref="closeButton"
+                onClick={this.props.onClose}><Message msgId="close"/></Button> : <span/>}
+            <Button
+                value={"user.changePwd"}
+                ref="passwordChangeButton"
+                key="passwordChangeButton"
+                variant="success"
+                disabled={!this.state.passwordValid || this.props.loading}
+                onClick={() => {
+                    this.setState({loading: true});
+                    this.onPasswordChange();
+                }}><Message msgId="user.changePwd"/></Button>
+        </FlexBox>);
     };
 
     getBody = () => {
-        return (<PasswordReset role="body" ref="passwordResetForm"
+        return (<PasswordReset error={this.props.error} role="body" ref="passwordResetForm"
             changed={this.props.changed}
             onChange={(password, valid) => {
                 this.setState({passwordValid: valid, password});
@@ -104,23 +108,23 @@ class PasswordResetModal extends React.Component {
     };
 
     renderLoading = () => {
-        return this.state.loading ? <Spinner spinnerName="circle" key="loadingSpinner" noFadeIn overrideSpinnerClassName="spinner"/> : null;
+        return this.props.loading ? <Spinner/> : null;
     };
 
     render() {
         return (
             <Modal {...this.props.options} show={this.props.show} onHide={this.props.onClose}>
                 <Modal.Header key="passwordChange" closeButton>
-                  <Modal.Title><Message msgId="user.changePwd"/></Modal.Title>
+                    <Modal.Title><Message msgId="user.changePwd"/></Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     {this.getBody()}
                 </Modal.Body>
                 <Modal.Footer>
-                  {this.getFooter()}
+                    {this.getFooter()}
                 </Modal.Footer>
             </Modal>);
     }
 }
 
-module.exports = PasswordResetModal;
+export default PasswordResetModal;

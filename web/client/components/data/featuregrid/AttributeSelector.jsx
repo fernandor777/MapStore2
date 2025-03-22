@@ -1,24 +1,37 @@
-const React = require('react');
-const {Checkbox} = require('react-bootstrap');
-const Message = require('../../I18N/Message');
+/*
+ * Copyright 2018, GeoSolutions Sas.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
-module.exports = ({
-    style={},
-    titleMsg= "featuregrid.columns",
-    onChange= () => {},
-    attributes= []
+import React from 'react';
+import { Checkbox } from 'react-bootstrap';
+
+import Message from '../../I18N/Message';
+import LocalizedString, {applyDefaultToLocalizedString} from '../../I18N/LocalizedString';
+
+
+export default ({
+    style = {},
+    titleMsg = "featuregrid.columns",
+    onChange = () => {},
+    attributes = []
 } = {}) => (
     <div className="bg-body data-attribute-selector" style={style}>
         <h4 className="text-center"><strong><Message msgId={titleMsg} /></strong></h4>
         <div>
-        {attributes.map( attr =>
-            (<Checkbox
-                key={attr.attribute || attr.name}
-                checked={!attr.hide}
-                onChange={() => onChange(attr.attribute, !attr.hide ) }>
-                {attr.label || attr.attribute}
-            </Checkbox>)
-        )}
+            {attributes.map( attr => {
+                // label can be localized
+                const displayName = applyDefaultToLocalizedString(attr.label, attr.attribute);
+                return (<Checkbox
+                    key={attr.attribute || attr.name}
+                    checked={!attr.hide}
+                    onChange={() => onChange(attr.attribute, !attr.hide ) }>
+                    {<LocalizedString value={displayName} />}
+                </Checkbox>);
+            })}
         </div>
     </div>
 );

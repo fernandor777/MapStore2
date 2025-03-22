@@ -6,11 +6,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const expect = require('expect');
-const React = require('react');
-const ReactDOM = require('react-dom');
-const ReactTestUtils = require('react-dom/test-utils');
-const PRModal = require('../PasswordResetModal');
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ReactTestUtils from 'react-dom/test-utils';
+
+import PRModal from '../PasswordResetModal';
 
 describe("Test password reset modal", () => {
     beforeEach((done) => {
@@ -49,8 +50,25 @@ describe("Test password reset modal", () => {
             i.value = "password";
             ReactTestUtils.Simulate.change(i);
         });
-        let button = document.getElementsByTagName("button")[1];
+        let button = document.querySelector('button[value="user.changePwd"]');
+        expect(button).toExist();
         ReactTestUtils.Simulate.click(button);
         expect(spy.calls.length).toEqual(1);
     });
+
+    it('test password show spinner on Submit', () => {
+        let callbacks = {
+            onPasswordChange: (user, pass) => {
+                expect(pass).toEqual("test");
+                expect(pass).toEqual("password");
+            }
+        };
+        expect.spyOn(callbacks, 'onPasswordChange');
+        ReactDOM.render(<PRModal loading={false} options={{animation: false}} show user={{name: "test"}} onPasswordChange={callbacks.onPasswordChange}/>, document.getElementById("container"));
+        let button = document.getElementsByTagName("button")[1];
+        ReactTestUtils.Simulate.click(button);
+        let spinner = document.getElementsByTagName("Spinner");
+        expect(spinner).toExist();
+    });
+
 });

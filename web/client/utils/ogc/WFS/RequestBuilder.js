@@ -5,8 +5,9 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const filterBuilder = require('../Filter/FilterBuilder');
-const {wfsToGmlVersion} = require("./base");
+import filterBuilder from '../Filter/FilterBuilder';
+import castArray from 'lodash/castArray';
+import {wfsToGmlVersion} from "./base";
 const getStaticAttributesWFS1 = (ver) => 'service="WFS" version="' + ver + '" ' +
     (ver === "1.0.0" ? 'outputFormat="GML2" ' : "") +
     'xmlns:gml="http://www.opengis.net/gml" ' +
@@ -41,14 +42,14 @@ const getStaticAttributesWFS2 = (ver) => 'service="WFS" version="' + ver + '" ' 
  * @return {Object} A request builder. it contains all the `FilterBuilder` methods, plus the getFeature, query... methods
  * The request builder provides all the methods to compose the request (query, filter...).
  * @example
- * const requestBuilder = require('.../RequestBuilder');
+ * import requestBuilder from '.../RequestBuilder';
  * const {getFeature, query, filter, property} = requestBuilder({wfsVersion: "1.0.0"});
  * const reqBody = getFeature(query(
  *      "workspace:layer",
  *      filter(
  *          and(
  *              property("P1").equals("v1"),
- *              proprety("the_geom").intersects(geoJSONGeometry)
+ *              property("the_geom").intersects(geoJSONGeometry)
  *          )
  *      ),
  *      {srsName="EPSG:4326"} // 3rd for query is optional
@@ -64,7 +65,7 @@ const getStaticAttributesWFS2 = (ver) => 'service="WFS" version="' + ver + '" ' 
  * query("layerName", filter..., {options})
  * ```
  */
-module.exports = function({wfsVersion = "1.1.0", gmlVersion, filterNS, wfsNS="wfs"} = {}) {
+export default function({wfsVersion = "1.1.0", gmlVersion, filterNS, wfsNS = "wfs"} = {}) {
     let gmlV = gmlVersion;
     if (!gmlV && wfsVersion) {
         gmlV = wfsToGmlVersion(wfsVersion);
@@ -72,6 +73,7 @@ module.exports = function({wfsVersion = "1.1.0", gmlVersion, filterNS, wfsNS="wf
         gmlV = "3.1.1";
     }
     const requestAttributes = ({
+        viewParams,
         resultType,
         outputFormat,
         startIndex,
@@ -82,15 +84,30 @@ module.exports = function({wfsVersion = "1.1.0", gmlVersion, filterNS, wfsNS="wf
             + (resultType ? ` resultType="${resultType}"` : "")
             + (outputFormat ? ` outputFormat="${outputFormat}"` : ``)
             + ((startIndex || startIndex === 0) ? ` startIndex="${startIndex}"` : "")
-            + ((maxFeatures || maxFeatures === 0) ? ` ${getMaxFeatures(maxFeatures)}` : "");
+            + ((maxFeatures || maxFeatures === 0) ? ` ${getMaxFeatures(maxFeatures)}` : "")
+            + (viewParams ? ` viewParams="${viewParams}"` : "");
     };
+    const fb = filterBuilder({gmlVersion: gmlV, wfsVersion, filterNS: filterNS || wfsVersion === "2.0" ? "fes" : "ogc"});
+    /*
+        Accordingly to XSD, PropertyName in query body is still PropertyName for WFS 2.0
+        https://schemas.opengis.net/wfs/2.0/wfs.xsd
+        While SortBy and Filters use ValueReference
+        https://schemas.opengis.net/filter/2.0/sort.xsd
+    */
+    const propertyName = (property) =>
+        castArray(property)
+            .map(p => `<${wfsVersion === "2.0" ? "fes" : "ogc"}:PropertyName>${p}</${wfsVersion === "2.0" ? "fes" : "ogc"}:PropertyName>`)
+            .join("");
     return {
-        ...filterBuilder({gmlVersion: gmlV, wfsVersion, filterNS: filterNS || wfsVersion === "2.0" ? "fes" : "ogc"}),
+        ...fb,
         getFeature: (content, opts) => `<${wfsNS}:GetFeature ${requestAttributes(opts)}>${Array.isArray(content) ? content.join("") : content}</${wfsNS}:GetFeature>`,
-        query: (featureName, content, {srsName ="EPSG:4326"} = {}) =>
-            `<${wfsNS}:Query ${wfsVersion === "2.0" ? "typeNames" : "typeName"}="${featureName}" srsName="${srsName}">`
+        propertyName,
+        sortBy: (property, order = "ASC") =>
+            `<${wfsNS}:SortBy><${wfsNS}:SortProperty>${fb.valueReference(property)}<${wfsNS}:SortOrder>${order}</${wfsNS}:SortOrder></${wfsNS}:SortProperty></${wfsNS}:SortBy>`,
+        query: (featureName, content, {srsName = "EPSG:4326"} = {}) =>
+            `<${wfsNS}:Query ${wfsVersion === "2.0" ? "typeNames" : "typeName"}="${featureName}" ${srsName !== 'native' ? `srsName="${srsName}"` : ''}>`
             + `${Array.isArray(content) ? content.join("") : content}`
             + `</${wfsNS}:Query>`
     };
 
-};
+}

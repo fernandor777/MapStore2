@@ -6,11 +6,28 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var {TEXT_SEARCH_RESULTS_LOADED, TEXT_SEARCH_RESULTS_PURGE, TEXT_SEARCH_RESET, TEXT_SEARCH_ADD_MARKER, TEXT_SEARCH_TEXT_CHANGE, TEXT_SEARCH_LOADING, TEXT_SEARCH_ERROR,
-    TEXT_SEARCH_NESTED_SERVICES_SELECTED, TEXT_SEARCH_CANCEL_ITEM, TEXT_SEARCH_SET_HIGHLIGHTED_FEATURE} = require('../actions/search');
-var {RESET_CONTROLS} = require('../actions/controls');
+import {
+    TEXT_SEARCH_ITEM_SELECTED,
+    TEXT_SEARCH_RESULTS_LOADED,
+    TEXT_SEARCH_RESULTS_PURGE,
+    TEXT_SEARCH_RESET,
+    TEXT_SEARCH_ADD_MARKER,
+    TEXT_SEARCH_TEXT_CHANGE,
+    TEXT_SEARCH_LOADING,
+    TEXT_SEARCH_ERROR,
+    TEXT_SEARCH_NESTED_SERVICES_SELECTED,
+    TEXT_SEARCH_CANCEL_ITEM,
+    TEXT_SEARCH_SET_HIGHLIGHTED_FEATURE,
+    UPDATE_RESULTS_STYLE,
+    CHANGE_SEARCH_TOOL,
+    CHANGE_FORMAT,
+    CHANGE_COORD,
+    HIDE_MARKER
+} from '../actions/search';
 
-const assign = require('object-assign');
+import { RESET_CONTROLS } from '../actions/controls';
+import { generateTemplateString } from '../utils/TemplateUtils';
+import assign from 'object-assign';
 /**
  * Manages the state of the map search with it's results
  * The properties represent the shape of the state
@@ -73,6 +90,12 @@ const assign = require('object-assign');
  */
 function search(state = null, action) {
     switch (action.type) {
+    case TEXT_SEARCH_ITEM_SELECTED: {
+        const { type: serviceType } = action.service || {};
+        const displayName = serviceType === 'nominatim' ? action.item.properties?.display_name : serviceType === 'wfs' ?
+            generateTemplateString(action.service?.displayName || '')(action.item) : state.searchText;
+        return {...state, searchText: displayName || state.searchText || '' };
+    }
     case TEXT_SEARCH_LOADING: {
         return assign({}, state, {loading: action.loading});
     }
@@ -90,10 +113,12 @@ function search(state = null, action) {
     case TEXT_SEARCH_RESULTS_PURGE:
         return assign({}, state, { results: null, error: null});
     case TEXT_SEARCH_ADD_MARKER:
-        return assign({}, state, { markerPosition: action.markerPosition, markerLabel: action.markerLabel });
+        const latlng = action.markerPosition.latlng ? {latlng: action.markerPosition.latlng, lat: action.markerPosition.latlng.lat,  lng: action.markerPosition.latlng.lng} : action.markerPosition;
+        return assign({}, state, { markerPosition: latlng, markerLabel: action.markerLabel });
     case TEXT_SEARCH_SET_HIGHLIGHTED_FEATURE:
         return assign({}, state, {highlightedFeature: action.highlightedFeature});
     case TEXT_SEARCH_RESET:
+        return { style: state.style || {} };
     case RESET_CONTROLS:
         return null;
     case TEXT_SEARCH_NESTED_SERVICES_SELECTED:
@@ -103,13 +128,23 @@ function search(state = null, action) {
             selectedItems: (state.selectedItems || []).concat(action.items)
         });
     case TEXT_SEARCH_CANCEL_ITEM:
-        return assign({}, {
+        return state ? assign({}, {
             selectedItems: state.selectedItems && state.selectedItems.filter(item => item !== action.item),
             searchText: state.searchText === "" && action.item && action.item.text ? action.item.text.substring(0, action.item.text.length) : state.searchText
-        });
+        }) : state;
+    case UPDATE_RESULTS_STYLE:
+        return assign({}, state, {style: action.style});
+    case CHANGE_SEARCH_TOOL:
+        return {...state, activeSearchTool: action.activeSearchTool};
+    case CHANGE_FORMAT:
+        return {...state, format: action.format};
+    case CHANGE_COORD:
+        return {...state, coordinate: {...state.coordinate, [action.coord]: action.val}};
+    case HIDE_MARKER:
+        return assign({}, state, {markerPosition: state?.markerPosition?.latlng ? {} : state?.markerPosition});
     default:
         return state;
     }
 }
 
-module.exports = search;
+export default search;

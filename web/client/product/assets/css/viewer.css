@@ -7,7 +7,7 @@ html, body, #container, .fill {
 }
 
 .viewer {
-    position:absolute;
+    position: absolute;
     width: 100%;
     height: 100%;
     margin: 0;
@@ -23,13 +23,17 @@ html, body, #container, .fill {
     bottom: 28px;
     height: auto;
     overflow: hidden;
+    z-index: 0;
 }
 
 #home-button {
     float: left;
 }
+#navigationBar #home-button {
+    float: none;
+}
 
-.ol-attribution li:first-child, .leaflet-control-attribution a:first-child{
+.leaflet-control-attribution > a:first-child{
     display: none;
     visibility: hidden;
 }
@@ -52,25 +56,8 @@ html, body, #container, .fill {
     opacity: 0;
 }
 
-.with-love {
-    position:absolute;
-	width:90px;
-	height:27px;
-	bottom:35px;
-	margin-left:auto;
-	margin-right:auto;
-	left:0;
-	right:0;
-    background-image:url(../img/made-in-italy-logo.png);
-	background-size:contain;
-}
-
 .modal-dialog-container {
-    z-index: 2000!important;
-}
-
-#navigationBar .mapToolbar {
-    bottom: 50px !important;
+    z-index: 2000;
 }
 
 #mapstore-scalebox-container {
@@ -102,11 +89,12 @@ html, body, #container, .fill {
 
 #mapstore-getfeatureinfo.mapstore-right-panel {
     position: absolute;
-    height: 100%;
+    height: calc(100% - 30px);
     right: 0;
     left: auto;
     top: 0;
     margin-top: 0;
+    border: none;
 }
 
 .mapstore-right-panel .info-wrap {
@@ -151,4 +139,13 @@ html, body, #container, .fill {
 
 .mapstore-right-panel #mapstore-identify-revgeocoder {
     padding: 15px;
+}
+
+#container > .chart-color-class-popover.popover {
+    z-index: 10000;
+}
+
+#container > .chart-color-class-popover.popover > .popover-content {
+    max-height: 250px;
+    overflow-y: auto;
 }

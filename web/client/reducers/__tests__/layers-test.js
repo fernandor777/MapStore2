@@ -5,10 +5,19 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
-var layers = require('../layers');
+import expect from 'expect';
+
+import layers from '../layers';
+import { changeLayerParams, addLayer, addGroup, moveNode, ADD_GROUP } from '../../actions/layers';
+import { DEFAULT_GROUP_ID } from '../../utils/LayersUtils';
+
 
 describe('Test the layers reducer', () => {
+
+    it('confirms that the default state is an object with "flat" as a property', () => {
+        let state = layers(undefined, {type: 'UNKNOWN'});
+        expect(state.flat.length).toBe(0);
+    });
 
     it('returns original state on unrecognized action', () => {
         let state = layers(1, {type: 'UNKNOWN'});
@@ -79,11 +88,13 @@ describe('Test the layers reducer', () => {
             nodeType: 'groups'
         };
         let initialState = {
+            selected: ["sample2", "sample1"],
             groups: [{name: 'sample1', id: 'sample1'}, {name: 'sample2', id: 'sample2'}],
             flat: [{id: 'layer1', group: 'sample1'}, {id: 'layer2', group: 'sample2'}]
         };
         let state = layers(initialState, testAction);
         expect(state.groups.length).toBe(1);
+        expect(state.selected).toEqual(["sample2"]);
         expect(state.flat.length).toBe(1);
     });
 
@@ -94,12 +105,61 @@ describe('Test the layers reducer', () => {
             nodeType: 'layers'
         };
         let initialState = {
-            groups: [{name: 'sample1', id: 'sample1'}, {name: 'sample2', id: 'sample2'}],
-            flat: [{id: 'layer1', group: 'sample1'}, {id: 'layer2', group: 'sample2'}]
+            selected: ["layer1", "layer2"],
+            groups: [
+                {name: 'sample1', nodes: ['layer1'], id: 'sample1'},
+                {name: 'sample2', nodes: ['layer2'], id: 'sample2'}
+            ],
+            flat: [
+                {id: 'layer1', group: 'sample1'},
+                {id: 'layer2', group: 'sample2'}
+            ]
         };
         let state = layers(initialState, testAction);
         expect(state.groups.length).toBe(2);
+        expect(state.selected).toEqual(["layer2"]);
         expect(state.flat.length).toBe(1);
+    });
+    it('removeNode layer with remove empty groups flag', () => {
+        let testAction = {
+            type: 'REMOVE_NODE',
+            node: 'layer1',
+            nodeType: 'layers',
+            removeEmpty: true
+        };
+        let initialState = {
+            groups: [
+                { name: 'sample1', nodes: ['layer1'], id: 'sample1' },
+                { name: 'sample2', nodes: ['layer2'], id: 'sample2' }
+            ],
+            flat: [
+                { id: 'layer1', group: 'sample1' },
+                { id: 'layer2', group: 'sample2' }
+            ]
+        };
+        let state = layers(initialState, testAction);
+        expect(state.groups.length).toBe(1);
+        expect(state.flat.length).toBe(1);
+    });
+    it('removeNode norGroupOrLayer', () => {
+        let testAction = {
+            type: 'REMOVE_NODE',
+            node: 'layer1',
+            nodeType: 'norGroupOrLayer'
+        };
+        let initialState = {
+            groups: [
+                {name: 'sample1', nodes: ['layer1'], id: 'sample1'},
+                {name: 'sample2', nodes: ['layer2'], id: 'sample2'}
+            ],
+            flat: [
+                {id: 'layer1', group: 'sample1'},
+                {id: 'layer2', group: 'sample2'}
+            ]
+        };
+        let state = layers(initialState, testAction);
+        expect(state.groups.length).toBe(2);
+        expect(state.flat.length).toBe(2);
     });
 
     it('removeNode nested', () => {
@@ -142,6 +202,54 @@ describe('Test the layers reducer', () => {
         expect(state.flat[1].format).toNotExist();
     });
 
+
+    it('updateNode subgroups changing tooltipOptions', () => {
+        let testAction = {
+            "type": "UPDATE_NODE",
+            "node": "1.3",
+            "nodeType": "groups",
+            "options": {
+                "description": "denlayers/40935555",
+                "tooltipOptions": "both"
+            }
+        };
+        const groups = [
+            {
+                "id": "1",
+                "title": "1",
+                "name": "1",
+                "nodes": [
+                    {
+                        "id": "1.3",
+                        "title": "3",
+                        "name": "3",
+                        "nodes": [
+                            {
+                                "id": "1.3.4",
+                                "title": "4",
+                                "name": "4",
+                                "nodes": [
+                                    "topp:states__6"
+                                ],
+                                "expanded": true
+                            }
+                        ],
+                        "expanded": true,
+                        "description": "denlayers/4093",
+                        "tooltipOptions": "title",
+                        "tooltipPlacement": "right"
+                    }
+                ],
+                "expanded": true
+            }
+        ];
+        let state = layers({groups}, testAction);
+        expect(state.groups[0].nodes[0].tooltipOptions).toBe("both");
+        expect(state.groups[0].nodes[0].tooltipPlacement).toBe("right");
+        expect(state.groups[0].nodes[0].description).toBe("denlayers/40935555");
+        expect(state.groups[0].nodes[0].id).toBe("1.3");
+    });
+
     it('test layer visibility change for background', () => {
         const oldState = {flat: [{
             "type": "osm",
@@ -178,7 +286,44 @@ describe('Test the layers reducer', () => {
         expect(state.flat[0].visibility).toBe(false);
         expect(state.flat[1].visibility).toBe(true);
     });
+    it('changeLayerParams', () => {
+        const state = {
+            flat: [{
+                "type": "osm",
+                "title": "Open Street Map",
+                "name": "mapnik",
+                "id": "mapnik",
+                "group": "background",
+                "visibility": true
+            }, {
+                "type": "wms",
+                "url": "/reflector/open/service",
+                "visibility": false,
+                "title": "e-Geos Ortofoto RealVista 1.0",
+                "name": "rv1",
+                "id": "rv1",
+                "group": "background",
+                "format": "image/png"
+            }, {
+                "type": "wms",
+                "url": "/reflector/open/service",
+                "visibility": false,
+                "title": "e-Geos Ortofoto RealVista 1.0",
+                "name": "rv2",
+                "id": "rv2",
+                "group": "background",
+                "format": "image/png"
+            }]
+        };
+        const state1 = layers(state, changeLayerParams("rv1", {elevation: 200}));
+        expect(state1.flat[1].params).toExist();
+        expect(state1.flat[1].params.elevation).toBe(200);
+        expect(state1.flat[2].params).toNotExist();
+        const state2 = layers(state, changeLayerParams(["rv1", "rv2"], { elevation: 200 }));
+        expect(state2.flat[1].params.elevation).toBe(200);
+        expect(state2.flat[2].params.elevation).toBe(200);
 
+    });
     it('a layer is loading, loading flag is updated', () => {
         const action1 = {
             type: 'LAYER_LOADING',
@@ -420,6 +565,33 @@ describe('Test the layers reducer', () => {
         expect(state.groups[0].nodes[1]).toBe("test_id1");
     });
 
+    it('add new layer and verify old state', () => {
+        const testAction = addLayer({ group: "test", id: "test_id1" });
+
+        const state = layers(
+            {
+                flat: [
+                    {
+                        id: "layer"
+                    }
+                ],
+                settings: {
+                    options: {
+                        opacity: 0.8
+                    }
+                },
+                selected: [
+                    "layer"
+                ]
+            },
+            testAction
+        );
+
+        expect(state.settings).toExist();
+        expect(state.selected).toExist();
+
+    });
+
     it('remove layer', () => {
         let addAction = {
             type: "ADD_LAYER",
@@ -574,7 +746,7 @@ describe('Test the layers reducer', () => {
         const state = layers({flat: [{id: "layer"}], groups: [{id: "group", nodes: ["layer"]}]}, action);
         expect(state).toExist();
         expect(state.selected).toExist();
-        expect(state.selected).toEqual(['layer', 'group']);
+        expect(state.selected).toEqual(['group']);
     });
 
     it('select nested groups nodes', () => {
@@ -588,7 +760,7 @@ describe('Test the layers reducer', () => {
         const state = layers({flat: [{id: "layer"}, {id: "layer2"}, {id: "layer3"}], groups: [{id: "group", nodes: ["layer", {id: 'group001', nodes: ["layer2"]}]}]}, action);
         expect(state).toExist();
         expect(state.selected).toExist();
-        expect(state.selected).toEqual(['layer', 'layer2', 'group001', 'group' ]);
+        expect(state.selected).toEqual(['group' ]);
     });
 
     it('select multiple layer nodes', () => {
@@ -616,7 +788,7 @@ describe('Test the layers reducer', () => {
         const state = layers({flat: [{id: "layer"}, {id: "layer2"}, {id: "layer3"}], groups: [{id: "group", nodes: ["layer", {id: 'group001', nodes: ["layer2"]}]}], selected: ['layer2', 'group2']}, action);
         expect(state).toExist();
         expect(state.selected).toExist();
-        expect(state.selected).toEqual(['layer2', 'group2', 'layer', 'layer2', 'group001', 'group']);
+        expect(state.selected).toEqual(['layer2', 'group2', 'group']);
     });
 
     it('select node with no id', () => {
@@ -630,5 +802,177 @@ describe('Test the layers reducer', () => {
         expect(state.selected).toEqual([]);
     });
 
+    it('show layer metadata', () => {
+        const action = {
+            type: "LAYERS:SHOW_LAYER_METADATA",
+            metadataRecord: {"identifier": 1},
+            maskLoading: true
+        };
 
+        const state = layers({}, action);
+        expect(state).toExist();
+        expect(state.layerMetadata).toExist();
+        expect(state.layerMetadata.expanded).toEqual(true);
+    });
+
+    it('hide layer metadata', () => {
+        const action = {
+            type: "LAYERS:HIDE_LAYER_METADATA"
+        };
+
+        const state = layers({}, action);
+        expect(state).toExist();
+        expect(state.layerMetadata).toExist();
+        expect(state.layerMetadata.expanded).toEqual(false);
+    });
+
+    it('add root group', () => {
+        const action = {
+            type: ADD_GROUP,
+            group: 'newgroup'
+        };
+
+        const state = layers({groups: [{id: 'group1', nodes: []}]}, action);
+        expect(state).toExist();
+        expect(state.groups.length).toBe(2);
+        expect(state.groups[0].id).toBe(DEFAULT_GROUP_ID);
+        expect(state.groups[0].nodes[0].title).toBe('newgroup');
+    });
+
+    it('add nested group', () => {
+        const action = {
+            type: ADD_GROUP,
+            group: 'newgroup',
+            parent: 'group1.group2'
+        };
+
+        const state = layers({ groups: [{ id: 'group1', nodes: [{ id: 'group1.group2', nodes: [{ id: 'group1.group2.group3', nodes: []}]}] }] }, action);
+        expect(state).toExist();
+        expect(state.groups.length).toBe(2);
+        expect(state.groups[1].nodes.length).toBe(1);
+        expect(state.groups[1].nodes[0].nodes.length).toBe(2);
+        const newgroup = state.groups[1].nodes[0].nodes[1];
+        expect(newgroup.id).toBe('group1.group2.' + newgroup.name);
+        expect(newgroup.title).toBe('newgroup');
+        expect(newgroup.nodes.length).toBe(0);
+    });
+
+    it('check uniqueness of new group ids', () => {
+        const actions = [addGroup('newgroup', 'group1.group2'), addGroup('newgroup', 'group1.group2')];
+        const state = actions.reduce(layers,
+            {
+                groups: [{
+                    id: 'group1', nodes: [{
+                        id: 'group1.group2', nodes: [{
+                            id: 'group1.group2.group3', nodes: []
+                        }]
+                    }]
+                }]
+            }
+        );
+        expect(state).toExist();
+        expect(state.groups.length).toBe(2);
+        expect(state.groups[1].nodes.length).toBe(1);
+        expect(state.groups[1].nodes[0].nodes.length).toBe(3);
+        const newgroup1 = state.groups[1].nodes[0].nodes[1];
+        const newgroup2 = state.groups[1].nodes[0].nodes[2];
+        expect(newgroup1.title).toBe('newgroup');
+        expect(newgroup1.name).toExist();
+        expect(newgroup1.name.length).toBe(36);
+        expect(newgroup1.id).toExist();
+        expect(newgroup1.id.length).toBe(6 + 6 + 36 + 2);
+        expect(newgroup2.title).toBe('newgroup');
+        expect(newgroup2.name).toExist();
+        expect(newgroup2.name.length).toBe(36);
+        expect(newgroup2.id).toExist();
+        expect(newgroup2.id.length).toBe(6 + 6 + 36 + 2);
+        expect(newgroup1.name).toNotBe(newgroup2.name);
+        expect(newgroup1.id).toNotBe(newgroup2.id);
+    });
+
+    it('use controlled options on add group', () => {
+        const options = {
+            id: 'uniq_id',
+            title: 'Group Title',
+            name: 'uniq_id'
+        };
+        const state = layers(
+            {
+                groups: [{
+                    id: 'group1',
+                    nodes: []
+                }]
+            },
+            addGroup(options.title, 'group1', options)
+        );
+        expect(state).toExist();
+        expect(state.groups.length).toBe(2);
+        expect(state.groups[1].nodes.length).toBe(1);
+        const newNode = state.groups[1].nodes[0];
+        expect(newNode.id).toBe(options.id);
+        expect(newNode.title).toBe(options.title);
+        expect(newNode.name).toBe(options.name);
+    });
+
+    it('should add group to default even if parent is not defined', () => {
+        const state = layers({groups: []}, addGroup('newgroup'));
+        expect(state).toBeTruthy();
+        expect(state.groups.length).toBe(1);
+        expect(state.groups[0].id).toBe(DEFAULT_GROUP_ID);
+        expect(state.groups[0].nodes[0].title).toBe('newgroup');
+    });
+
+    it('move groups when two are with the same title', () => {
+        const action = moveNode('groupid1.groupid2', 'Default', 0);
+        const state = layers({
+            flat: [],
+            groups: [{
+                id: 'Default',
+                name: 'Default',
+                title: 'Default',
+                nodes: []
+            }, {
+                id: 'groupid1',
+                name: 'groupid1',
+                title: 'Test Group',
+                nodes: [{
+                    id: 'groupid1.groupid2',
+                    name: 'groupid2',
+                    title: 'Group',
+                    nodes: []
+                }]
+            }, {
+                id: 'groupid3',
+                name: 'groupid3',
+                title: 'Group',
+                nodes: []
+            }]
+        }, action);
+        expect(state).toExist();
+        expect(state.groups).toEqual([
+            {
+                id: 'Default',
+                name: 'Default',
+                title: 'Default',
+                nodes: [{
+                    id: 'Default.groupid2',
+                    name: 'groupid2',
+                    title: 'Group',
+                    nodes: []
+                }]
+            },
+            {
+                id: 'groupid1',
+                name: 'groupid1',
+                title: 'Test Group',
+                nodes: []
+            },
+            {
+                id: 'groupid3',
+                name: 'groupid3',
+                title: 'Group',
+                nodes: []
+            }
+        ]);
+    });
 });

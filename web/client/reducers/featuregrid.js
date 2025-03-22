@@ -5,9 +5,11 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
 */
-const assign = require("object-assign");
-const {head, get} = require("lodash");
-const {
+import assign from 'object-assign';
+
+import { head, get, uniqBy, isArray } from 'lodash';
+
+import {
     SELECT_FEATURES,
     DESELECT_FEATURES,
     TOGGLE_FEATURES_SELECTION,
@@ -21,35 +23,51 @@ const {
     CLEAR_CHANGES,
     CHANGE_PAGE,
     DOCK_SIZE_FEATURES,
-    SET_LAYER, TOGGLE_TOOL,
+    SET_LAYER,
+    TOGGLE_TOOL,
     CUSTOMIZE_ATTRIBUTE,
     SET_SELECTION_OPTIONS,
     TOGGLE_MODE,
     MODES,
     GEOMETRY_CHANGED,
+    TOGGLE_SHOW_AGAIN_FLAG,
     DELETE_GEOMETRY_FEATURE,
     START_DRAWING_FEATURE,
     SET_PERMISSION,
     DISABLE_TOOLBAR,
     OPEN_FEATURE_GRID,
     CLOSE_FEATURE_GRID,
-    UPDATE_FILTER
-} = require('../actions/featuregrid');
-const{
-    FEATURE_TYPE_LOADED,
-    QUERY_CREATE
-} = require('../actions/wfsquery');
-const{
-    CHANGE_DRAWING_STATUS
-} = require('../actions/draw');
-const uuid = require('uuid');
+    UPDATE_FILTER,
+    INIT_PLUGIN,
+    SIZE_CHANGE,
+    STORE_ADVANCED_SEARCH_FILTER,
+    GRID_QUERY_RESULT,
+    LOAD_MORE_FEATURES,
+    SET_UP,
+    SET_TIME_SYNC,
+    UPDATE_EDITORS_OPTIONS,
+    SET_PAGINATION,
+    SET_VIEWPORT_FILTER
+} from '../actions/featuregrid';
+import { MAP_CONFIG_LOADED } from '../actions/config';
+
+import { FEATURE_TYPE_LOADED, QUERY_CREATE, UPDATE_QUERY } from '../actions/wfsquery';
+import { CHANGE_DRAWING_STATUS } from '../actions/draw';
+import uuid from 'uuid';
 
 const emptyResultsState = {
+    advancedFilters: {},
     filters: {},
+    editingAllowedRoles: ["ADMIN"],
+    editingAllowedGroups: [],
     enableColumnFilters: true,
+    showFilteredObject: false,
+    timeSync: false,
+    showTimeSync: false,
     open: false,
     canEdit: false,
-    focusOnEdit: true,
+    focusOnEdit: false,
+    showAgain: false,
     mode: MODES.VIEW,
     changes: [],
     pagination: {
@@ -57,11 +75,14 @@ const emptyResultsState = {
         size: 20
     },
     select: [],
-    multiselect: false,
     drawing: false,
     newFeatures: [],
     features: [],
-    dockSize: 0.35
+    dockSize: 0.35,
+    customEditorsOptions: {
+        "rules": []
+    },
+    viewportFilter: null
 };
 const isSameFeature = (f1, f2) => f2 === f1 || (f1.id !== undefined && f1.id !== null && f1.id === f2.id);
 const isPresent = (f1, features = []) => features.filter( f2 => isSameFeature(f1, f2)).length > 0;
@@ -77,10 +98,10 @@ const applyUpdate = (f, updates, updatesGeom) => {
         };
     }
     return {...f,
-    properties: {
-        ...f.properties,
-        ...updates
-    }};
+        properties: {
+            ...f.properties,
+            ...updates
+        }};
 
 };
 const applyNewChanges = (features, changedFeatures, updates, updatesGeom) =>
@@ -88,8 +109,11 @@ const applyNewChanges = (features, changedFeatures, updates, updatesGeom) =>
 /**
  * Manages the state of the featuregrid
  * The properties represent the shape of the state
+ * @prop {string[]} editingAllowedRoles array of user roles allowed to enter in edit mode
+ * @prop {string[]} editingAllowedGroups array of user roles allowed to enter in edit mode, when logged-in user role is not ADMIN
+ * @prop {boolean} canEdit flag used to enable editing on the feature grid
  * @prop {object} filters filters for quick search. `{attribute: "name", value: "filter_value", opeartor: "=", rawValue: "the fitler raw value"}`
- * @prop {boolan} enableColumnFilters enables column filter. [configurable]
+ * @prop {boolean} enableColumnFilters enables column filter. [configurable]
  * @prop {boolean} open feature grid open or close
  * @prop {string} mode `VIEW` or `EDIT`
  * @prop {array} changes list of current changes in editing
@@ -99,13 +123,16 @@ const applyNewChanges = (features, changedFeatures, updates, updatesGeom) =>
  * @prop {boolean} drawing flag set during drawing
  * @prop {array} newFeatures array of new features created in editing
  * @prop {array} features list of the features currently loaded in the feature grid
+ * @prop {boolean} timeSync false by default. If true, enables the time sync on the timeline
+ * @prop {boolean} showTimeSync false by default. If true, shows the time sync button. Its disabled by default because WFS do not support officially time.
  * @example
  *  {
+ *     editingAllowedRoles: ["ADMIN"],
  *     filters: {},
  *     enableColumnFilters: true,
  *     open: false,
  *     canEdit: false,
- *     focusOnEdit: true,
+ *     focusOnEdit: false,
  *     mode: MODES.VIEW,
  *     changes: [],
  *     pagination: {
@@ -124,6 +151,15 @@ const applyNewChanges = (features, changedFeatures, updates, updatesGeom) =>
  */
 function featuregrid(state = emptyResultsState, action) {
     switch (action.type) {
+    case INIT_PLUGIN: {
+        return assign({}, state, {
+            editingAllowedRoles: action.options.editingAllowedRoles || state.editingAllowedRoles || ["ADMIN"],
+            editingAllowedGroups: action.options.editingAllowedGroups || state.editingAllowedGroups || [],
+            virtualScroll: !!action.options.virtualScroll,
+            maxStoredPages: action.options.maxStoredPages || 5
+        });
+    }
+    case LOAD_MORE_FEATURES:
     case CHANGE_PAGE: {
         return assign({}, state, {
             pagination: {
@@ -132,14 +168,25 @@ function featuregrid(state = emptyResultsState, action) {
             }
         });
     }
-    case SELECT_FEATURES:
+    case SET_PAGINATION: {
+        return {
+            ...state,
+            pagination: {
+                ...(state.pagination ?? {}),
+                size: action.size
+            }
+        };
+    }
+    case SELECT_FEATURES: {
+        const features = action.features.filter(f => f.id !== 'empty_row');
         if (state.multiselect && action.append) {
-            return assign({}, state, {select: action.append ? [...state.select, ...action.features] : action.features});
+            return assign({}, state, {select: action.append ? uniqBy([...state.select, ...features], "id") : features});
         }
-        if (action.features && state.select && state.select[0] && action.features[0] && state.select.length === 1 && isSameFeature(action.features[0], state.select[0])) {
+        if (features && state.select && state.select[0] && features[0] && state.select.length === 1 && isSameFeature(features[0], state.select[0])) {
             return state;
         }
-        return assign({}, state, {select: (action.features || []).splice(0, 1)});
+        return assign({}, state, {select: (features || [])});
+    }
     case TOGGLE_FEATURES_SELECTION:
         let keepValues = state.select.filter( f => !isPresent(f, action.features));
         // let removeValues = state.select.filter( f => isPresent(f, action.features));
@@ -149,9 +196,14 @@ function featuregrid(state = emptyResultsState, action) {
     case DESELECT_FEATURES:
         return assign({}, state, {
             select: state.select.filter(f1 => !isPresent(f1, action.features))
-            });
+        });
     case SET_SELECTION_OPTIONS: {
-        return assign({}, state, {multiselect: action.multiselect});
+        return assign({}, state, {multiselect: action.multiselect ?? state.multiselect, showCheckbox: action.showCheckbox ?? state.showCheckbox});
+    }
+    case UPDATE_EDITORS_OPTIONS:
+        return assign({}, state, { customEditorsOptions: action.payload });
+    case SET_UP: {
+        return assign({}, state, action.options || {});
     }
     case CLEAR_SELECTION:
         return assign({}, state, {select: [], changes: []});
@@ -218,18 +270,17 @@ function featuregrid(state = emptyResultsState, action) {
             deleteConfirm: false,
             drawing: false,
             newFeatures: [],
-            changes: [],
-            select: []
+            changes: []
         });
     }
     case CREATE_NEW_FEATURE: {
         let id = uuid.v1();
         return assign({}, state, {
-            newFeatures: action.features.map(f => ({...f, _new: true, id: id, type: "Feature",
-                geometry: null
+            newFeatures: action.features.map(f => ({...f, _new: true, id: f.id ? f.id : id, type: "Feature",
+                geometry: f.geometry ? f.geometry : null
             })),
-            select: action.features.map(f => ({...f, _new: true, id: id, type: "Feature",
-                geometry: null
+            select: action.features.map(f => ({...f, _new: true, id: f.id ? f.id : id, type: "Feature",
+                geometry: f.geometry ? f.geometry : null
             }))
         });
     }
@@ -245,10 +296,10 @@ function featuregrid(state = emptyResultsState, action) {
         const newFeaturesChanges = action.features.filter(f => f._new) || [];
         return assign({}, state, {
             newFeatures: newFeaturesChanges.length > 0 ? applyNewChanges(state.newFeatures, newFeaturesChanges, null, {geometry: {...head(newFeaturesChanges).geometry} }) : state.newFeatures,
-            changes: [...(state && state.changes || []), ...(action.features.filter(f => !f._new).map(f => ({
+            changes: action.features.filter(f => !f._new).map((f, index) => ({
                 id: f.id,
-                updated: {geometry: head(action.features).geometry}
-            })))],
+                updated: {geometry: action.features[index].geometry}
+            })),
             drawing: false
         });
     }
@@ -274,7 +325,8 @@ function featuregrid(state = emptyResultsState, action) {
     }
     case OPEN_FEATURE_GRID: {
         return assign({}, state, {
-            open: true
+            open: true,
+            closer: null
         });
     }
     case CLOSE_FEATURE_GRID: {
@@ -291,7 +343,7 @@ function featuregrid(state = emptyResultsState, action) {
             drawing: false,
             newFeatures: [],
             changes: [],
-            select: []
+            closer: action.closer
         });
     }
     case DISABLE_TOOLBAR: {
@@ -314,6 +366,30 @@ function featuregrid(state = emptyResultsState, action) {
     }
     case UPDATE_FILTER : {
         const {attribute} = (action.update || {});
+        if (attribute && action.append) {
+            const value = state.filters[attribute].value;
+            let oldVal = [];
+            if (value?.attribute) {
+                oldVal = [value];
+            }
+
+            if (isArray(value)) {
+                oldVal = value;
+            }
+
+            const newValue = [...oldVal, action.update.value];
+            return assign({}, state, {
+                filters: {
+                    [attribute]: {
+                        attribute: attribute,
+                        enabled: true,
+                        type: "geometry",
+                        operator: "OR",
+                        value: newValue
+                    }
+                }
+            });
+        }
         if (attribute) {
             return assign({}, state, {
                 filters: {
@@ -330,9 +406,44 @@ function featuregrid(state = emptyResultsState, action) {
             }
         });
     }
+    case UPDATE_QUERY: {
+        return {
+            ...state,
+            useLayerFilter: action.useLayerFilter ?? state.useLayerFilter // if not present, keep current
+        };
+    }
+    case SIZE_CHANGE : {
+        const maxDockSize = action.dockProps && action.dockProps.maxDockSize;
+        const minDockSize = action.dockProps && action.dockProps.minDockSize;
+        const size = maxDockSize && minDockSize && minDockSize <= action.size && maxDockSize >= action.size && action.size
+        || maxDockSize && maxDockSize < action.size && maxDockSize
+        || minDockSize && minDockSize > action.size && minDockSize
+        || action.size;
+        return assign({}, state, {
+            dockSize: size
+        });
+    }
+    case STORE_ADVANCED_SEARCH_FILTER : {
+        return assign({}, state, {advancedFilters: assign({}, state.advancedFilters, {[state.selectedLayer]: action.filterObj})});
+    }
+    case GRID_QUERY_RESULT: {
+        return assign({}, state, {features: action.features || [], pages: action.pages || []});
+    }
+    case TOGGLE_SHOW_AGAIN_FLAG: {
+        return assign({}, state, {showAgain: !state.showAgain});
+    }
+    case SET_TIME_SYNC: {
+        return assign({}, state, {timeSync: action.value});
+    }
+    case SET_VIEWPORT_FILTER: {
+        return assign({}, state, {viewportFilter: action.value});
+    }
+    case MAP_CONFIG_LOADED: {
+        return {...state, ...get(action, 'config.featureGrid', {})};
+    }
     default:
         return state;
     }
 }
 
-module.exports = featuregrid;
+export default featuregrid;

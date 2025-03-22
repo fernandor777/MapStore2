@@ -5,11 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const expect = require('expect');
-const React = require('react');
-const ReactDOM = require('react-dom');
+import expect from 'expect';
 
-const NumberField = require('../NumberField');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import TestUtils from 'react-dom/test-utils';
+import NumberField from '../NumberField';
 
 describe('NumberField', () => {
     beforeEach((done) => {
@@ -73,5 +74,39 @@ describe('NumberField', () => {
         cmp.changeNumber(null);
         cmp.changeNumber(10);
 
+    });
+
+    it('if value is NaN changeNumber should not be called', () => {
+        const actions = {
+            onUpdateField: () => {}
+        };
+
+        const spyOnUpdateField = expect.spyOn(actions, 'onUpdateField');
+        const cmp = ReactDOM.render(
+            <NumberField
+                onUpdateField={actions.onUpdateField}
+            />, document.getElementById("container"));
+        expect(cmp).toExist();
+        const node = ReactDOM.findDOMNode(cmp);
+        const input = node.getElementsByTagName('INPUT');
+        TestUtils.Simulate.change(input[0], {target: {value: 'aaa'}});
+        expect(spyOnUpdateField).toNotHaveBeenCalled();
+    });
+
+    it('if value is number changeNumber should be called', () => {
+        const actions = {
+            onUpdateField: () => {}
+        };
+
+        const spyOnUpdateField = expect.spyOn(actions, 'onUpdateField');
+        const cmp = ReactDOM.render(
+            <NumberField
+                onUpdateField={actions.onUpdateField}
+            />, document.getElementById("container"));
+        expect(cmp).toExist();
+        const node = ReactDOM.findDOMNode(cmp);
+        const input = node.getElementsByTagName('INPUT');
+        TestUtils.Simulate.change(input[0], {target: {value: '7'}});
+        expect(spyOnUpdateField).toHaveBeenCalled();
     });
 });

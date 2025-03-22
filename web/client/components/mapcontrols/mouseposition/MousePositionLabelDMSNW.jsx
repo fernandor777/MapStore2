@@ -1,17 +1,19 @@
-var PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var React = require('react');
-var BootstrapReact = require('react-bootstrap');
-var Label = BootstrapReact.Label;
-var NumberFormat = require('../../I18N/Number');
 
-class MousePositionLabelDMS extends React.Component {
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Label} from 'react-bootstrap';
+
+import { roundCoord } from '../../../utils/CoordinatesUtils';
+import NumberFormat from '../../I18N/Number';
+
+class MousePositionLabelDMSNW extends React.Component {
     static propTypes = {
         position: PropTypes.shape({
             lng: PropTypes.number,
@@ -39,18 +41,17 @@ class MousePositionLabelDMS extends React.Component {
         let decimalFormat = {style: "decimal", minimumIntegerDigits: 2, maximumFractionDigits: 2, minimumFractionDigits: 2};
         let lngDFormat = {style: "decimal", minimumIntegerDigits: 3, maximumFractionDigits: 0};
         return (
-                <h5>
-
+            <h5>
                 <Label bsSize="lg" bsStyle="info">
-                    <NumberFormat key="latD" numberParams={integerFormat} value={Math.abs(pos.lat)} />
-                    <span>° </span><NumberFormat key="latM" numberParams={integerFormat} value={pos.latM} />
+                    <NumberFormat key="latD" numberParams={integerFormat} value={roundCoord({roundingBehaviour: "floor", value: Math.abs(pos.lat), maximumFractionDigits: integerFormat.maximumFractionDigits})} />
+                    <span>° </span><NumberFormat key="latM" numberParams={integerFormat} value={roundCoord({roundingBehaviour: "floor", value: pos.latM, maximumFractionDigits: integerFormat.maximumFractionDigits})} />
                     <span>&apos; </span><NumberFormat key="latS" numberParams={decimalFormat} value={pos.latS} />
-                    <span>&apos;&apos; {pos.lat > 0 ? "N" : "S"} </span><NumberFormat key="lngD" numberParams={lngDFormat} value={Math.abs(pos.lng)} />
-                    <span>° </span><NumberFormat key="lngM" numberParams={integerFormat} value={pos.lngM} />
+                    <span>&apos;&apos; {pos.lat > 0 ? "N" : "S"} </span><NumberFormat key="lngD" numberParams={lngDFormat} value={roundCoord({roundingBehaviour: "floor", value: Math.abs(pos.lng), maximumFractionDigits: lngDFormat.maximumFractionDigits})} />
+                    <span>° </span><NumberFormat key="lngM" numberParams={integerFormat} value={roundCoord({roundingBehaviour: "floor", value: pos.lngM, maximumFractionDigits: integerFormat.maximumFractionDigits})} />
                     <span>&apos; </span><NumberFormat key="lngS" numberParams={decimalFormat} value={pos.lngS} /><span>'' {pos.lng > 0 ? "E" : "W"}</span>
                 </Label>
-                </h5>);
+            </h5>);
     }
 }
 
-module.exports = MousePositionLabelDMS;
+export default MousePositionLabelDMSNW;

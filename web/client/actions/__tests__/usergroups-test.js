@@ -6,9 +6,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const expect = require('expect');
-const assign = require('object-assign');
-const {
+import expect from 'expect';
+
+import assign from 'object-assign';
+
+import {
     GETGROUPS,
     STATUS_SUCCESS,
     STATUS_ERROR,
@@ -24,8 +26,9 @@ const {
     STATUS_DELETED,
     searchUsers,
     SEARCHUSERS
-} = require('../usergroups');
-let GeoStoreDAO = require('../../api/GeoStoreDAO');
+} from '../usergroups';
+
+import GeoStoreDAO from '../../api/GeoStoreDAO';
 let oldAddBaseUri = GeoStoreDAO.addBaseUrl;
 
 describe('Test correctness of the usergroups actions', () => {
@@ -106,6 +109,22 @@ describe('Test correctness of the usergroups actions', () => {
             }
         });
     });
+
+    it('close UserGroup edit', (done) => {
+        const retFun = editGroup();
+        expect(retFun).toExist();
+        let count = 0;
+        retFun((action) => {
+            expect(action.type).toBe(EDITGROUP);
+            count++;
+            if (count === 1) {
+                expect(action.group).toNotExist();
+                expect(action.status).toNotExist();
+                done();
+            }
+        });
+    });
+
     it('edit UserGroup error', (done) => {
         const retFun = editGroup({id: 99999});
         expect(retFun).toExist();

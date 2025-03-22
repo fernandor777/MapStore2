@@ -6,10 +6,12 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var expect = require('expect');
-var {
+import expect from 'expect';
+
+import {
     LAYER_SELECTED_FOR_SEARCH,
     FEATURE_TYPE_SELECTED,
+    FEATURE_TYPE_LOADED,
     FEATURE_TYPE_ERROR,
     FEATURE_LOADING,
     FEATURE_LOADED,
@@ -19,9 +21,12 @@ var {
     QUERY_CREATE,
     QUERY,
     RESET_QUERY,
-    INIT_QUERY_PANEL, initQueryPanel,
+    INIT_QUERY_PANEL,
+    TOGGLE_LAYER_FILTER,
+    initQueryPanel,
     layerSelectedForSearch,
     featureTypeSelected,
+    featureTypeLoaded,
     featureTypeError,
     featureLoading,
     featureLoaded,
@@ -30,8 +35,9 @@ var {
     queryError,
     createQuery,
     query,
-    resetQuery
-} = require('../wfsquery');
+    resetQuery,
+    toggleLayerFilter
+} from '../wfsquery';
 
 describe('wfsquery actions', () => {
     it('layerSelectedForSearch', () => {
@@ -43,11 +49,35 @@ describe('wfsquery actions', () => {
         let {type} = initQueryPanel();
         expect(type).toBe(INIT_QUERY_PANEL);
     });
-    it('featureTypeSelected', () => {
-        let {type, url, typeName} = featureTypeSelected("/geoserver/", "topp:states");
+    it('featureTypeSelected without owner', () => {
+        let {type, url, typeName, fields} = featureTypeSelected("/geoserver/", "topp:states", [{name: "name", alias: "alias"}]);
         expect(type).toBe(FEATURE_TYPE_SELECTED);
         expect(url).toBe("/geoserver/");
         expect(typeName).toBe("topp:states");
+        expect(fields).toEqual([{name: "name", alias: "alias"}]);
+    });
+
+    it('featureTypeSelected with owner as parameter', () => {
+        let {type, url, typeName, fields, owner} = featureTypeSelected("/geoserver/", "topp:states", [{name: "name", alias: "alias"}], "owner");
+        expect(type).toBe(FEATURE_TYPE_SELECTED);
+        expect(url).toBe("/geoserver/");
+        expect(typeName).toBe("topp:states");
+        expect(fields).toEqual([{name: "name", alias: "alias"}]);
+        expect(owner).toBe("owner");
+    });
+    it('featureTypeLoaded without owner', () => {
+        let {type, typeName, featureType} = featureTypeLoaded("topp:states", "featureType");
+        expect(type).toBe(FEATURE_TYPE_LOADED);
+        expect(typeName).toBe("topp:states");
+        expect(featureType).toBe("featureType");
+    });
+
+    it('featureTypeLoaded with owner as parameter', () => {
+        let {type, typeName, featureType, owner} = featureTypeLoaded("topp:states", "featureType", "owner");
+        expect(type).toBe(FEATURE_TYPE_LOADED);
+        expect(typeName).toBe("topp:states");
+        expect(featureType).toBe("featureType");
+        expect(owner).toBe("owner");
     });
     it('featureTypeError', () => {
         let {type, error, typeName} = featureTypeError("topp:states", "ERROR");
@@ -61,6 +91,12 @@ describe('wfsquery actions', () => {
         expect(isLoading).toBe(true);
     });
     it('featureLoaded', () => {
+        let {type, typeName, feature} = featureLoaded("topp:states", "feature");
+        expect(type).toBe(FEATURE_LOADED);
+        expect(typeName).toBe("topp:states");
+        expect(feature).toBe(feature);
+    });
+    it('featureLoaded with owner as parameter', () => {
         let {type, typeName, feature} = featureLoaded("topp:states", "feature");
         expect(type).toBe(FEATURE_LOADED);
         expect(typeName).toBe("topp:states");
@@ -90,14 +126,32 @@ describe('wfsquery actions', () => {
         expect(searchUrl).toBe("searchUrl");
         expect(filterObj).toBe("filterObj");
     });
+    it('createQuery with owner param', () => {
+        let {type, searchUrl, filterObj, owner} = createQuery("searchUrl", "filterObj", "owner");
+        expect(type).toBe(QUERY_CREATE);
+        expect(searchUrl).toBe("searchUrl");
+        expect(filterObj).toBe("filterObj");
+        expect(owner).toBe("owner");
+    });
     it('query', () => {
         let {type, searchUrl, filterObj} = query("searchUrl", "filterObj");
         expect(type).toBe(QUERY);
         expect(searchUrl).toBe("searchUrl");
         expect(filterObj).toBe("filterObj");
     });
+    it('query with query options', () => {
+        let { type, searchUrl, filterObj, queryOptions } = query("searchUrl", "filterObj", "queryOptions");
+        expect(type).toBe(QUERY);
+        expect(searchUrl).toBe("searchUrl");
+        expect(filterObj).toBe("filterObj");
+        expect(queryOptions).toBe("queryOptions");
+    });
     it('resetQuery', () => {
         let {type} = resetQuery();
         expect(type).toBe(RESET_QUERY);
+    });
+    it('toggleLayerFilter', () => {
+        let {type} = toggleLayerFilter();
+        expect(type).toBe(TOGGLE_LAYER_FILTER);
     });
 });

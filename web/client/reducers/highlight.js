@@ -6,13 +6,9 @@
  * LICENSE file in the root directory of this source tree.
 */
 
-const {
-    HIGHLIGHT_STATUS,
-    UPDATE_HIGHLIGHTED,
-    SET_HIGHLIGHT_FEATURES_PATH
-} = require('../actions/highlight');
+import { HIGHLIGHT_STATUS, UPDATE_HIGHLIGHTED, SET_HIGHLIGHT_FEATURES_PATH } from '../actions/highlight';
 
-const assign = require('object-assign');
+import assign from 'object-assign';
 
 const initialState = {
     status: 'disabled',
@@ -25,20 +21,20 @@ const initialState = {
 
 function highlight(state = initialState, action) {
     switch (action.type) {
-        case SET_HIGHLIGHT_FEATURES_PATH: {
-            return assign({}, state, {
-                featuresPath: action.featuresPath || "highlight.emptyFeatures"
-            });
-        }
-        case HIGHLIGHT_STATUS: {
-            return {...state, status: action.status};
-        }
-        case UPDATE_HIGHLIGHTED: {
-            return {...state, highlighted: action.features.length, features: action.features, status: action.status || state.status};
-        }
-        default:
-            return state;
+    case SET_HIGHLIGHT_FEATURES_PATH: {
+        return assign({}, state, {
+            featuresPath: action.featuresPath || "highlight.emptyFeatures"
+        });
+    }
+    case HIGHLIGHT_STATUS: {
+        return {...state, status: action.status};
+    }
+    case UPDATE_HIGHLIGHTED: {
+        return {...state, highlighted: action.features.length, features: action.features, status: action.status || state.status};
+    }
+    default:
+        return state;
     }
 }
 
-module.exports = highlight;
+export default highlight;

@@ -5,13 +5,13 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var LocateBtn = require('../LocateBtn');
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ReactTestUtils from 'react-dom/test-utils';
 
-const ReactTestUtils = require('react-dom/test-utils');
+import LocateBtn from '../LocateBtn';
 
 describe("test the Locate Button", () => {
     beforeEach((done) => {
@@ -37,6 +37,7 @@ describe("test the Locate Button", () => {
         expect(icons.length).toBe(1);
 
         expect(tbNode.className.indexOf('default') >= 0).toBe(true);
+        expect(tbNode.className.indexOf('success') === -1).toBe(true);
         expect(tbNode.innerHTML).toExist();
     });
 
@@ -46,6 +47,7 @@ describe("test the Locate Button", () => {
 
         const tbNode = ReactDOM.findDOMNode(tb);
 
+        expect(tbNode.className.indexOf('default') === -1).toBe(true);
         expect(tbNode.className.indexOf('success') >= 0).toBe(true);
     });
 
@@ -61,16 +63,18 @@ describe("test the Locate Button", () => {
 
         expect(spy.calls.length).toEqual(1);
         expect(spy.calls[0].arguments).toEqual(["FOLLOWING"]);
+        expect(tbNode.className.indexOf('default') === -1).toBe(true);
+        expect(tbNode.className.indexOf('success') >= 0).toBe(true);
     });
 
     it('test permission denied state', () => {
         const component = ReactDOM.render(<LocateBtn locate="PERMISSION_DENIED"/>,
-                        document.getElementById("container"));
+            document.getElementById("container"));
         expect(component).toExist();
         // check if the button was correctly disabled
         const button = ReactTestUtils.findRenderedDOMComponentWithTag(component, "button");
         expect(button).toExist();
-        expect(button.disabled).toEqual(true);
+        expect(button.classList.contains('disabled')).toEqual(true);
     });
 
 });

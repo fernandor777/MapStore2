@@ -1,18 +1,34 @@
- /**
+/**
   * Copyright 2017, GeoSolutions Sas.
   * All rights reserved.
   *
   * This source code is licensed under the BSD-style license found in the
   * LICENSE file in the root directory of this source tree.
   */
-const React = require('react');
-const ReactDOM = require('react-dom');
-const BaseDateTimeFilter = require('../BaseDateTimeFilter');
-const expect = require('expect');
-const Moment = require('moment');
-const momentLocalizer = require('react-widgets/lib/localizers/moment');
+import React from 'react';
+import ReactDOM from 'react-dom';
+import BaseDateTimeFilter, { DateFilter } from '../BaseDateTimeFilter';
+import expect from 'expect';
+import Moment from 'moment';
+import momentLocalizer from 'react-widgets/lib/localizers/moment';
 
 momentLocalizer(Moment);
+const intlMock = {
+    formatMessage: ({ id }) => {
+        // intl library throws an error when id is undefined, null or an empty string
+        if (!id) {
+            throw new Error();
+        }
+        return 'any message';
+    },
+    formatDate: () => {},
+    formatTime: () => {},
+    formatRelative: () => {},
+    formatNumber: () => {},
+    formatPlural: () => {},
+    formatHTMLMessage: () => {},
+    now: () => {}
+};
 describe('Test for BaseDateTimeFilter component', () => {
     beforeEach((done) => {
         document.body.innerHTML = '<div id="container"></div>';
@@ -30,25 +46,52 @@ describe('Test for BaseDateTimeFilter component', () => {
         expect(el).toExist();
     });
     it('render with value', () => {
-        ReactDOM.render(<BaseDateTimeFilter type="date" value={"2017-01-05Z"}/>, document.getElementById("container"));
+        ReactDOM.render(<BaseDateTimeFilter type="date" value="2017-01-05Z" />, document.getElementById("container"));
         const el = document.getElementsByTagName("input")[0];
         expect(el).toExist();
         const input = document.getElementsByTagName("input")[0];
         expect(input.value.indexOf(5) > 0).toBe(true);
-        ReactDOM.render(<BaseDateTimeFilter type="time" value={"04:04:04Z"}/>, document.getElementById("container"));
+        ReactDOM.render(<BaseDateTimeFilter type="time" value="04:04:04Z" />, document.getElementById("container"));
         expect(el).toExist();
-        ReactDOM.render(<BaseDateTimeFilter type="datetime" value={"2017-01-05T04:04:04Z"}/>, document.getElementById("container"));
+        ReactDOM.render(<BaseDateTimeFilter type="date-time" value="2017-01-05T04:04:04Z" />, document.getElementById("container"));
         expect(el).toExist();
 
     });
-    it('Test BaseDateTimeFilter onChange', () => {
-        const actions = {
-            onChange: () => {}
-        };
-        const spyonChange = expect.spyOn(actions, 'onChange');
-        const cmp = ReactDOM.render(<BaseDateTimeFilter type="date" onChange={actions.onChange} />, document.getElementById("container"));
+    it('render with value as startDate', () => {
+        ReactDOM.render(<BaseDateTimeFilter type="date" value={{startDate: "2017-01-05Z"}} />, document.getElementById("container"));
+        const el = document.getElementsByTagName("input")[0];
+        expect(el).toExist();
+        const input = document.getElementsByTagName("input")[0];
+        expect(input.value.indexOf(5) > 0).toBe(true);
+        ReactDOM.render(<BaseDateTimeFilter type="time" value={{startDate: "04:04:04Z"}} />, document.getElementById("container"));
+        expect(el).toExist();
+        ReactDOM.render(<BaseDateTimeFilter type="date-time" value={{startDate: "2017-01-05T04:04:04Z"}} />, document.getElementById("container"));
+        expect(el).toExist();
 
-        cmp.handleChange(new Date("2017-01-05T00:00:00Z"), "2017-01-05Z");
-        expect(spyonChange).toHaveBeenCalled();
+    });
+    it('render with range operator ><', () => {
+        // for type date
+        ReactDOM.render(<BaseDateTimeFilter type="date" value={{ operator: '><'}} isWithinAttrTbl={"true"} />, document.getElementById("container"));
+        let el = document.getElementsByTagName("input")[0];
+        expect(el).toExist();
+        let dateTimePickerWithRangeElement = document.getElementsByClassName('rw-datetimepicker range-time-input rw-widget')[0];
+        expect(dateTimePickerWithRangeElement).toExist();
+        // for time date
+        ReactDOM.render(<BaseDateTimeFilter type="time" value={{ operator: '><'}} isWithinAttrTbl={"true"} />, document.getElementById("container"));
+        el = document.getElementsByTagName("input")[0];
+        expect(el).toExist();
+        dateTimePickerWithRangeElement = document.getElementsByClassName('rw-datetimepicker range-time-input rw-widget')[0];
+        expect(dateTimePickerWithRangeElement).toExist();
+        // for type date-time
+        ReactDOM.render(<BaseDateTimeFilter type="date-time" value={{ operator: '><'}} isWithinAttrTbl={"true"} />, document.getElementById("container"));
+        el = document.getElementsByTagName("input")[0];
+        expect(el).toExist();
+        dateTimePickerWithRangeElement = document.getElementsByClassName('rw-datetimepicker range-time-input rw-widget')[0];
+        expect(dateTimePickerWithRangeElement).toExist();
+    });
+    it('render with intl when tooltipMsgId is an empty string', () => {
+        ReactDOM.render(<DateFilter intl={intlMock} tooltipMsgId=""/>, document.getElementById("container"));
+        const el = document.getElementsByTagName("input")[0];
+        expect(el).toBeTruthy();
     });
 });

@@ -1,5 +1,4 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
@@ -7,13 +6,14 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-var React = require('react');
-const Message = require('../../../I18N/Message');
-const Select = require('react-select');
-const {Button, Glyphicon, Alert} = require('react-bootstrap');
-const {findIndex} = require('lodash');
+import { findIndex } from 'lodash';
+import PropTypes from 'prop-types';
+import React from 'react';
+import {Alert, Glyphicon, Grid} from 'react-bootstrap';
+import Select from 'react-select';
 
-require('react-select/dist/react-select.css');
+import Button from '../../../misc/Button';
+import Message from '../../../I18N/Message';
 
 /**
  * General Settings form for layer
@@ -21,7 +21,7 @@ require('react-select/dist/react-select.css');
 class WMSStyle extends React.Component {
     static propTypes = {
         retrieveLayerData: PropTypes.func,
-        updateSettings: PropTypes.func,
+        onChange: PropTypes.func,
         element: PropTypes.object,
         groups: PropTypes.array
     };
@@ -29,7 +29,7 @@ class WMSStyle extends React.Component {
     static defaultProps = {
         element: {},
         retrieveLayerData: () => {},
-        updateSettings: () => {}
+        onChange: () => {}
     };
 
     renderLegend = () => {
@@ -49,6 +49,7 @@ class WMSStyle extends React.Component {
         if (this.props.element && this.props.element.capabilities && this.props.element && this.props.element.capabilities.error) {
             return <Alert bsStyle="danger"><Message msgId="layerProperties.styleListLoadError" /></Alert>;
         }
+        return null;
     };
 
     render() {
@@ -59,38 +60,41 @@ class WMSStyle extends React.Component {
         if (!(currentStyleIndex >= 0) && this.props.element.style) {
             options.push({label: this.props.element.style, value: this.props.element.style });
         }
-        return (<form ref="style">
-            <Select.Creatable
-                    key="styles-dropdown"
-                    options={options}
-                    isLoading={this.props.element && this.props.element.capabilitiesLoading}
-                    value={this.props.element.style || ""}
-                    onOpen={() => {
+        return (
+            <Grid fluid style={{paddingTop: 15, paddingBottom: 15}}>
+                <form ref="style">
+                    <Select.Creatable
+                        key="styles-dropdown"
+                        options={options}
+                        isLoading={this.props.element && this.props.element.capabilitiesLoading}
+                        value={this.props.element.style || ""}
+                        onOpen={() => {
                         // automatic retrieve if availableStyles are not available or capabilities is not present
                         // that means you don't have a list and you didn't try to load it.
-                        if (this.props.element && !(this.props.element.capabilities && this.props.element.availableStyles)) {
-                            this.props.retrieveLayerData(this.props.element);
-                        }
-                    }}
-                    promptTextCreator={(value) => {
-                        return <Message msgId="layerProperties.styleCustom" msgParams={{value}} />;
-                    }}
-                    onChange={(selected) => {
-                        this.updateEntry("style", {target: {value: (selected && selected.value) || ""}});
-                    }}
+                            if (this.props.element && !(this.props.element.capabilities && this.props.element.availableStyles)) {
+                                this.props.retrieveLayerData(this.props.element);
+                            }
+                        }}
+                        promptTextCreator={(value) => {
+                            return <Message msgId="layerProperties.styleCustom" msgParams={{value}} />;
+                        }}
+                        onChange={(selected) => {
+                            this.updateEntry("style", {target: {value: (selected && selected.value) || ""}});
+                        }}
                     />
-                <br />
-                {this.renderLegend()}
-                {this.renderError()}
-                <Button bsStyle="primary" style={{"float": "right"}} onClick={() => this.props.retrieveLayerData(this.props.element)}><Glyphicon glyph="refresh" />&nbsp;<Message msgId="layerProperties.stylesRefreshList" /></Button>
-                <br />
-            </form>);
+                    <br />
+                    {this.renderLegend()}
+                    {this.renderError()}
+                    <Button bsStyle="primary" style={{"float": "right"}} onClick={() => this.props.retrieveLayerData(this.props.element)}><Glyphicon glyph="refresh" />&nbsp;<Message msgId="layerProperties.stylesRefreshList" /></Button>
+                    <br />
+                </form>
+            </Grid>);
     }
 
     updateEntry = (key, event) => {
         let value = event.target.value;
-        this.props.updateSettings({[key]: value});
+        this.props.onChange(key, value);
     };
 }
 
-module.exports = WMSStyle;
+export default WMSStyle;

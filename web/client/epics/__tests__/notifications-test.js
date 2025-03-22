@@ -6,16 +6,16 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var expect = require('expect');
+import expect from 'expect';
 
-const configureMockStore = require('redux-mock-store').default;
-const {createEpicMiddleware, combineEpics } = require('redux-observable');
-const {CLEAR_NOTIFICATIONS} = require('../../actions/notifications');
-
-const {clearNotificationOnLocationChange} = require('../notifications');
+import configureMockStore from 'redux-mock-store';
+import { createEpicMiddleware, combineEpics } from 'redux-observable';
+import { CLEAR_NOTIFICATIONS } from '../../actions/notifications';
+import { clearNotificationOnLocationChange } from '../notifications';
 const rootEpic = combineEpics(clearNotificationOnLocationChange);
 const epicMiddleware = createEpicMiddleware(rootEpic);
 const mockStore = configureMockStore([epicMiddleware]);
+import { onLocationChanged } from 'connected-react-router';
 
 describe('notifications Epics', () => {
     let store;
@@ -29,7 +29,7 @@ describe('notifications Epics', () => {
 
     it('test clear notifications on location change', (done) => {
 
-        store.dispatch({type: '@@router/LOCATION_CHANGE'});
+        store.dispatch(onLocationChanged({}));
 
         setTimeout( () => {
             try {
@@ -37,7 +37,7 @@ describe('notifications Epics', () => {
                 expect(actions.length).toBe(2);
                 expect(actions[1].type).toBe(CLEAR_NOTIFICATIONS);
             } catch (e) {
-                return done(e);
+                done(e);
             }
             done();
         }, 500);

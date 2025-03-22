@@ -1,17 +1,18 @@
- /**
+/**
   * Copyright 2017, GeoSolutions Sas.
   * All rights reserved.
   *
   * This source code is licensed under the BSD-style license found in the
   * LICENSE file in the root directory of this source tree.
   */
-const React = require('react');
-const ReactDOM = require('react-dom');
-const ReactTestUtils = require('react-dom/test-utils');
-const AttributeFilter = require('../AttributeFilter');
-var Localized = require('../../../../I18N/Localized');
 
-const expect = require('expect');
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import ReactTestUtils from 'react-dom/test-utils';
+
+import Localized from '../../../../I18N/Localized';
+import AttributeFilter from '../AttributeFilter';
 
 describe('Test for AttributeFilter component', () => {
     beforeEach((done) => {
@@ -66,5 +67,31 @@ describe('Test for AttributeFilter component', () => {
         input.value = "test";
         ReactTestUtils.Simulate.change(input);
         expect(spyonChange).toHaveBeenCalled();
+    });
+    it('test rendering with operator DD', () => {
+        const cmp = ReactDOM.render(<AttributeFilter isWithinAttrTbl={"true"} value={"TEST"}/>, document.getElementById("container"));
+        const el = document.getElementsByClassName("form-control input-sm")[0];
+        expect(el).toExist();
+        const input = ReactTestUtils.findRenderedDOMComponentWithTag(cmp, "input");
+        expect(input.value).toBe("TEST");
+        const operatorDropdownListEl = ReactTestUtils.findRenderedDOMComponentWithClass(cmp, 'rw-dropdownlist');
+        expect(operatorDropdownListEl).toExist();
+    });
+    it('test disable operator dropdown', () => {
+        const cmp = ReactDOM.render(<AttributeFilter disabled isWithinAttrTbl={"true"} value={"TEST"}/>, document.getElementById("container"));
+        const el = document.getElementsByClassName("form-control input-sm")[0];
+        expect(el).toExist();
+        const input = ReactTestUtils.findRenderedDOMComponentWithTag(cmp, "input");
+        expect(input.value).toBe("TEST");
+        expect(input.disabled).toBe(true);
+    });
+    it('test rendering without operator DD', () => {
+        const cmp = ReactDOM.render(<AttributeFilter isWithinAttrTbl={false} value={"TEST"}/>, document.getElementById("container"));
+        const el = document.getElementsByClassName("form-control input-sm")[0];
+        expect(el).toExist();
+        const input = ReactTestUtils.findRenderedDOMComponentWithTag(cmp, "input");
+        expect(input.value).toBe("TEST");
+        const operatorDropdownListEl = document.getElementsByClassName('rw-dropdownlist');
+        expect(operatorDropdownListEl.length).toEqual(0);
     });
 });

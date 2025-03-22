@@ -7,10 +7,11 @@
  */
 
 
-const expect = require('expect');
-const tutorial = require('../tutorial');
+import expect from 'expect';
 
-const {
+import tutorial from '../tutorial';
+
+import {
     START_TUTORIAL,
     INIT_TUTORIAL,
     SETUP_TUTORIAL,
@@ -19,7 +20,7 @@ const {
     RESET_TUTORIAL,
     CLOSE_TUTORIAL,
     TOGGLE_TUTORIAL
-} = require('../../actions/tutorial');
+} from '../../actions/tutorial';
 
 describe('Test the tutorial reducer', () => {
 
@@ -254,6 +255,37 @@ describe('Test the tutorial reducer', () => {
         });
 
         expect(state.enabled).toBe(true);
+    });
+
+    it('setup the tutorial with intro but stop flag', () => {
+        const state = tutorial({}, {
+            type: SETUP_TUTORIAL,
+            steps: [{
+                title: 'test',
+                text: 'test',
+                selector: '#intro-tutorial'
+            },
+            {
+                translation: 'test',
+                selector: '.step-tutorial'
+            },
+            {
+                translationHTML: 'test',
+                selector: '#step-tutorial'
+            },
+            {
+                title: 'test',
+                text: 'test',
+                selector: 'step-tutorial'
+            }],
+            checkbox: 'checkbox',
+            style: {},
+            defaultStep: {},
+            stop: true
+        });
+        expect(state.run).toBe(false);
+        expect(state.start).toBe(false);
+        expect(state.status).toBe('close');
     });
 
 });

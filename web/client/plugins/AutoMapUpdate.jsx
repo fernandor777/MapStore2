@@ -6,23 +6,26 @@
  * LICENSE file in the root directory of this source tree.
 */
 
-const React = require('react');
-const PropTypes = require('prop-types');
-const {connect} = require('react-redux');
-const {manageAutoMapUpdate} = require('../epics/automapupdate');
-const {autoMapUpdateSelector} = require('../selectors/automapupdate');
-const {setControlProperty} = require('../actions/controls');
-const {refresh} = require('../epics/layers');
+import React from 'react';
 
-const OverlayProgressBar = require('../components/misc/progressbars/OverlayProgressBar/OverlayProgressBar');
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import { manageAutoMapUpdate } from '../epics/automapupdate';
+import { autoMapUpdateSelector } from '../selectors/automapupdate';
+import { setControlProperty } from '../actions/controls';
+import OverlayProgressBar from '../components/misc/progressbars/OverlayProgressBar/OverlayProgressBar';
+import { createPlugin } from '../utils/PluginsUtils';
 
 /**
-  * AutoMapUpdate Plugin. It sends a notification to update old maps (version < 2)
+  * AutoMapUpdate Plugin.
+  * It sends a notification to update old maps (version < 2).
+  * The notification is sent only if the user has "canEdit" permission on the map.
+  * The notification will disappear after 12 seconds (See https://github.com/igorprado/react-notification-system for details)
+  * The updated map is not automatically saved but the user will be prompted to do it.
   * @class AutoMapUpdate
   * @memberof plugins
   * @static
   */
-
 class AutoMapUpdate extends React.Component {
     static propTypes = {
         options: PropTypes.object,
@@ -50,7 +53,7 @@ class AutoMapUpdate extends React.Component {
         onUpdateOptions: () => {}
     };
 
-    componentWillMount() {
+    UNSAFE_componentWillMount() {
         this.props.onUpdateOptions(this.props.options);
     }
 
@@ -71,8 +74,8 @@ const AutoMapUpdatePlugin = connect(autoMapUpdateSelector, {
     onUpdateOptions: setControlProperty.bind(null, 'mapUpdate', 'options')
 })(AutoMapUpdate);
 
-module.exports = {
-    AutoMapUpdatePlugin,
+export default createPlugin("AutoMapUpdate", {
+    component: AutoMapUpdatePlugin,
     reducers: {},
-    epics: {manageAutoMapUpdate, refresh}
-};
+    epics: {manageAutoMapUpdate}
+});

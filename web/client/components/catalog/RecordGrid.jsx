@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,54 +5,89 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
+import React from 'react';
 
-const {Grid, Row, Col} = require('react-bootstrap');
-
-const RecordItem = require('./RecordItem');
-
+import PropTypes from 'prop-types';
+import { Grid, Row, Col } from 'react-bootstrap';
+import RecordItem from './RecordItem';
 
 class RecordGrid extends React.Component {
     static propTypes = {
+        crs: PropTypes.string,
         recordItem: PropTypes.element,
         catalogURL: PropTypes.string,
-        onZoomToExtent: PropTypes.func,
+        catalogType: PropTypes.string,
         zoomToLayer: PropTypes.bool,
         onLayerAdd: PropTypes.func,
+        onPropertiesChange: PropTypes.func,
         onError: PropTypes.func,
         records: PropTypes.array,
+        authkeyParamNames: PropTypes.array,
         style: PropTypes.object,
         showGetCapLinks: PropTypes.bool,
         addAuthentication: PropTypes.bool,
         column: PropTypes.object,
-        currentLocale: PropTypes.string
+        currentLocale: PropTypes.string,
+        hideThumbnail: PropTypes.bool,
+        hideIdentifier: PropTypes.bool,
+        hideExpand: PropTypes.bool,
+        source: PropTypes.string,
+        onAddBackgroundProperties: PropTypes.func,
+        modalParams: PropTypes.object,
+        layers: PropTypes.object,
+        clearModal: PropTypes.func,
+        onAddBackground: PropTypes.func,
+        showTemplate: PropTypes.bool,
+        service: PropTypes.object,
+        defaultFormat: PropTypes.string,
+        layerBaseConfig: PropTypes.object
     };
 
     static defaultProps = {
         column: {xs: 12},
         currentLocale: 'en-US',
         onLayerAdd: () => {},
+        onPropertiesChange: () => {},
         onError: () => {},
         records: [],
-        zoomToLayer: true
+        zoomToLayer: true,
+        layerBaseConfig: {},
+        crs: "EPSG:3857"
     };
 
     renderRecordItem = (record) => {
         let Item = this.props.recordItem || RecordItem;
         return (
-			<Col {...this.props.column} key={record.identifier}>
+            <Col {...this.props.column} key={record.identifier}>
                 <Item
+                    crs={this.props.crs}
+                    clearModal={this.props.clearModal}
+                    layers={this.props.layers}
+                    modalParams={this.props.modalParams}
+                    onAddBackgroundProperties={this.props.onAddBackgroundProperties}
+                    onAddBackground={this.props.onAddBackground}
+                    source={this.props.source}
                     onLayerAdd={this.props.onLayerAdd}
-                    onZoomToExtent={this.props.onZoomToExtent}
+                    onPropertiesChange={this.props.onPropertiesChange}
                     zoomToLayer={this.props.zoomToLayer}
+                    hideThumbnail={this.props.hideThumbnail}
+                    hideIdentifier={this.props.hideIdentifier}
+                    hideExpand={this.props.hideExpand}
                     onError={this.props.onError}
                     catalogURL={this.props.catalogURL}
+                    catalogType={this.props.catalogType}
+                    service={this.props.service}
+                    showTemplate={this.props.showTemplate}
                     record={record}
+                    authkeyParamNames={this.props.authkeyParamNames}
                     style={{height: "215px", maxHeight: "215px"}}
                     showGetCapLinks={this.props.showGetCapLinks}
                     addAuthentication={this.props.addAuthentication}
-                    currentLocale={this.props.currentLocale}/>
-			</Col>
+                    currentLocale={this.props.currentLocale}
+                    defaultFormat={this.props.defaultFormat}
+                    layerBaseConfig={this.props.layerBaseConfig}
+                />
+            </Col>
         );
     };
 
@@ -63,9 +97,9 @@ class RecordGrid extends React.Component {
             return (
                 <Grid className="record-grid" fluid style={this.props.style}>
                     <Row>
-						{mapsList.map(this.renderRecordItem)}
-					</Row>
-				</Grid>
+                        {mapsList.map(this.renderRecordItem)}
+                    </Row>
+                </Grid>
             );
         }
 
@@ -73,4 +107,4 @@ class RecordGrid extends React.Component {
     }
 }
 
-module.exports = RecordGrid;
+export default RecordGrid;

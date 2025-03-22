@@ -1,5 +1,4 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
@@ -7,27 +6,33 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
+import React from 'react';
 
-const Slider = require('react-nouislider');
-const ElevationChart = require('./ElevationChart');
-require('react-widgets/lib/less/react-widgets.less');
-require("./css/elevation.css");
+import PropTypes from 'prop-types';
+import Slider from 'react-nouislider';
+import ElevationChart from './ElevationChart';
+import { Grid } from 'react-bootstrap';
+import Message from '../../../I18N/Message';
+import { getDimension } from '../../../../utils/LayersUtils';
+import './css/elevation.css';
 
-module.exports = class extends React.Component {
+export default class extends React.Component {
     static propTypes = {
         elevationText: PropTypes.node,
         element: PropTypes.object,
-        elevations: PropTypes.object,
+        getDimension: PropTypes.func,
         onChange: PropTypes.func,
-        appState: PropTypes.object,
         chartStyle: PropTypes.object,
-        showElevationChart: PropTypes.bool
+        showElevationChart: PropTypes.bool,
+        containerWidth: PropTypes.number
     };
 
     static defaultProps = {
         onChange: () => {},
-        showElevationChart: true
+        showElevationChart: true,
+        containerWidth: 500,
+        elevationText: <Message msgId="elevation"/>,
+        getDimension: getDimension
     };
 
     shouldComponentUpdate(nextProps) {
@@ -39,9 +44,10 @@ module.exports = class extends React.Component {
             return (
                 <ElevationChart
                     elevations={elevations}
-                    chartStyle={this.props.chartStyle}/>
+                    chartStyle={{height: 200, width: this.props.containerWidth - 30, ...this.props.chartStyle}}/>
             );
         }
+        return null;
     };
 
     renderElevationsSlider = (elevations) => {
@@ -53,7 +59,7 @@ module.exports = class extends React.Component {
         const lastVal = parseFloat(values[values.length - 1]);
         const start = this.props.element &&
                         this.props.element.params &&
-                        this.props.element.params[this.props.elevations.name] || values[0];
+                        this.props.element.params[elevations.name] || values[0];
         return (
             <div id="mapstore-elevation">
                 <Slider
@@ -74,7 +80,7 @@ module.exports = class extends React.Component {
                     tooltips={!this.props.showElevationChart}
                     onChange={(value) => {
                         this.props.onChange("params", Object.assign({}, {
-                            [this.props.elevations.name]: value[0]
+                            [elevations.name]: value[0]
                         }));
                     }}/>
             </div>
@@ -82,15 +88,15 @@ module.exports = class extends React.Component {
     };
 
     render() {
-        const elevations = this.props.elevations;
+        const elevations = this.props.getDimension(this.props.element.dimensions, 'elevation');
         return (
-            <div>
+            <Grid fluid style={{paddingTop: 15, paddingBottom: 15}}>
                 <label
                     id="mapstore-elevation-label"
                     key="elevation-label"
                     className="control-label"
                     style={this.props.showElevationChart ? {marginBottom: "10px"} : {marginBottom: "90px"}}>
-                    {this.props.elevationText}: ({this.props.elevations.units})
+                    {this.props.elevationText}: ({elevations.units})
                 </label>
                 {this.renderElevationsChart(elevations)}
                 <div>
@@ -98,7 +104,7 @@ module.exports = class extends React.Component {
                         {this.renderElevationsSlider(elevations)}
                     </div>
                 </div>
-            </div>
+            </Grid>
         );
     }
 
@@ -113,4 +119,4 @@ module.exports = class extends React.Component {
         });
         return range;
     };
-};
+}

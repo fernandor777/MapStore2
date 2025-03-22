@@ -1,40 +1,37 @@
-const PropTypes = require('prop-types');
-/**
+/*
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const {connect} = require('react-redux');
 
-const {loadLocale} = require('../actions/locale');
+import './settings/css/settings.css';
 
-const {toggleControl} = require('../actions/controls');
+import assign from 'object-assign';
+import PropTypes from 'prop-types';
+import React, { cloneElement } from 'react';
+import { castArray } from 'lodash';
+import { Col, FormGroup, Glyphicon, Panel, Row } from 'react-bootstrap';
+import { connect } from 'react-redux';
+import { ActionCreators } from 'redux-undo';
+
+import { toggleControl } from '../actions/controls';
+import { loadLocale } from '../actions/locale';
+import LangBarComp from '../components/I18N/LangBar';
+import HistoryBar from '../components/mapcontrols/navigationhistory/HistoryBar';
+import Dialog from '../components/misc/Dialog';
+import { getSupportedLocales } from '../utils/LocaleUtils';
+import Message from './locale/Message';
+import SettingsPanel from './settings/SettingsPanel';
 
 const LangBar = connect((state) => ({
     currentLocale: state.locale && state.locale.current
 }), {
     onLanguageChange: loadLocale.bind(null, null)
-})(require('../components/I18N/LangBar'));
+})(LangBarComp);
 
-require('./settings/css/settings.css');
-
-const HistoryBar = require('../components/mapcontrols/navigationhistory/HistoryBar');
-const { ActionCreators } = require('redux-undo');
 const {undo, redo} = ActionCreators;
-
-const Message = require('./locale/Message');
-
-const {Glyphicon} = require('react-bootstrap');
-
-const assign = require('object-assign');
-
-const SettingsPanel = require('./settings/SettingsPanel');
-const LocaleUtils = require('../utils/LocaleUtils');
-const {Panel} = require('react-bootstrap');
-const Dialog = require('../components/misc/Dialog');
 
 class SettingsButton extends React.Component {
     static propTypes = {
@@ -72,10 +69,10 @@ class SettingsButton extends React.Component {
         wrapWithPanel: false,
         panelStyle: {
             minWidth: "300px",
-            zIndex: 100,
+            zIndex: 1996,
             position: "absolute",
-            overflow: "auto",
-            top: "100px",
+            overflow: "visible",
+            top: "90px",
             left: "calc(50% - 150px)",
             backgroundColor: "white"
         },
@@ -87,7 +84,22 @@ class SettingsButton extends React.Component {
 
     renderSettings = () => {
         const settingsFirst = {
-            language: <span key="language-label"><label><Message msgId="language" /></label> <LangBar locales={LocaleUtils.getSupportedLocales()} key="langSelector"/></span>
+            language: (
+                <span key="language-label">
+                    <FormGroup>
+                        <Row>
+                            <Col xs={12}>
+                                <label><Message msgId="language" /></label>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col xs={12}>
+                                <LangBar dropdown={false} locales={getSupportedLocales()} key="langSelector"/>
+                            </Col>
+                        </Row>
+                    </FormGroup>
+
+                </span>)
         };
         const settingsLast = {
             history: <HistoryBar
@@ -107,8 +119,10 @@ class SettingsButton extends React.Component {
         return Object.keys(settingsFirst)
             .filter(this.isEnabled)
             .map((setting) => settingsFirst[setting])
-            // TODO: here every item (item.tool) we emit should have a "key" property
-            .concat(this.props.items.map((item) => item.tool))
+            .concat(this.props.items.map((item) =>
+                castArray(item.tool)
+                    .map((tool, idx) => cloneElement(tool, { ...item.cfg, key: `${item.name}-${idx}` }))
+            ))
             .concat(
                 Object.keys(settingsLast)
                     .filter(this.isEnabled)
@@ -120,8 +134,7 @@ class SettingsButton extends React.Component {
         const settings =
             (<SettingsPanel key="SettingsPanel" role="body" style={this.props.style}>
                 {this.renderSettings()}
-            </SettingsPanel>)
-        ;
+            </SettingsPanel>);
         if (this.props.wrap) {
             if (this.props.visible) {
                 if (this.props.wrapWithPanel) {
@@ -129,7 +142,7 @@ class SettingsButton extends React.Component {
                         {settings}
                     </Panel>);
                 }
-                return (<Dialog id={this.props.id} style={this.props.panelStyle} className={this.props.panelClassName}>
+                return (<Dialog id={this.props.id} style={{...this.props.panelStyle, display: this.props.visible ? 'block' : 'none'}} className={this.props.panelClassName} draggable={false} modal>
                     <span role="header">
                         <span className="settings-panel-title"><Message msgId="settings"/></span>
                         <button onClick={this.props.toggleControl} className="settings-panel-close close">{this.props.closeGlyph ? <Glyphicon glyph={this.props.closeGlyph}/> : <span>×</span>}</button>
@@ -162,7 +175,16 @@ const SettingsPlugin = connect((state) => ({
     toggleControl: toggleControl.bind(null, 'settings', null)
 })(SettingsButton);
 
-module.exports = {
+
+/**
+ * Settings window to configure some details of the current map.
+ * Is also a container for settings coming from the other plugins.
+ * Renders in {@link #plugins.BurgerMenu|BurgerMenu} an entry to open this window.
+ * @name Settings
+ * @class
+ * @memberof plugins
+ */
+export default {
     SettingsPlugin: assign(SettingsPlugin, {
         Toolbar: {
             name: 'settings',
@@ -185,7 +207,19 @@ module.exports = {
             name: 'settings',
             position: 100,
             text: <Message msgId="settings"/>,
+            tooltip: "settingsTooltip",
             icon: <Glyphicon glyph="cog"/>,
+            action: toggleControl.bind(null, 'settings', null),
+            priority: 4,
+            doNotHide: true
+        },
+        SidebarMenu: {
+            name: 'settings',
+            position: 100,
+            tooltip: "settingsTooltip",
+            text: <Message msgId="settings"/>,
+            icon: <Glyphicon glyph="cog"/>,
+            toggle: true,
             action: toggleControl.bind(null, 'settings', null),
             priority: 3,
             doNotHide: true

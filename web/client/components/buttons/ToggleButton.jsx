@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /*
  * Copyright 2015, GeoSolutions Sas.
  * All rights reserved.
@@ -7,13 +6,13 @@ const PropTypes = require('prop-types');
  * LICENSE file in the root directory of this source tree.
  */
 
-var React = require('react');
-var {Button, Glyphicon} = require('react-bootstrap');
+import React from 'react';
 
-const OverlayTrigger = require('../misc/OverlayTrigger');
-
-var ImageButton = require('./ImageButton');
-
+import PropTypes from 'prop-types';
+import { Glyphicon } from 'react-bootstrap';
+import OverlayTrigger from '../misc/OverlayTrigger';
+import Button from '../misc/Button';
+import ImageButton from './ImageButton';
 /**
  * Toggle button with tooltip and icons or image support.
  * @memberof components.buttons
@@ -59,7 +58,7 @@ class ToggleButton extends React.Component {
         options: {},
         pressed: false,
         tooltipPlace: "top",
-        style: {width: "100%"},
+        style: {},
         btnType: 'normal',
         pressedStyle: 'primary',
         defaultStyle: 'default'
@@ -107,4 +106,4 @@ class ToggleButton extends React.Component {
     }
 }
 
-module.exports = ToggleButton;
+export default ToggleButton;

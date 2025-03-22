@@ -6,13 +6,14 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-const React = require('react');
-const {FormControl, Tooltip} = require('react-bootstrap');
-const LocaleUtils = require('../../../utils/LocaleUtils');
-const OverlayTrigger = require('../../../components/misc/OverlayTrigger');
-const HTML = require('../../../components/I18N/HTML');
-const PropTypes = require('prop-types');
-const {isLikeOrIlike} = require('../../../utils/FilterUtils');
+import React from 'react';
+
+import { FormControl, Tooltip } from 'react-bootstrap';
+import { getMessageById } from '../../../utils/LocaleUtils';
+import OverlayTrigger from '../../../components/misc/OverlayTrigger';
+import HTML from '../../../components/I18N/HTML';
+import PropTypes from 'prop-types';
+import { isLikeOrIlike } from '../../../utils/FilterUtils';
 
 class TextField extends React.Component {
     static propTypes = {
@@ -22,6 +23,7 @@ class TextField extends React.Component {
         attType: PropTypes.string,
         fieldValue: PropTypes.string,
         label: PropTypes.string,
+        tooltipMessage: PropTypes.string,
         fieldException: PropTypes.oneOfType([
             PropTypes.object,
             PropTypes.string
@@ -58,8 +60,8 @@ class TextField extends React.Component {
         }
     }
     renderField = () => {
-        let placeholder = LocaleUtils.getMessageById(this.context.messages, "queryform.attributefilter.text_placeholder");
-        let tooltip = <Tooltip id={"textField-tooltip" + this.props.fieldRowId}><HTML msgId="queryform.attributefilter.tooltipTextField"/></Tooltip>;
+        let placeholder = getMessageById(this.context.messages, "queryform.attributefilter.text_placeholder");
+        let tooltip = <Tooltip id={"textField-tooltip" + this.props.fieldRowId}><HTML msgId={this.props.tooltipMessage ?? "queryform.attributefilter.tooltipTextField"}/></Tooltip>;
         let field = (<FormControl
             disabled={this.props.operator === "isNull"}
             placeholder={placeholder}
@@ -85,4 +87,4 @@ class TextField extends React.Component {
     };
 }
 
-module.exports = TextField;
+export default TextField;

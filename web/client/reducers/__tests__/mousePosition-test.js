@@ -5,8 +5,9 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
-var mousePosition = require('../mousePosition');
+import expect from 'expect';
+
+import mousePosition from '../mousePosition';
 
 describe('Test the mousePosition reducer', () => {
 
@@ -45,6 +46,22 @@ describe('Test the mousePosition reducer', () => {
         let state = mousePosition( {}, testAction);
         expect(state.crs).toExist();
         expect(state.crs).toBe('EPSG:900911');
+    });
+    it('mouse move map event', () => {
+        const position = {lat: 100, lng: 200};
+        const action = {
+            type: 'MOUSE_MOVE',
+            position
+        };
+        const state = mousePosition({}, action);
+        expect(state).toEqual({position, mouseOut: false});
+    });
+    it('mouse out', () => {
+        const action = {
+            type: 'MOUSE_OUT'
+        };
+        const state = mousePosition({}, action);
+        expect(state).toEqual({mouseOut: true});
     });
 
 });

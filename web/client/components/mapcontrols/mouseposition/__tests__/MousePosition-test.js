@@ -5,13 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var expect = require('expect');
+import expect from 'expect';
 
-const PropTypes = require('prop-types');
-
-var React = require('react');
-var ReactDOM = require('react-dom');
-var MousePosition = require('../MousePosition');
+import PropTypes from 'prop-types';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import MousePosition from '../MousePosition';
 
 describe('MousePosition', () => {
     beforeEach((done) => {
@@ -56,6 +55,25 @@ describe('MousePosition', () => {
         expect(cmpDom.innerText.indexOf('...') !== -1).toBe(true);
     });
 
+    it('checks no elevation', () => {
+        const cmp = ReactDOM.render(<MousePosition enabled />, document.getElementById("container"));
+        expect(cmp).toExist();
+
+        const cmpDom = ReactDOM.findDOMNode(cmp);
+        expect(cmpDom).toExist();
+        expect(cmpDom.getElementsByClassName('mapstore-mouse-elevation').length).toBe(0);
+    });
+
+    it('checks elevation enabled', () => {
+        const cmp = ReactDOM.render(<MousePosition enabled showElevation mousePosition={{ x: 11, y: 12, z: 13, crs: "EPSG:4326" }}/>, document.getElementById("container"));
+        expect(cmp).toExist();
+
+        const cmpDom = ReactDOM.findDOMNode(cmp);
+        expect(cmpDom).toExist();
+        expect(cmpDom.getElementsByClassName('mapstore-mouse-elevation').length).toBe(1);
+        expect(cmpDom.innerHTML).toContain('13');
+    });
+
     it('checks default templates degrees', () => {
         const cmp = ReactDOM.render(<MousePosition enabled mousePosition={{x: 1, y: 1, crs: "EPSG:4326"}}/>, document.getElementById("container"));
         expect(cmp).toExist();
@@ -96,12 +114,23 @@ describe('MousePosition', () => {
         expect(cmpDom.innerHTML).toContain('12');
     });
 
+    it('checks custom elevation template', () => {
+        const elevationTemplate = (z) => <div>Z: {z}</div>;
+
+        const cmp = ReactDOM.render(<MousePosition elevationTemplate={elevationTemplate} showElevation enabled mousePosition={{ x: 11, y: 12, z: 13, crs: "EPSG:4326" }} />, document.getElementById("container"));
+        expect(cmp).toExist();
+        const cmpDom = ReactDOM.findDOMNode(cmp);
+        expect(cmpDom).toExist();
+        expect(cmpDom.innerHTML).toContain('Z:');
+        expect(cmpDom.innerHTML).toContain('13');
+    });
+
     it('checks copy to clipboard enabled', () => {
         const cmp = ReactDOM.render(<MousePosition
-                                        enabled
-                                        mousePosition={{x: 1, y: 1, crs: "EPSG:4326"}}
-                                        copyToClipboardEnabled
-                                    />, document.getElementById("container"));
+            enabled
+            mousePosition={{x: 1, y: 1, crs: "EPSG:4326"}}
+            copyToClipboardEnabled
+        />, document.getElementById("container"));
         expect(cmp).toExist();
 
         // checking if the component exists
@@ -125,11 +154,11 @@ describe('MousePosition', () => {
 
         // instaciating mouse position plugin
         const cmp = ReactDOM.render(<MousePosition
-                                        enabled
-                                        mousePosition={{x: 1, y: 1, crs: "EPSG:4326"}}
-                                        copyToClipboardEnabled
-                                        onCopy={actions.onCopy}
-                                    />, document.getElementById("container"));
+            enabled
+            mousePosition={{x: 1, y: 1, crs: "EPSG:4326"}}
+            copyToClipboardEnabled
+            onCopy={actions.onCopy}
+        />, document.getElementById("container"));
         // getting the copy to clipboard button
         const cmpDom = ReactDOM.findDOMNode(cmp);
         const button = cmpDom.getElementsByTagName('button')[0];
@@ -152,12 +181,12 @@ describe('MousePosition', () => {
 
         // instaciating mouse position plugin
         const cmp = ReactDOM.render(<MousePosition
-                                        enabled
-                                        mousePosition={{x: Math.floor(1.1), y: Math.floor(1.2), crs: "EPSG:4326"}}
-                                        copyToClipboardEnabled
-                                        onCopy={actions.onCopy}
-                                    />, document.getElementById("container"));
-                                    // getting the copy to clipboard button
+            enabled
+            mousePosition={{x: Math.floor(1.1), y: Math.floor(1.2), crs: "EPSG:4326"}}
+            copyToClipboardEnabled
+            onCopy={actions.onCopy}
+        />, document.getElementById("container"));
+        // getting the copy to clipboard button
         const cmpDom = ReactDOM.findDOMNode(cmp);
         const button = cmpDom.getElementsByTagName('button')[0];
 

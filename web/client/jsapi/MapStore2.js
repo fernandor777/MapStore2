@@ -5,27 +5,26 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const ReactDOM = require('react-dom');
 
-const StandardApp = require('../components/app/StandardApp');
-const LocaleUtils = require('../utils/LocaleUtils');
-const ConfigUtils = require('../utils/ConfigUtils');
-const {connect} = require('react-redux');
+import url from 'url';
 
-const {configureMap, loadMapConfig} = require('../actions/config');
-const {generateActionTrigger} = require('../epics/jsapi');
+import { merge, partialRight } from 'lodash';
+import assign from 'object-assign';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { connect } from 'react-redux';
 
-const url = require('url');
-
-const ThemeUtils = require('../utils/ThemeUtils');
-
-const assign = require('object-assign');
-const {partialRight, merge} = require('lodash');
-
-const defaultConfig = require('json-loader!../config.json');
-
-const localConfig = require('json-loader!../localConfig.json');
+import { configureMap, loadMapConfig } from '../actions/config';
+import { initMap } from '../actions/map';
+import StandardApp from '../components/app/StandardApp';
+import defaultConfig from '../configs/config.json';
+import { generateActionTrigger } from '../epics/jsapi';
+import localConfig from '../configs/localConfig.json';
+import { standardEpics, standardReducers, standardRootReducerFunc } from '../stores/defaultOptions';
+import ConfigUtils from '../utils/ConfigUtils';
+import { ensureIntl } from '../utils/LocaleUtils';
+import { renderFromLess } from '../utils/ThemeUtils';
+import { getApi } from '../api/userPersistedStorage';
 
 const defaultPlugins = {
     "mobile": localConfig.plugins.embedded,
@@ -52,9 +51,15 @@ function mergeDefaultConfig(pluginName, cfg) {
 
 function loadConfigFromStorage(name = 'mapstore.embedded') {
     if (name) {
-        const loaded = localStorage.getItem(name);
-        if (loaded) {
-            return JSON.parse(loaded);
+        let loaded = false;
+        try {
+            loaded = getApi().getItem(name);
+            if (loaded) {
+                return JSON.parse(loaded);
+            }
+        } catch (e) {
+            console.error(e);
+            return null;
         }
     }
     return null;
@@ -93,9 +98,9 @@ let stateChangeListeners = [];
 const getInitialActions = (options) => {
     if (!options.initialState || !options.initialState.defaultState.map) {
         if (options.configUrl) {
-            return [loadMapConfig.bind(null, options.configUrl || defaultConfig)];
+            return [initMap, loadMapConfig.bind(null, options.configUrl || defaultConfig, options.mapId)];
         }
-        return [configureMap.bind(null, options.config || defaultConfig)];
+        return [configureMap.bind(null, options.config || defaultConfig, options.mapId)];
     }
     return [];
 };
@@ -104,22 +109,27 @@ const getInitialActions = (options) => {
 /**
  * MapStore2 JavaScript API. Allows embedding MapStore2 functionalities into
  * a standard HTML page.
+ *
+ * ATTENTION: As of July 2020 a number of MapStore2 plugins (i.e. TOC layer settings, Identify) use react-dock for providing
+ * Dock panel functionality, that assumes that we use the whole window, so the panels won't show up at all or will
+ * not be constrained within the container.
  * @class
  */
 const MapStore2 = {
     /**
      * Instantiates an embedded MapStore2 application in the given container.
+     * MapStore2 api doesn't use StandardRouter but It relies on StandardContainer
      * @memberof MapStore2
      * @static
      * @param {string} container id of the DOM element that should contain the embedded MapStore2
      * @param {object} options set of options of the embedded app
      *  * The options object can contain the following properties, to configure the app UI and state:
      *  * **plugins**: list of plugins (and the related configuration) to be included in the app
-     *    look at [Plugins documentation](./plugins-documentation) for further details
-     *  * **config**: map configuration object for the application (look at [Map Configuration](./maps-configuration) for details)
-     *  * **configUrl**: map configuration url for the application (look at [Map Configuration](./maps-configuration) for details)
+     *    look at [Plugins documentation](https://mapstore.readthedocs.io/en/latest/developer-guide/plugins-documentation/) for further details
+     *  * **config**: map configuration object for the application (look at [Map Configuration](https://mapstore.readthedocs.io/en/latest/developer-guide/maps-configuration/) for details)
+     *  * **configUrl**: map configuration url for the application (look at [Map Configuration](https://mapstore.readthedocs.io/en/latest/developer-guide/maps-configuration/) for details)
      *  * **originalUrl**: url of the original instance of MapStore. If present it will be linked inside the map using the "GoFull" plugin, present by default.
-     *  * **initialState**: allows setting the initial application state (look at [State Configuration](./app-state-configuration) for details)
+     *  * **initialState**: allows setting the initial application state (look at [State Configuration](https://mapstore.readthedocs.io/en/latest/developer-guide/local-config/) for details)
      *
      * Styling can be configured either using a **theme**, or a complete custom **less stylesheet**, using the
      * following options properties:
@@ -158,36 +168,49 @@ const MapStore2 = {
      * });
      */
     create(container, opts, pluginsDef, component) {
-        const embedded = require('../containers/Embedded');
+        const embedded = require('../containers/Embedded').default;
         const options = merge({}, this.defaultOptions || {}, opts);
         const {initialState, storeOpts} = options;
 
-        const pages = [{
-            name: "embedded",
-            path: "/",
+        const {loadVersion} = require('../actions/version');
+        const {versionSelector} = require('../selectors/version');
+        const {loadAfterThemeSelector} = require('../selectors/config');
+        const componentConfig = {
             component: component || embedded,
-            pageConfig: {
+            config: {
                 pluginsConfig: options.plugins || defaultPlugins
             }
-        }];
-
-        const StandardRouter = connect((state) => ({
+        };
+        const StandardContainer = connect((state) => ({
             locale: state.locale || {},
-            pages
-        }))(require('../components/app/StandardRouter'));
+            componentConfig,
+            version: versionSelector(state),
+            loadAfterTheme: loadAfterThemeSelector(state)
+        }))(require('../components/app/StandardContainer').default);
         const actionTrigger = generateActionTrigger(options.startAction || "CHANGE_MAP_VIEW");
         triggerAction = actionTrigger.trigger;
-        const appStore = require('../stores/StandardStore').bind(null, initialState || {}, {}, {
-            jsAPIEpic: actionTrigger.epic
+        const appStore = require('../stores/StandardStore').default.bind(null, {
+            initialState: initialState || {},
+            appReducers: {
+                security: require('../reducers/security').default,
+                version: require('../reducers/version').default,
+                ...standardReducers
+            },
+            appEpics: {
+                jsAPIEpic: actionTrigger.epic,
+                ...(options.epics || {}),
+                ...standardEpics
+            },
+            rootReducerFunc: standardRootReducerFunc
         });
-        const initialActions = getInitialActions(options);
+        const initialActions = [...getInitialActions(options), loadVersion.bind(null, options.versionURL)];
         const appConfig = {
-            storeOpts: assign({}, storeOpts, {notify: true}),
+            storeOpts: assign({}, storeOpts, {notify: true, noRouter: true}),
             appStore,
             pluginsDef,
             initialActions,
-            appComponent: StandardRouter,
-            printingEnabled: false
+            appComponent: StandardContainer,
+            printingEnabled: options.printingEnabled || false
         };
         if (options.style) {
             let dom = document.getElementById('custom_theme');
@@ -196,7 +219,7 @@ const MapStore2 = {
                 dom.id = 'custom_theme';
                 document.head.appendChild(dom);
             }
-            ThemeUtils.renderFromLess(options.style, 'custom_theme', 'themes/default/');
+            renderFromLess(options.style, 'custom_theme', 'themes/default/');
         }
         const defaultThemeCfg = {
             prefixContainer: '#' + container
@@ -205,8 +228,9 @@ const MapStore2 = {
         const themeCfg = options.theme && assign({}, defaultThemeCfg, options.theme) || defaultThemeCfg;
         const onStoreInit = (store) => {
             store.addActionListener((action) => {
-                (actionListeners[action.type] || []).concat(actionListeners['*'] || []).forEach((listener) => {
-                    listener.call(null, action);
+                const act = action.type === "PERFORM_ACTION" && action.action || action; // Needed to works also in debug
+                (actionListeners[act.type] || []).concat(actionListeners['*'] || []).forEach((listener) => {
+                    listener.call(null, act);
                 });
             });
             store.subscribe(() => {
@@ -327,7 +351,7 @@ const MapStore2 = {
 
 if (!global.Intl ) {
     // Ensure Intl is loaded, then call the given callback
-    LocaleUtils.ensureIntl();
+    ensureIntl();
 }
 
-module.exports = MapStore2;
+export default MapStore2;

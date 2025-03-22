@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var {CHANGE_LOCALE, LOCALE_LOAD_ERROR} = require('../actions/locale');
+import { CHANGE_LOCALE, LOCALE_LOAD_ERROR } from '../actions/locale';
 
 function locale(state = null, action) {
     switch (action.type) {
@@ -17,6 +17,7 @@ function locale(state = null, action) {
         };
     case LOCALE_LOAD_ERROR:
         return {
+            ...state,
             loadingError: action.error
         };
     default:
@@ -24,4 +25,4 @@ function locale(state = null, action) {
     }
 }
 
-module.exports = locale;
+export default locale;

@@ -5,10 +5,11 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require("react");
-const expect = require('expect');
-const ReactDOM = require('react-dom');
-const BorderLayout = require('../BorderLayout');
+import React from 'react';
+
+import expect from 'expect';
+import ReactDOM from 'react-dom';
+import BorderLayout from '../BorderLayout';
 
 describe("Test BorderLayout Component", () => {
     beforeEach((done) => {
@@ -22,9 +23,11 @@ describe("Test BorderLayout Component", () => {
     });
     it('Test BorderLayout', () => {
         ReactDOM.render(
-            <BorderLayout />, document.getElementById("container"));
+            <BorderLayout id="MYCOMPONENT" className={"CLASS"}/>, document.getElementById("container"));
         expect(document.getElementsByClassName( 'ms2-border-layout-body')[0]).toExist();
         expect(document.getElementsByClassName('ms2-border-layout-content')).toExist();
+        expect(document.getElementsByClassName('CLASS')).toExist();
+        expect(document.getElementById('MYCOMPONENT')).toExist();
     });
     it('Test BorderLayout with header footer and columns', () => {
         ReactDOM.render(
@@ -32,7 +35,7 @@ describe("Test BorderLayout Component", () => {
                 header={<div className="header"></div>}
                 footer={<div className="footer"></div>}
                 columns={[<div className="left" style={{order: -1}}></div>, <div className="right"></div>]}
-                >
+            >
                 <div className="content"></div>
             </BorderLayout>), document.getElementById("container"));
 

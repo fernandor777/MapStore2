@@ -1,4 +1,5 @@
-const PropTypes = require('prop-types');
+import PropTypes from 'prop-types';
+
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,14 +7,15 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
-const {connect} = require('react-redux');
-const {deleteGroup} = require('../../../actions/usergroups');
-const {Alert} = require('react-bootstrap');
-const Confirm = require('../../../components/misc/ConfirmDialog');
-const GroupCard = require('../../../components/manager/users/GroupCard');
-const Message = require('../../../components/I18N/Message');
-const {findIndex} = require('lodash');
+import React from 'react';
+
+import { connect } from 'react-redux';
+import { deleteGroup } from '../../../actions/usergroups';
+import { Alert } from 'react-bootstrap';
+import Confirm from '../../../components/layout/ConfirmDialog';
+import GroupCard from '../../../components/manager/users/GroupCard';
+import Message from '../../../components/I18N/Message';
+import { findIndex } from 'lodash';
 
 class GroupDeleteConfirm extends React.Component {
     static propTypes = {
@@ -33,6 +35,7 @@ class GroupDeleteConfirm extends React.Component {
         if (this.props.deleteError) {
             return <Alert bsStyle="danger"><Message msgId="usergroups.errorDelete" />{this.props.deleteError.statusText}</Alert>;
         }
+        return null;
     };
 
     renderConfirmButtonContent = () => {
@@ -50,18 +53,20 @@ class GroupDeleteConfirm extends React.Component {
         }
         return (<Confirm
             show={!!this.props.group}
-            onClose={() => this.props.deleteGroup(this.props.deleteId, "cancelled")}
+            onCancel={() => this.props.deleteGroup(this.props.deleteId, "cancelled")}
             onConfirm={ () => { this.props.deleteGroup(this.props.deleteId, "delete"); } }
-            confirmButtonContent={this.renderConfirmButtonContent()}
-            confirmButtonDisabled={this.props.deleteStatus === "deleting"}>
-            <div><Message msgId="usergroups.confirmDeleteGroup" /></div>
+            confirmId={this.renderConfirmButtonContent()}
+            cancelId="cancel"
+            preventHide
+            titleId={"usergroups.confirmDeleteGroup"}
+            disabled={this.props.deleteStatus === "deleting"}>
             <div style={{margin: "10px 0"}}><GroupCard group={this.props.group} /></div>
             <div>{this.renderError()}</div>
         </Confirm>);
     }
 }
 
-module.exports = connect((state) => {
+export default connect((state) => {
     let groupsstate = state && state.usergroups;
     if (!groupsstate) return {};
     let groups = groupsstate && groupsstate.groups;

@@ -1,20 +1,20 @@
 /*
- * Copyright 2017, GeoSolutions Sas.
+ * Copyright 2022, GeoSolutions Sas.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var React = require('react');
-var ReactDOM = require('react-dom');
-var DownloadOptions = require('../DownloadOptions');
-var expect = require('expect');
-const spyOn = expect.spyOn;
-const TestUtils = require('react-dom/test-utils');
+
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+import DownloadOptions from '../DownloadOptions';
 
 describe('Test for DownloadOptions component', () => {
     beforeEach((done) => {
-        document.body.innerHTML = '<div id="container"></div>';
+        document.body.innerHTML = '<div id="container" style="height:500px"></div>';
         setTimeout(done);
     });
 
@@ -23,30 +23,38 @@ describe('Test for DownloadOptions component', () => {
         document.body.innerHTML = '';
         setTimeout(done);
     });
-    // test DEFAULTS
-    it('render with defaults', () => {
-        const cmp = ReactDOM.render(<DownloadOptions/>, document.getElementById("container"));
-        expect(cmp).toExist();
-    });
-    it('render with element selected', () => {
-        const cmp = ReactDOM.render(<DownloadOptions downloadOptions={{selectedFormat: "test"}} formats={[{name: "test"}]}/>, document.getElementById("container"));
-        expect(cmp).toExist();
-        expect(TestUtils.scryRenderedDOMComponentsWithClass(cmp, "Select-value-label")).toExist();
-    });
-    it('render with srs list element selected', () => {
-        const cmp = ReactDOM.render(<DownloadOptions downloadOptions={{selectedSrs: "test"}} srsList={[{name: "test"}]}/>, document.getElementById("container"));
-        expect(cmp).toExist();
-        expect(TestUtils.scryRenderedDOMComponentsWithClass(cmp, "Select-value-label")).toExist();
-    });
-    it('singlePage checkbox events', () => {
-        const events = {
-            onChange: () => {}
-        };
-        spyOn(events, "onChange");
-        ReactDOM.render(<DownloadOptions onChange={events.onChange} downloadOptions={{selectedFormat: "test"}} formats={[{name: "test"}]}/>, document.getElementById("container"));
-        const check = document.querySelector('input[type=checkbox]');
-        check.click();
-        expect(events.onChange).toHaveBeenCalled();
 
+    it('render with defaults', () => {
+        ReactDOM.render(<DownloadOptions />, document.getElementById("container"));
+        expect(document.getElementsByTagName('form')[0]).toBeTruthy();
+    });
+
+    it('render serivce selector', () => {
+        ReactDOM.render(<DownloadOptions wpsAvailable wfsAvailable />, document.getElementById("container"));
+        const form = document.getElementsByTagName('form')[0];
+        const firstChild = form.querySelector('label');
+        expect(firstChild.innerHTML).toBe('<span>layerdownload.service</span>');
+        const selectorValueLabel = form.querySelector('.Select .Select-value-label');
+        expect(selectorValueLabel.innerText).toBe('WPS');
+    });
+
+    it('render service selector with WFS service', () => {
+        ReactDOM.render(<DownloadOptions wpsAvailable wfsAvailable service="wfs" />, document.getElementById("container"));
+        const form = document.getElementsByTagName('form')[0];
+        const selectorValueLabel = form.querySelector('.Select .Select-value-label');
+        expect(selectorValueLabel.innerText).toBe('WFS');
+    });
+
+    it('should not render service selector', () => {
+        ReactDOM.render(<DownloadOptions wpsAvailable wfsAvailable={false} service="wps" />, document.getElementById("container"));
+        const form = document.getElementsByTagName('form')[0];
+        const selectors = form.querySelectorAll('.Select');
+        expect(selectors.length).toBe(2);
+    });
+    it('should not render service selector if hideServiceSelector is true', () => {
+        ReactDOM.render(<DownloadOptions wpsAvailable wfsAvailable hideServiceSelector service="wps" />, document.getElementById("container"));
+        const form = document.getElementsByTagName('form')[0];
+        const selectors = form.querySelectorAll('.Select');
+        expect(selectors.length).toBe(2);
     });
 });

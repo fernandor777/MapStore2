@@ -8,7 +8,7 @@
 
 const layerTypes = {};
 
-var Layers = {
+const Layers = {
 
     registerType: function(type, impl) {
         layerTypes[type] = impl;
@@ -37,10 +37,11 @@ var Layers = {
         if (layerCreator && layerCreator.update) {
             return layerCreator.update(layer, newOptions, oldOptions, map);
         }
+        return null;
     },
     isSupported(type) {
         return !!layerTypes[type];
     }
 };
 
-module.exports = Layers;
+export default Layers;

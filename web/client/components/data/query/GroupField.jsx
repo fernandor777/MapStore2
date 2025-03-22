@@ -1,4 +1,3 @@
-const PropTypes = require('prop-types');
 /**
  * Copyright 2016, GeoSolutions Sas.
  * All rights reserved.
@@ -6,24 +5,29 @@ const PropTypes = require('prop-types');
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require('react');
+import React from 'react';
 
-const {Row, Col, Button, Glyphicon, Panel, Tooltip} = require('react-bootstrap');
-const OverlayTrigger = require('../../misc/OverlayTrigger');
-
-const FilterField = require('./FilterField');
-const ComboField = require('./ComboField');
-const DateField = require('./DateField');
-const NumberField = require('./NumberField');
-const TextField = require('./TextField');
-const AutocompleteField = require('./AutocompleteFieldHOC');
-
-const LocaleUtils = require('../../../utils/LocaleUtils');
-const I18N = require('../../I18N/I18N');
+import PropTypes from 'prop-types';
+import { Glyphicon, Tooltip } from 'react-bootstrap';
+import Toolbar from '../../misc/toolbar/Toolbar';
+import OverlayTrigger from '../../misc/OverlayTrigger';
+import FilterField from './FilterField';
+import ComboField from './ComboField';
+import DateField from './DateField';
+import NumberField from './NumberField';
+import TextField from './TextField';
+import AutocompleteField from './AutocompleteFieldHOC';
+import SwitchPanel from '../../misc/switch/SwitchPanel';
+import StringSelector from '../../misc/StringSelector';
+import { getMessageById } from '../../../utils/LocaleUtils';
+import I18N from '../../I18N/I18N';
+import Button from '../../misc/Button';
 
 class GroupField extends React.Component {
     static propTypes = {
+        dropUp: PropTypes.bool,
         groupLevels: PropTypes.number,
+        withContainer: PropTypes.bool,
         autocompleteEnabled: PropTypes.bool,
         maxFeaturesWPS: PropTypes.number,
         groupFields: PropTypes.array,
@@ -32,9 +36,18 @@ class GroupField extends React.Component {
         fieldWidth: PropTypes.string,
         removeButtonIcon: PropTypes.string,
         addButtonIcon: PropTypes.string,
+        removeGroupButtonIcon: PropTypes.string,
+        buttonStyle: PropTypes.string,
         logicComboOptions: PropTypes.array,
         attributePanelExpanded: PropTypes.bool,
-        actions: PropTypes.object
+        actions: PropTypes.object,
+        arrayOperators: PropTypes.array,
+        listOperators: PropTypes.array,
+        stringOperators: PropTypes.array,
+        booleanOperators: PropTypes.array,
+        defaultOperators: PropTypes.array,
+        comboOptions: PropTypes.object,
+        textFieldTooltipMessageId: PropTypes.string
     };
 
     static contextTypes = {
@@ -43,11 +56,14 @@ class GroupField extends React.Component {
 
     static defaultProps = {
         autocompleteEnabled: true,
+        withContainer: true,
         groupLevels: 1,
         groupFields: [],
         filterFields: [],
         attributes: [],
-        removeButtonIcon: "glyphicon glyphicon-minus",
+        removeButtonIcon: "trash",
+        removeGroupButtonIcon: "trash",
+        bsStyle: "default",
         addButtonIcon: "glyphicon glyphicon-plus",
         attributePanelExpanded: true,
         logicComboOptions: [
@@ -66,7 +82,13 @@ class GroupField extends React.Component {
             onChangeCascadingValue: () => {},
             onExpandAttributeFilterPanel: () => {},
             toggleMenu: () => {}
-        }
+        },
+        listOperators: ["="],
+        stringOperators: ["=", "<>", "like", "ilike", "isNull"],
+        arrayOperators: ["contains"],
+        booleanOperators: ["="],
+        defaultOperators: ["=", ">", "<", ">=", "<=", "<>", "><", "isNull"],
+        textFieldTooltipMessageId: 'queryform.attributefilter.tooltipTextField'
     };
 
     getComboValues = (selected, attributes) => {
@@ -98,134 +120,149 @@ class GroupField extends React.Component {
         let type = selectedAttribute && selectedAttribute.type ? selectedAttribute.type : "";
         switch (type) {
         case "list": {
-            return ["="];
+            return this.props.listOperators;
         }
         case "string": {
-            return ["=", "like", "ilike", "isNull"];
+            return this.props.stringOperators;
         }
         case "boolean": {
-            return ["="];
+            return this.props.booleanOperators;
+        }
+        case "array": {
+            return this.props.arrayOperators;
         }
         default:
-            return ["=", ">", "<", ">=", "<=", "<>", "><"];
+            return this.props.defaultOperators;
         }
     };
 
     renderFilterField = (filterField) => {
         let selectedAttribute = this.props.attributes.filter((attribute) => attribute.attribute === filterField.attribute)[0];
         let comboValues = this.getComboValues(selectedAttribute, this.props.attributes);
-
+        const deleteButton = filterField.exception ?
+            (<OverlayTrigger placement="bottom" overlay={(<Tooltip id={filterField.rowId + "tooltip"}><strong><I18N.Message msgId={filterField.exception || ""}/></strong></Tooltip>)}>
+                <Button id="remove-filter-field" className="filter-buttons no-border" bsStyle={this.props.buttonStyle} style={{backgroundColor: "red"}} onClick={() => this.props.actions.onRemoveFilterField(filterField.rowId)}>
+                    <Glyphicon style={{color: "white"}} glyph="glyphicon glyphicon-warning-sign"/>
+                </Button>
+            </OverlayTrigger>)
+            :
+            (<OverlayTrigger placement="top" overlay={(<Tooltip id={filterField.rowId + "tooltip"}><strong>
+                <I18N.Message msgId="queryform.attributefilter.delete" /></strong></Tooltip>)}><Button id="remove-filter-field" bsStyle={this.props.buttonStyle} className="filter-buttons no-border" onClick={() => this.props.actions.onRemoveFilterField(filterField.rowId)}>
+                    <Glyphicon glyph={this.props.removeButtonIcon}/>
+                </Button></OverlayTrigger>);
         return (
-            <div className="container-fluid" key={filterField.rowId}>
-                <Row className="filter-field-row">
-                    <Col xs={10}>
-                        <FilterField
-                            attributes={this.props.attributes}
+            <FilterField
+                dropUp={this.props.dropUp}
+                key={filterField.rowId}
+                deleteButton={deleteButton}
+                attributes={this.props.attributes}
+                filterField={filterField}
+                operatorOptions={this.getOperator(selectedAttribute)}
+                onUpdateField={this.props.actions.onUpdateFilterField}
+                toggleMenu={this.props.actions.toggleMenu}
+                maxFeaturesWPS={this.props.maxFeaturesWPS}
+                onUpdateExceptionField={this.props.actions.onUpdateExceptionField}
+                onChangeCascadingValue={this.props.actions.onChangeCascadingValue}>
+                <ComboField
+                    dropUp={this.props.dropUp}
+                    attType="list"
+                    valueField={'id'}
+                    textField={'name'}
+                    fieldOptions={comboValues ? comboValues : []}
+                    comboFilter={"contains"}/>
+                <DateField
+                    attType="date"
+                    dateEnabled
+                    operator={filterField.operator}
+                    quickDateTimeSelectors={this.props.quickDateTimeSelectors}/>
+                <DateField
+                    attType="date-time"
+                    timeEnabled
+                    dateEnabled
+                    operator={filterField.operator}
+                    quickDateTimeSelectors={this.props.quickDateTimeSelectors}/>
+                <TextField
+                    attType="array"
+                    operator={filterField.operator}/>
+                <DateField
+                    attType="time"
+                    timeEnabled
+                    dateEnabled={false}
+                    operator={filterField.operator}/>
+                <NumberField
+                    operator={filterField.operator}
+                    attType="number"/>
+                {
+                    // flag to switch from AutocompleteField to TextField
+                    this.props.autocompleteEnabled ?
+                        (<AutocompleteField
+                            dropUp={this.props.dropUp}
                             filterField={filterField}
-                            operatorOptions={this.getOperator(selectedAttribute)}
-                            onUpdateField={this.props.actions.onUpdateFilterField}
-                            toggleMenu={this.props.actions.toggleMenu}
-                            maxFeaturesWPS={this.props.maxFeaturesWPS}
-                            onUpdateExceptionField={this.props.actions.onUpdateExceptionField}
-                            onChangeCascadingValue={this.props.actions.onChangeCascadingValue}>
-                            <ComboField
-                                attType="list"
-                                valueField={'id'}
-                                textField={'name'}
-                                fieldOptions={comboValues ? comboValues : []}
-                                comboFilter={"contains"}/>
-                            <DateField
-                                attType="date"
-                                operator={filterField.operator}/>
-                            <NumberField
-                                operator={filterField.operator}
-                                attType="number"/>
-                            {
-                                // flag to swtich from AutocompleteField to TextField
-                                this.props.autocompleteEnabled ?
-                                (<AutocompleteField
-                                    filterField={filterField}
-                                    attType="string"/>) :
-                                (<TextField
-                                    operator={filterField.operator}
-                                    attType="string"/>)
-                            }
+                            attType="string"/>) :
+                        (<TextField
+                            tooltipMessage={this.props.textFieldTooltipMessageId}
+                            operator={filterField.operator}
+                            attType="string"/>)
+                }
 
-                            <ComboField
-                                fieldOptions={['true', 'false']}
-                                attType="boolean"
-                                comboFilter={"contains"}/>
-                        </FilterField>
-                    </Col>
-                    <Col xs={2}>
-                        {
-                            filterField.exception ?
-                                <OverlayTrigger placement="bottom" overlay={(<Tooltip id={filterField.rowId + "tooltip"}><strong><I18N.Message msgId={filterField.exception || ""}/></strong></Tooltip>)}>
-                                    <Button id="remove-filter-field" className="remove-filter-button" style={{backgroundColor: "red"}} onClick={() => this.props.actions.onRemoveFilterField(filterField.rowId)}>
-                                        <Glyphicon style={{color: "white"}} glyph="glyphicon glyphicon-warning-sign"/>
-                                    </Button>
-                                </OverlayTrigger>
-                             :
-                                <Button id="remove-filter-field" className="remove-filter-button" onClick={() => this.props.actions.onRemoveFilterField(filterField.rowId)}>
-                                    <Glyphicon glyph={this.props.removeButtonIcon}/>
-                                </Button>
-
-                        }
-                    </Col>
-                </Row>
-            </div>
+                <ComboField
+                    dropUp={this.props.dropUp}
+                    fieldOptions={['true', 'false']}
+                    attType="boolean"
+                    comboFilter={"contains"}/>
+            </FilterField>
         );
     };
-
+    renderGroupButtons = groupField => {
+        const buttons = [];
+        if (groupField.index <= this.props.groupLevels) {
+            buttons.push({
+                key: "add-condition-group",
+                id: "add-condition-group",
+                className: "filter-buttons no-border",
+                glyph: "list-alt",
+                bsStyle: this.props.buttonStyle,
+                tooltipId: "queryform.attributefilter.add_group",
+                onClick: () => this.props.actions.onAddGroupField(groupField.id, groupField.index)
+            });
+        }
+        buttons.push({
+            key: "add-filter-field",
+            id: "add-filter-field",
+            className: "filter-buttons no-border",
+            glyph: this.props.addButtonIcon,
+            bsStyle: this.props.buttonStyle,
+            tooltipId: "queryform.attributefilter.add_condition",
+            onClick: () => this.props.actions.onAddFilterField(groupField.id)
+        });
+        if (groupField.groupId) {
+            buttons.push({
+                key: "remove-group",
+                className: "filter-buttons no-border",
+                bsStyle: this.props.buttonStyle,
+                tooltipId: "queryform.attributefilter.deleteGroup",
+                glyph: this.props.removeGroupButtonIcon,
+                onClick: () => this.props.actions.onRemoveGroupField(groupField.id)
+            });
+        }
+        return (<Toolbar buttons={buttons} btnDefaultProps={{
+        }} />);
+    };
     renderGroupHeader = (groupField) => {
-        const removeButton = groupField.groupId ?
-
-                    (<Button bsSize="xs" className="remove-filter-button" onClick={() => this.props.actions.onRemoveGroupField(groupField.id)}>
-                        <Glyphicon glyph={this.props.removeButtonIcon}/>
-                    </Button>)
-             :
-                (<Col xs={0} lgHidden>
-                    <span/>
-                </Col>)
-            ;
-
         return (
-            <div className="container-fluid">
-                <Row className="logicHeader filter-field-row">
-                    <Col xs={10}>
-                        <div className="container-fluid">
-                            <Row className="filter-field-row">
-                                <div className="filter-logig-header-text">
-                                    <span className="group_label_a"><I18N.Message msgId={"queryform.attributefilter.group_label_a"}/></span>
-                                </div>
-                                <div className="filter-logig-header-text">
-                                    <ComboField
-                                        fieldOptions={
-                                            this.props.logicComboOptions.map((opt) => {
-                                                return LocaleUtils.getMessageById(this.context.messages, opt.name);
-                                            })
-                                        }
-                                        fieldName="logic"
-                                        style={{minWidth: "80px"}}
-                                        fieldRowId={groupField.id}
-                                        fieldValue={
-                                            LocaleUtils.getMessageById(this.context.messages,
-                                                this.props.logicComboOptions.filter((opt) => groupField.logic === opt.logic)[0].name)
-                                        }
-                                        onUpdateField={this.updateLogicCombo}/>
-                                </div>
-                                <div className="filter-logig-header-text">
-                                    <span className="group_label_b"><I18N.Message msgId={"queryform.attributefilter.group_label_b"}/></span>
-                                </div>
-                            </Row>
-                        </div>
-                    </Col>
-                    <Col xs={2}>
-                        <div className="query-remove">
-                            {removeButton}
-                        </div>
-                    </Col>
-                </Row>
+            <div className="logicHeader filter-logic-header">
+                <div key="filter-logic-header" className="filter-logic-header-text m-label">
+                    <span className="group_label_a"><I18N.Message msgId={"queryform.attributefilter.group_label_a"}/></span>
+                    &nbsp;<StringSelector
+                        options={this.props.logicComboOptions}
+                        valueField={"logic"}
+                        value={groupField.logic}
+                        onSelect={ v => this.props.actions.onUpdateLogicCombo(groupField.id, v)}
+                        labelRenderer={ ({name} = {}) => <I18N.Message msgId={name} />}
+                    />&nbsp;
+                    <span className="group_label_b"><I18N.Message msgId={"queryform.attributefilter.group_label_b"}/></span>
+                </div>
+                {this.renderGroupButtons(groupField)}
             </div>
         );
     };
@@ -247,62 +284,42 @@ class GroupField extends React.Component {
             return element;
         });
 
-        const addButton = groupField.index <= this.props.groupLevels ?
-
-                (<Button id="add-condition-group" className="filter-buttons" bsSize="xs" onClick={() => this.props.actions.onAddGroupField(groupField.id, groupField.index)}>
-                    <Glyphicon glyph={this.props.addButtonIcon}/><I18N.Message msgId={"queryform.attributefilter.add_group"}/></Button>)
-             :
-                <span/>
-            ;
-
         return (
-            <Panel className="filter-group-panel" key={groupField.id}>
+            <div className="mapstore-conditions-group" key={groupField.id}>
                 {this.renderGroupHeader(groupField)}
                 <div className="query-content">{container}</div>
-                <div className="query-buttons">
-                {addButton}
-                <Button id="add-filter-field" className="filter-buttons" bsSize="xs" onClick={() => this.props.actions.onAddFilterField(groupField.id)}>
-                    <Glyphicon glyph={this.props.addButtonIcon}/>
-                    <I18N.Message msgId={"queryform.attributefilter.add_condition"}/>
-                </Button>
-                </div>
-            </Panel>
+            </div>
         );
     };
 
     renderHeader = () => {
-        const attributeFilterHeader = LocaleUtils.getMessageById(this.context.messages, "queryform.attributefilter.attribute_filter_header");
-
-        return (
-            <span>
-                <span
-                    style={{cursor: "pointer"}}
-                    onClick={this.props.actions.onExpandAttributeFilterPanel.bind(null, !this.props.attributePanelExpanded)}>{attributeFilterHeader}</span>
-                <button onClick={this.props.actions.onExpandAttributeFilterPanel.bind(null, !this.props.attributePanelExpanded)} className="close">
-                    {this.props.attributePanelExpanded ? <Glyphicon glyph="glyphicon glyphicon-collapse-down"/> : <Glyphicon glyph="glyphicon glyphicon-expand"/>}
-                </button>
-            </span>
-        );
+        return getMessageById(this.context.messages, "queryform.attributefilter.attribute_filter_header");
     };
 
     render() {
         return (
-            <Panel id="attributeFilterPanel" className="query-filter-container" collapsible
+            this.props.withContainer ? (<SwitchPanel
+                id="attributeFilterPanel"
+                className="query-filter-container"
+                header={this.renderHeader()}
+                collapsible
                 expanded={this.props.attributePanelExpanded}
-                header={this.renderHeader()}>
+                onSwitch={(checked) => this.props.actions.onExpandAttributeFilterPanel(checked)}
+            >
                 {this.props.groupFields.filter(g => !g.groupId).map(this.renderGroupField)}
-            </Panel>
+            </SwitchPanel>) : (
+                <div className="query-filter-container">{this.props.groupFields.filter(g => !g.groupId).map(this.renderGroupField)}</div>
+
+            )
         );
     }
 
     updateLogicCombo = (groupId, name, value) => {
         const logic = this.props.logicComboOptions.filter((opt) => {
-            if (value === LocaleUtils.getMessageById(this.context.messages, opt.name)) {
-                return opt;
-            }
+            return value === getMessageById(this.context.messages, opt.name);
         })[0].logic;
         this.props.actions.onUpdateLogicCombo(groupId, logic);
     };
 }
 
-module.exports = GroupField;
+export default GroupField;

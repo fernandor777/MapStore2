@@ -5,11 +5,12 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const React = require("react");
-const expect = require('expect');
-const ReactDOM = require('react-dom');
-const GroupCard = require('../GroupCard');
-var ReactTestUtils = require('react-dom/test-utils');
+import React from 'react';
+
+import expect from 'expect';
+import ReactDOM from 'react-dom';
+import GroupCard from '../GroupCard';
+import ReactTestUtils from 'react-dom/test-utils';
 const group1 = {
     id: 1,
     groupName: "GROUP1",
@@ -38,13 +39,21 @@ describe("Test GroupCard Component", () => {
             <GroupCard group={group1}/>, document.getElementById("container"));
         expect(comp).toExist();
         let title = ReactTestUtils.scryRenderedDOMComponentsWithClass(
-              comp,
-              "gridcard-title"
+            comp,
+            "gridcard-title"
         );
         expect(title.length).toBe(1);
         expect(ReactTestUtils.scryRenderedDOMComponentsWithClass(
-          comp,
-          "group-thumb-description"
+            comp,
+            "group-thumb-description"
         ).length).toBe(1);
+    });
+    it('Test groupname rendering inside the card', () => {
+        let comp = ReactDOM.render(
+            <GroupCard group={group1} />, document.getElementById("container"));
+        expect(comp).toExist();
+        let items = document.querySelectorAll('#container .gridcard .user-data-container .user-card-info-container > div');
+        let renderName = items[0];
+        expect(renderName.innerHTML).toBe(group1.groupName);
     });
 });

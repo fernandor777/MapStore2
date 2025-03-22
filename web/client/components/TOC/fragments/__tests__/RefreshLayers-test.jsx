@@ -6,11 +6,11 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-var React = require('react');
-var ReactDOM = require('react-dom');
-var RefreshLayers = require('../RefreshLayers');
+import React from 'react';
 
-var expect = require('expect');
+import ReactDOM from 'react-dom';
+import RefreshLayers from '../RefreshLayers';
+import expect from 'expect';
 
 describe('test RefreshLayers module component', () => {
     beforeEach((done) => {
@@ -34,9 +34,8 @@ describe('test RefreshLayers module component', () => {
             url: 'fakeurl'
         };
         const comp = ReactDOM.render(<RefreshLayers layers={[l]} show/>, document.getElementById("container"));
-
         const domNode = ReactDOM.findDOMNode(comp);
-        expect(domNode).toNotExist();
+        expect(domNode).toExist();
         const modal = document.getElementById('mapstore-refresh-layers');
         expect(modal).toExist();
     });

@@ -5,88 +5,96 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-const assign = require('object-assign');
 
-const {mapConfigHistory, createHistory} = require('../utils/MapHistoryUtils');
+import DebugUtils from '../utils/DebugUtils';
+import { getGroupedEpics, getReducers} from '../utils/PluginsUtils';
+import { createEpicMiddleware } from 'redux-observable';
+import ListenerEnhancer from '@carnesen/redux-add-action-listener-enhancer';
+import { routerMiddleware, connectRouter } from 'connected-react-router';
+import {persistMiddleware, createStoreManager} from '../utils/StateUtils';
+import localConfig from '../reducers/localConfig';
+import locale from '../reducers/locale';
+import browser from '../reducers/browser';
+import { getApi } from '../api/userPersistedStorage';
+import {getPlugins} from "../utils/ModulePluginsUtils";
+const standardEpics = {};
 
-const map = mapConfigHistory(require('../reducers/map'));
+const appStore = (
+    {
+        initialState = {
+            defaultState: {},
+            mobile: {}
+        },
+        appReducers = {},
+        appEpics = {},
+        rootReducerFunc = ({ state, action, allReducers }) => allReducers(state, action)
+    },
+    plugins = {},
+    storeOpts = {}
+) => {
+    const staticPlugins = getPlugins(plugins);
+    const history = storeOpts.noRouter ? null : require('./History').default;
+    const storeManager = createStoreManager(
+        {
+            ...appReducers,
+            localConfig,
+            locale,
+            locales: () => null,
+            browser,
+            // TODO: missing locale default reducer
+            ...(!storeOpts.noRouter && { router: connectRouter(history) })
+        },
+        { ...standardEpics, ...appEpics });
+    const epicMiddleware = persistMiddleware(createEpicMiddleware(storeManager.rootEpic));
+    const pluginsReducers = getReducers(staticPlugins);
+    Object.keys(pluginsReducers).forEach(key => storeManager.addReducer(key, pluginsReducers[key]));
 
-const layers = require('../reducers/layers');
-const mapConfig = require('../reducers/config');
-
-const DebugUtils = require('../utils/DebugUtils');
-const {combineReducers, combineEpics} = require('../utils/PluginsUtils');
-
-const LayersUtils = require('../utils/LayersUtils');
-const {CHANGE_BROWSER_PROPERTIES} = require('../actions/browser');
-const {createEpicMiddleware} = require('redux-observable');
-
-const SecurityUtils = require('../utils/SecurityUtils');
-const ListenerEnhancer = require('@carnesen/redux-add-action-listener-enhancer').default;
-
-const {routerReducer, routerMiddleware} = require('react-router-redux');
-const routerCreateHistory = require('history/createHashHistory').default;
-const history = routerCreateHistory();
-
-// Build the middleware for intercepting and dispatching navigation actions
-const reduxRouterMiddleware = routerMiddleware(history);
-const standardEpics = {
-    ...require('../epics/controls')
-};
-
-module.exports = (initialState = {defaultState: {}, mobile: {}}, appReducers = {}, appEpics = {}, plugins, storeOpts = {}) => {
-    const allReducers = combineReducers(plugins, {
-        ...appReducers,
-        localConfig: require('../reducers/localConfig'),
-        locale: require('../reducers/locale'),
-        browser: require('../reducers/browser'),
-        controls: require('../reducers/controls'),
-        theme: require('../reducers/theme'),
-        help: require('../reducers/help'),
-        map: () => {return null; },
-        mapInitialConfig: () => {return null; },
-        layers: () => {return null; },
-        routing: routerReducer
-    });
-    const rootEpic = combineEpics(plugins, {...appEpics, ...standardEpics});
-    const optsState = storeOpts.initialState || {defaultState: {}, mobile: {}};
-    const defaultState = assign({}, initialState.defaultState, optsState.defaultState);
-    const mobileOverride = assign({}, initialState.mobile, optsState.mobile);
-    const epicMiddleware = createEpicMiddleware(rootEpic);
+    const allReducers = storeManager.reduce;
+    const optsState = storeOpts.initialState || { defaultState: {}, mobile: {} };
+    let defaultState = { ...initialState.defaultState, ...optsState.defaultState };
+    const mobileOverride = { ...initialState.mobile, ...optsState.mobile };
     const rootReducer = (state, action) => {
-        let mapState = createHistory(LayersUtils.splitMapAndLayers(mapConfig(state, action)));
-        let newState = {
-            ...allReducers(state, action),
-            map: mapState && mapState.map ? map(mapState.map, action) : null,
-            mapInitialConfig: mapState && mapState.mapInitialConfig || mapState && mapState.loadingError && {
-                loadingError: mapState.loadingError,
-                mapId: mapState.loadingError.mapId
-            } || null,
-            layers: mapState ? layers(mapState.layers, action) : null
-        };
-        if (action && action.type === CHANGE_BROWSER_PROPERTIES && newState.browser.mobile) {
-            newState = assign(newState, mobileOverride);
-        }
-
-        return newState;
+        return rootReducerFunc({
+            state,
+            action,
+            allReducers,
+            mobileOverride
+        });
     };
     let store;
     let enhancer;
-    if (storeOpts && storeOpts.notify) {
+    if (storeOpts && storeOpts.notify !== false) {
         enhancer = ListenerEnhancer;
     }
     if (storeOpts && storeOpts.persist) {
         storeOpts.persist.whitelist.forEach((fragment) => {
-            const fragmentState = localStorage.getItem('mapstore2.persist.' + fragment);
-            if (fragmentState) {
-                defaultState[fragment] = JSON.parse(fragmentState);
+            try {
+                const fragmentState = getApi().getItem('mapstore2.persist.' + fragment);
+                if (fragmentState) {
+                    defaultState[fragment] = JSON.parse(fragmentState);
+                }
+            } catch (e) {
+                console.error(e);
             }
         });
         if (storeOpts.onPersist) {
-            setTimeout(() => {storeOpts.onPersist(); }, 0);
+            setTimeout(() => { storeOpts.onPersist(); }, 0);
         }
     }
-    store = DebugUtils.createDebugStore(rootReducer, defaultState, [epicMiddleware, reduxRouterMiddleware], enhancer);
+
+    let middlewares = [epicMiddleware];
+    if (!storeOpts.noRouter) {
+        // Build the middleware for intercepting and dispatching navigation actions
+        const reduxRouterMiddleware = routerMiddleware(history);
+        middlewares = [...middlewares, reduxRouterMiddleware];
+    }
+
+    store = DebugUtils.createDebugStore(rootReducer, defaultState, middlewares, enhancer);
+    store.storeManager = storeManager;
+
+    const pluginsEpics = getGroupedEpics(staticPlugins);
+    Object.keys(pluginsEpics).forEach(key => store.storeManager.addEpics(key, pluginsEpics[key]));
+
     if (storeOpts && storeOpts.persist) {
         const persisted = {};
         store.subscribe(() => {
@@ -94,11 +102,16 @@ module.exports = (initialState = {defaultState: {}, mobile: {}}, appReducers = {
                 const fragmentState = store.getState()[fragment];
                 if (fragmentState && persisted[fragment] !== fragmentState) {
                     persisted[fragment] = fragmentState;
-                    localStorage.setItem('mapstore2.persist.' + fragment, JSON.stringify(fragmentState));
+                    try {
+                        getApi().setItem('mapstore2.persist.' + fragment, JSON.stringify(fragmentState));
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             });
         });
     }
-    SecurityUtils.setStore(store);
     return store;
 };
+
+export default appStore;

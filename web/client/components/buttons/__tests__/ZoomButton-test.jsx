@@ -5,14 +5,30 @@
  * This source code is licensed under the BSD-style license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var React = require('react');
-var ReactDOM = require('react-dom');
-var ZoomButton = require('../ZoomButton');
-var expect = require('expect');
+import React from 'react';
+
+import ReactDOM from 'react-dom';
+import ZoomButton from '../ZoomButton';
+import expect from 'expect';
 
 // initializes Redux store
-var Provider = require('react-redux').Provider;
-var store = require('./../../../examples/myapp/stores/myappstore');
+import { Provider } from 'react-redux';
+
+import {createStore, combineReducers, applyMiddleware} from 'redux';
+
+import thunkMiddleware from 'redux-thunk';
+import mapConfig from '../../../reducers/config';
+
+// reducers
+const reducers = combineReducers({
+    mapConfig
+});
+
+// compose middleware(s) to createStore
+let finalCreateStore = applyMiddleware(thunkMiddleware)(createStore);
+
+// export the store with the given reducers (and middleware applied)
+const store = finalCreateStore(reducers, {});
 
 describe('This test for ZoomButton', () => {
     beforeEach((done) => {
@@ -27,57 +43,59 @@ describe('This test for ZoomButton', () => {
     });
 
     // test DEFAULTS
-    it('test default properties', () => {
-        const zmeBtn = ReactDOM.render(
+    it('test default properties', (done) => {
+        const container = document.getElementById("container");
+        expect(container.innerHTML).toNotExist();
+        ReactDOM.render(
             <Provider store={store}>
                 <ZoomButton/>
             </Provider>,
-            document.getElementById("container"));
-        expect(zmeBtn).toExist();
-
-        const zmeBtnNode = ReactDOM.findDOMNode(zmeBtn);
-        expect(zmeBtnNode).toExist();
-        expect(zmeBtnNode.id).toBe("mapstore-zoom");
-
-        expect(zmeBtnNode).toExist();
-        expect(zmeBtnNode.className.indexOf('square-button') >= 0).toBe(true);
-        expect(zmeBtnNode.innerHTML).toExist();
+            container, () => {
+                expect(container.innerHTML).toExist();
+                const zmeBtnNode = document.getElementById("mapstore-zoom");
+                expect(zmeBtnNode).toExist();
+                expect(zmeBtnNode.className.indexOf('square-button') >= 0).toBe(true);
+                expect(zmeBtnNode.innerHTML).toExist();
+                done();
+            });
     });
 
-    it('test glyphicon property', () => {
-        const zmeBtn = ReactDOM.render(
+    it('test glyphicon property', (done) => {
+        const container = document.getElementById("container");
+        expect(container.innerHTML).toNotExist();
+        ReactDOM.render(
             <Provider store={store}>
                 <ZoomButton/>
             </Provider>,
-            document.getElementById("container"));
-        expect(zmeBtn).toExist();
-
-        const zmeBtnNode = ReactDOM.findDOMNode(zmeBtn);
-        expect(zmeBtnNode).toExist();
-        expect(zmeBtnNode).toExist();
-        const icons = zmeBtnNode.getElementsByTagName('span');
-        expect(icons.length).toBe(1);
+            container, () => {
+                expect(container.innerHTML).toExist();
+                const zmeBtnNode = document.getElementById("mapstore-zoom");
+                expect(zmeBtnNode).toExist();
+                const icons = zmeBtnNode.getElementsByTagName('span');
+                expect(icons.length).toBe(1);
+                done();
+            });
     });
 
-    it('test glyphicon property with text', () => {
-        const zmeBtn = ReactDOM.render(
+    it('test glyphicon property with text', (done) => {
+        ReactDOM.render(
             <Provider store={store}>
                 <ZoomButton glyphicon="info-sign" text="button"/>
             </Provider>,
-            document.getElementById("container"));
-        expect(zmeBtn).toExist();
+            document.getElementById("container"),
+            () => {
+                const zmeBtnNode = document.getElementById("mapstore-zoom");
+                expect(zmeBtnNode).toExist();
 
-        const zmeBtnNode = ReactDOM.findDOMNode(zmeBtn);
-        expect(zmeBtnNode).toExist();
-        expect(zmeBtnNode).toExist();
+                const btnItems = zmeBtnNode.getElementsByTagName('span');
+                expect(btnItems.length).toBe(1);
 
-        const btnItems = zmeBtnNode.getElementsByTagName('span');
-        expect(btnItems.length).toBe(1);
-
-        expect(zmeBtnNode.innerText.indexOf("button") !== -1).toBe(true);
+                expect(zmeBtnNode.innerText.indexOf("button") !== -1).toBe(true);
+                done();
+            });
     });
 
-    it('test if click on button launches the proper action', () => {
+    it('test if click on button launches the proper action', (done) => {
 
         let genericTest = function() {
             let actions = {
@@ -86,7 +104,7 @@ describe('This test for ZoomButton', () => {
                 }
             };
             let spy = expect.spyOn(actions, "onZoom");
-            var cmp = ReactDOM.render(
+            ReactDOM.render(
                 <ZoomButton
                     {...actions}
                     mapConfig={{
@@ -107,34 +125,37 @@ describe('This test for ZoomButton', () => {
                         }
                     }}
                 />
-            , document.getElementById("container"));
-            expect(cmp).toExist();
+                , document.getElementById("container")
+                , () => {
+                    const cmpDom = document.getElementById("mapstore-zoom");
+                    expect(cmpDom).toExist();
 
-            const cmpDom = document.getElementById("mapstore-zoom");
-            expect(cmpDom).toExist();
+                    cmpDom.click();
 
-            cmpDom.click();
-
-            expect(spy.calls.length).toBe(1);
-            expect(spy.calls[0].arguments.length).toBe(1);
+                    expect(spy.calls.length).toBe(1);
+                    expect(spy.calls[0].arguments.length).toBe(1);
+                    done();
+                });
         };
 
         genericTest();
 
     });
 
-    it('create glyphicon with custom css class', () => {
-        const zmeBtn = ReactDOM.render(
+    it('create glyphicon with custom css class', (done) => {
+        const container = document.getElementById("container");
+        ReactDOM.render(
             <Provider store={store}>
                 <ZoomButton className="custom" glyphicon="info-sign" text="button"/>
             </Provider>,
-            document.getElementById("container"));
-        expect(zmeBtn).toExist();
+            container, () => {
+                expect(container.innerHTML).toExist();
+                const zmeBtnNode = document.getElementById("mapstore-zoom");
+                expect(zmeBtnNode).toExist();
 
-        const zmeBtnNode = ReactDOM.findDOMNode(zmeBtn);
-        expect(zmeBtnNode).toExist();
-
-        expect(zmeBtnNode.className.indexOf('custom') !== -1).toBe(true);
+                expect(zmeBtnNode.className.indexOf('custom') !== -1).toBe(true);
+                done();
+            });
     });
 
     it('test zoom in', () => {
@@ -165,7 +186,7 @@ describe('This test for ZoomButton', () => {
                         projection: "EPSG:900913"
                     }}
                 />
-            , document.getElementById("container"));
+                , document.getElementById("container"));
             expect(cmp).toExist();
 
             const cmpDom = document.getElementById("mapstore-zoom");

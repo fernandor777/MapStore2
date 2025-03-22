@@ -6,15 +6,26 @@
 * LICENSE file in the root directory of this source tree.
 */
 
-module.exports = {
-    LMap: require('../../../components/map/openlayers/Map'),
-    Layer: require('../../../components/map/openlayers/Layer'),
-    Feature: require('../../../components/map/openlayers/Feature'),
-    Locate: require('../../../components/map/openlayers/Locate'),
-    MeasurementSupport: require('../../../components/map/openlayers/MeasurementSupport'),
-    Overview: require('../../../components/map/openlayers/Overview'),
-    ScaleBar: require('../../../components/map/openlayers/ScaleBar'),
-    DrawSupport: require('../../../components/map/openlayers/DrawSupport'),
-    HighlightFeatureSupport: require('../../../components/map/openlayers/HighlightFeatureSupport'),
-    SelectionSupport: require('../../../components/map/openlayers/SelectionSupport')
+import Map from '../../../components/map/openlayers/Map';
+import Layer from '../../../components/map/openlayers/Layer';
+import Feature from '../../../components/map/openlayers/Feature';
+import Overview from '../../../components/map/openlayers/Overview';
+import ScaleBar from '../../../components/map/openlayers/ScaleBar';
+import DrawSupport from '../../../components/map/openlayers/DrawSupport';
+import HighlightFeatureSupport from '../../../components/map/openlayers/HighlightFeatureSupport';
+import SelectionSupport from '../../../components/map/openlayers/SelectionSupport';
+import PopupSupport from '../../../components/map/openlayers/PopupSupport';
+import BoxSelectionSupport from '../../../components/map/openlayers/BoxSelectionSupport';
+
+export default {
+    LMap: Map,
+    Layer,
+    Feature,
+    Overview,
+    ScaleBar,
+    DrawSupport,
+    HighlightFeatureSupport,
+    SelectionSupport,
+    PopupSupport,
+    BoxSelectionSupport
 };

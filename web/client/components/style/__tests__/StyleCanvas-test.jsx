@@ -1,7 +1,7 @@
-const expect = require('expect');
-const React = require('react');
-const ReactDOM = require('react-dom');
-const StyleCanvas = require('../StyleCanvas');
+import expect from 'expect';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import StyleCanvas from '../StyleCanvas';
 
 let shapeStyle = {
     color: { r: 0, g: 0, b: 255, a: 1 },
@@ -68,5 +68,12 @@ describe("Test the StyleCanvas style component", () => {
         let style = {...shapeStyle, markName: "x"};
         const cmp = ReactDOM.render(<StyleCanvas shapeStyle={style} geomType="Point"/>, document.getElementById("container"));
         expect(cmp).toExist();
+    });
+    it('test component drawing text', () => {
+        let style = {...{width: 100, height: 100}};
+        ReactDOM.render(<StyleCanvas shapeStyle={style} geomType="Text"/>, document.getElementById("container"));
+        const container = document.getElementById('container');
+        const canvas = container.querySelector('canvas');
+        expect(canvas).toExist();
     });
 });
