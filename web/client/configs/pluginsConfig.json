@@ -171,6 +171,12 @@
       "description": "plugins.BackgroundSelector.description"
     },
     {
+      "name": "AIAssistant",
+      "glyph": "comment",
+      "title": "AI Map Assistant",
+      "description": "Chat-based AI assistant for controlling the map"
+    },
+    {
       "name": "Annotations",
       "glyph": "comment",
       "title": "plugins.Annotations.title",

@@ -67,6 +67,7 @@ export const plugins = {
 
     // ### DYNAMIC PLUGINS ### //
     // product plugins
+    AIAssistantPlugin: toModulePlugin('AIAssistant', () => import(/* webpackChunkName: 'plugins/aiAssistant' */ '../plugins/AIAssistant')),
     AboutPlugin: toModulePlugin('About', () => import(/* webpackChunkName: 'plugins/about' */ './plugins/About')),
     // framework plugins
     MapTypePlugin: toModulePlugin('MapType', () => import(/* webpackChunkName: 'plugins/mapType' */ './plugins/MapType')),
