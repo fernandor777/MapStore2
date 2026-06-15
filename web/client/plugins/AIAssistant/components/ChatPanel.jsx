@@ -61,8 +61,8 @@ function ChatPanel({ messages, loading, error, onSend, onClear }) {
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 8, minHeight: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, flexShrink: 0 }}>
                 <strong style={{ fontSize: 14 }}>AI Map Assistant</strong>
                 <Button bsSize="xsmall" bsStyle="link" onClick={onClear} title="Clear chat">
                     <Glyphicon glyph="trash" />
@@ -74,7 +74,8 @@ function ChatPanel({ messages, loading, error, onSend, onClear }) {
                     flex: 1,
                     overflowY: 'auto',
                     marginBottom: 8,
-                    padding: '4px 0'
+                    padding: '4px 0',
+                    minHeight: 0
                 }}
             >
                 {messages.length === 0 && !loading && (
@@ -96,7 +97,7 @@ function ChatPanel({ messages, loading, error, onSend, onClear }) {
                     </div>
                 )}
             </div>
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <FormControl
                     componentClass="textarea"
                     rows={2}

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
-import { Panel, Glyphicon, Button } from 'react-bootstrap';
+import { Glyphicon, Button } from 'react-bootstrap';
 import { mapLayoutValuesSelector } from '../../selectors/maplayout';
 import { setControlProperty } from '../../actions/controls';
 import { sendMessage, clearChat } from './actions/aiAssistant';
@@ -12,7 +12,7 @@ function AIAssistantPanel({ active, messages, loading, error, dockStyle, onSend,
         return null;
     }
     return (
-        <Panel
+        <div
             style={{
                 position: 'absolute',
                 right: dockStyle.right || 0,
@@ -20,19 +20,20 @@ function AIAssistantPanel({ active, messages, loading, error, dockStyle, onSend,
                 bottom: dockStyle.bottom || 0,
                 width: 340,
                 zIndex: 1000,
-                margin: 0,
-                borderRadius: 0,
                 display: 'flex',
                 flexDirection: 'column',
+                overflow: 'hidden',
+                background: '#fff',
+                borderLeft: '1px solid #ddd',
                 boxShadow: '-2px 0 8px rgba(0,0,0,0.15)'
             }}
         >
-            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 8px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 8px 0', flexShrink: 0 }}>
                 <Button bsSize="xsmall" bsStyle="link" onClick={onClose} title="Close">
                     <Glyphicon glyph="1-close" />
                 </Button>
             </div>
-            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 <ChatPanel
                     messages={messages}
                     loading={loading}
@@ -41,7 +42,7 @@ function AIAssistantPanel({ active, messages, loading, error, dockStyle, onSend,
                     onClear={onClear}
                 />
             </div>
-        </Panel>
+        </div>
     );
 }
 

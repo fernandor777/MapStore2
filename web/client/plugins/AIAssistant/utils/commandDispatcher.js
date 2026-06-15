@@ -8,8 +8,17 @@ const COMMAND_MAP = {
         changeLayerProperties(layerId, { styles: styleName }),
     changeLayerOpacity: ({ layerId, opacity }) =>
         changeLayerProperties(layerId, { opacity }),
-    addLayer: ({ layerConfig }) =>
-        addLayer(layerConfig, true),
+    addLayer: ({ layerConfig }) => {
+        const layer = {
+            visibility: true,
+            opacity: 1,
+            group: 'Default',
+            ...layerConfig,
+            // ensure a unique id so MapStore doesn't silently drop it
+            id: layerConfig.id || (layerConfig.name + '__' + Date.now())
+        };
+        return addLayer(layer, true);
+    },
     removeLayer: ({ layerId }) =>
         removeLayer(layerId),
     zoomToExtent: ({ minx, miny, maxx, maxy, crs }) =>
