@@ -4,10 +4,10 @@ import { connect } from 'react-redux';
 import { Glyphicon, Button } from 'react-bootstrap';
 import { mapLayoutValuesSelector } from '../../selectors/maplayout';
 import { setControlProperty } from '../../actions/controls';
-import { sendMessage, clearChat } from './actions/aiAssistant';
+import { sendMessage, clearChat, uploadGeoPackage } from './actions/aiAssistant';
 import ChatPanel from './components/ChatPanel';
 
-function AIAssistantPanel({ active, messages, loading, error, dockStyle, onSend, onClear, onClose }) {
+function AIAssistantPanel({ active, messages, loading, error, dockStyle, onSend, onClear, onClose, onUpload }) {
     if (!active) {
         return null;
     }
@@ -40,6 +40,7 @@ function AIAssistantPanel({ active, messages, loading, error, dockStyle, onSend,
                     error={error}
                     onSend={onSend}
                     onClear={onClear}
+                    onUpload={onUpload}
                 />
             </div>
         </div>
@@ -54,7 +55,8 @@ AIAssistantPanel.propTypes = {
     dockStyle: PropTypes.object,
     onSend: PropTypes.func,
     onClear: PropTypes.func,
-    onClose: PropTypes.func
+    onClose: PropTypes.func,
+    onUpload: PropTypes.func
 };
 
 AIAssistantPanel.defaultProps = {
@@ -65,7 +67,8 @@ AIAssistantPanel.defaultProps = {
     dockStyle: {},
     onSend: () => {},
     onClear: () => {},
-    onClose: () => {}
+    onClose: () => {},
+    onUpload: () => {}
 };
 
 const mapStateToProps = (state) => ({
@@ -79,7 +82,8 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = {
     onSend: sendMessage,
     onClear: clearChat,
-    onClose: setControlProperty.bind(null, 'ai-assistant', 'enabled', false)
+    onClose: setControlProperty.bind(null, 'ai-assistant', 'enabled', false),
+    onUpload: uploadGeoPackage
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(AIAssistantPanel);

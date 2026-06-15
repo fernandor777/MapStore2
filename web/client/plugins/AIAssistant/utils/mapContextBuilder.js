@@ -19,7 +19,7 @@ export function buildMapContext(state) {
         groups: groupNames.length > 0 ? groupNames : ['Default'],
         layers: layers
             .filter((l) => l && l.group !== 'background')
-            .map((l) => ({
+            .map((l, i) => ({
                 id: l.id,
                 name: l.name,
                 title: l.title || l.name,
@@ -27,7 +27,8 @@ export function buildMapContext(state) {
                 style: l.styles || l.style || null,
                 type: l.type || 'wms',
                 url: l.url || null,
-                group: l.group || 'Default'
+                group: l.group || 'Default',
+                position: i
             })),
         selectedLayerId: null
     };

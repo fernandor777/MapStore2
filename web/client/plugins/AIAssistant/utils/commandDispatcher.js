@@ -1,4 +1,4 @@
-import { changeLayerProperties, addLayer, removeLayer, selectNode } from '../../../actions/layers';
+import { changeLayerProperties, addLayer, removeLayer, selectNode, moveNode } from '../../../actions/layers';
 import { zoomToExtent, changeMapView, panTo } from '../../../actions/map';
 
 const COMMAND_MAP = {
@@ -32,7 +32,13 @@ const COMMAND_MAP = {
     clearFilter: ({ layerId }) =>
         changeLayerProperties(layerId, { params: { CQL_FILTER: undefined } }),
     selectLayer: ({ layerId }) =>
-        selectNode(layerId, 'layer', false)
+        selectNode(layerId, 'layer', false),
+    moveLayer: ({ layerId, groupId, index }) =>
+        moveNode(layerId, groupId, index),
+    renameLayer: ({ layerId, title }) =>
+        changeLayerProperties(layerId, { title }),
+    updateLayerParams: ({ layerId, params }) =>
+        changeLayerProperties(layerId, { params })
 };
 
 export function dispatchCommands(commands = []) {
