@@ -24,7 +24,7 @@ export function buildMapContext(state) {
                 name: l.name,
                 title: l.title || l.name,
                 visible: l.visibility !== false,
-                style: l.styles || l.style || null,
+                style: l.style || l.styles || null,
                 type: l.type || 'wms',
                 url: l.url || null,
                 group: l.group || 'Default',

@@ -24,7 +24,6 @@ export default createPlugin('AIAssistant', {
         SidebarMenu: {
             name: 'ai-assistant',
             position: 30,
-            text: 'AI Assistant',
             tooltip: 'AI Map Assistant',
             icon: <Glyphicon glyph="comment" />,
             action: setControlProperty.bind(null, 'ai-assistant', 'enabled', true, true),

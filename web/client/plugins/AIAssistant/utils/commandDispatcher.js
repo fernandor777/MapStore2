@@ -5,7 +5,7 @@ const COMMAND_MAP = {
     setLayerVisibility: ({ layerId, visible }) =>
         changeLayerProperties(layerId, { visibility: visible }),
     changeLayerStyle: ({ layerId, styleName }) =>
-        changeLayerProperties(layerId, { styles: styleName }),
+        changeLayerProperties(layerId, { style: styleName }),
     changeLayerOpacity: ({ layerId, opacity }) =>
         changeLayerProperties(layerId, { opacity }),
     addLayer: ({ layerConfig }) => {

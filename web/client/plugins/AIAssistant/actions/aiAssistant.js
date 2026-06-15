@@ -6,7 +6,7 @@ export const CLEAR_CHAT = 'AI_ASSISTANT:CLEAR_CHAT';
 export const TOGGLE_PANEL = 'AI_ASSISTANT:TOGGLE_PANEL';
 export const UPLOAD_GEOPACKAGE = 'AI_ASSISTANT:UPLOAD_GEOPACKAGE';
 
-export const sendMessage = (message) => ({ type: SEND_MESSAGE, message });
+export const sendMessage = (message, file = null) => ({ type: SEND_MESSAGE, message, file });
 export const receiveResponse = (text) => ({ type: RECEIVE_RESPONSE, text });
 export const setLoading = (loading) => ({ type: SET_LOADING, loading });
 export const setError = (error) => ({ type: SET_ERROR, error });

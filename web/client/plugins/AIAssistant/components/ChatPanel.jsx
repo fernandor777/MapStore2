@@ -36,60 +36,7 @@ MessageBubble.propTypes = {
     text: PropTypes.string
 };
 
-function GeoPackageUploadPrompt({ file, onConfirm, onCancel }) {
-    const stem = file.name.replace(/\.gpkg$/i, '').replace(/[^a-zA-Z0-9_]/g, '_');
-    const [workspace, setWorkspace] = useState(stem);
-    const [storeName, setStoreName] = useState(stem);
-    return (
-        <div style={{
-            background: '#f8f8f8', border: '1px solid #ddd', borderRadius: 6,
-            padding: 10, marginBottom: 8, fontSize: 13
-        }}>
-            <div style={{ marginBottom: 6 }}>
-                <strong>Upload:</strong> {file.name}
-            </div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>Workspace</div>
-                    <FormControl
-                        type="text"
-                        value={workspace}
-                        onChange={(e) => setWorkspace(e.target.value)}
-                        bsSize="small"
-                    />
-                </div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>Store name</div>
-                    <FormControl
-                        type="text"
-                        value={storeName}
-                        onChange={(e) => setStoreName(e.target.value)}
-                        bsSize="small"
-                    />
-                </div>
-            </div>
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                <Button bsSize="xsmall" onClick={onCancel}>Cancel</Button>
-                <Button
-                    bsSize="xsmall"
-                    bsStyle="primary"
-                    disabled={!workspace.trim() || !storeName.trim()}
-                    onClick={() => onConfirm(workspace.trim(), storeName.trim())}
-                >
-                    Upload &amp; Publish
-                </Button>
-            </div>
-        </div>
-    );
-}
-
-GeoPackageUploadPrompt.propTypes = {
-    file: PropTypes.object,
-    onConfirm: PropTypes.func,
-    onCancel: PropTypes.func
-};
-
-function ChatPanel({ messages, loading, error, onSend, onClear, onUpload }) {
+function ChatPanel({ messages, loading, error, onSend, onClear }) {
     const [input, setInput] = useState('');
     const [pendingFile, setPendingFile] = useState(null);
     const listRef = useRef(null);
@@ -103,9 +50,10 @@ function ChatPanel({ messages, loading, error, onSend, onClear, onUpload }) {
 
     const handleSend = () => {
         const trimmed = input.trim();
-        if (!trimmed || loading) return;
-        onSend(trimmed);
+        if ((!trimmed && !pendingFile) || loading) return;
+        onSend(trimmed, pendingFile);
         setInput('');
+        setPendingFile(null);
     };
 
     const handleKeyDown = (e) => {
@@ -117,15 +65,8 @@ function ChatPanel({ messages, loading, error, onSend, onClear, onUpload }) {
 
     const handleFileChange = (e) => {
         const file = e.target.files && e.target.files[0];
-        if (file) {
-            setPendingFile(file);
-        }
+        if (file) setPendingFile(file);
         e.target.value = '';
-    };
-
-    const handleUploadConfirm = (workspace, storeName) => {
-        onUpload(pendingFile, workspace, storeName);
-        setPendingFile(null);
     };
 
     return (
@@ -166,11 +107,26 @@ function ChatPanel({ messages, loading, error, onSend, onClear, onUpload }) {
                 )}
             </div>
             {pendingFile && (
-                <GeoPackageUploadPrompt
-                    file={pendingFile}
-                    onConfirm={handleUploadConfirm}
-                    onCancel={() => setPendingFile(null)}
-                />
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: '#e8f0fe', border: '1px solid #c5d5f5',
+                    borderRadius: 4, padding: '4px 8px', marginBottom: 4,
+                    fontSize: 12, flexShrink: 0
+                }}>
+                    <Glyphicon glyph="paperclip" style={{ color: '#337ab7', fontSize: 11 }} />
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {pendingFile.name}
+                    </span>
+                    <Button
+                        bsSize="xsmall"
+                        bsStyle="link"
+                        style={{ padding: 0, color: '#888' }}
+                        onClick={() => setPendingFile(null)}
+                        title="Remove attachment"
+                    >
+                        <Glyphicon glyph="remove" />
+                    </Button>
+                </div>
             )}
             <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <input
@@ -182,7 +138,7 @@ function ChatPanel({ messages, loading, error, onSend, onClear, onUpload }) {
                 />
                 <Button
                     bsSize="small"
-                    title="Upload GeoPackage"
+                    title="Attach GeoPackage"
                     disabled={loading}
                     onClick={() => fileInputRef.current && fileInputRef.current.click()}
                     style={{ alignSelf: 'flex-end' }}
@@ -195,14 +151,14 @@ function ChatPanel({ messages, loading, error, onSend, onClear, onUpload }) {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Ask something about the map…"
+                    placeholder={pendingFile ? 'Describe what to do with this file…' : 'Ask something about the map…'}
                     disabled={loading}
                     style={{ resize: 'none', fontSize: 13 }}
                 />
                 <Button
                     bsStyle="primary"
                     onClick={handleSend}
-                    disabled={loading || !input.trim()}
+                    disabled={loading || (!input.trim() && !pendingFile)}
                     style={{ alignSelf: 'flex-end' }}
                 >
                     <Glyphicon glyph="send" />
@@ -217,8 +173,7 @@ ChatPanel.propTypes = {
     loading: PropTypes.bool,
     error: PropTypes.string,
     onSend: PropTypes.func,
-    onClear: PropTypes.func,
-    onUpload: PropTypes.func
+    onClear: PropTypes.func
 };
 
 ChatPanel.defaultProps = {
@@ -226,8 +181,7 @@ ChatPanel.defaultProps = {
     loading: false,
     error: null,
     onSend: () => {},
-    onClear: () => {},
-    onUpload: () => {}
+    onClear: () => {}
 };
 
 export default ChatPanel;
