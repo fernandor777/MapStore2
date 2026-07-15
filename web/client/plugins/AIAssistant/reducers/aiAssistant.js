@@ -1,3 +1,4 @@
+import uuidv1 from 'uuid/v1';
 import {
     SEND_MESSAGE,
     RECEIVE_RESPONSE,
@@ -11,7 +12,10 @@ const initialState = {
     messages: [],
     loading: false,
     error: null,
-    open: false
+    open: false,
+    // Identifies this chat's server-side ChatMemory so the assistant recalls prior turns
+    // (e.g. a GeoTIFF filename staged earlier). Regenerated whenever the chat is cleared.
+    sessionId: uuidv1()
 };
 
 export default function aiAssistant(state = initialState, action) {
@@ -34,7 +38,7 @@ export default function aiAssistant(state = initialState, action) {
     case SET_ERROR:
         return { ...state, loading: false, error: action.error };
     case CLEAR_CHAT:
-        return { ...state, messages: [], error: null };
+        return { ...state, messages: [], error: null, sessionId: uuidv1() };
     case TOGGLE_PANEL:
         return { ...state, open: !state.open };
     default:

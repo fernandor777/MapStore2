@@ -132,13 +132,13 @@ function ChatPanel({ messages, loading, error, onSend, onClear }) {
                 <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".gpkg"
+                    accept=".gpkg,.tif,.tiff"
                     style={{ display: 'none' }}
                     onChange={handleFileChange}
                 />
                 <Button
                     bsSize="small"
-                    title="Attach GeoPackage"
+                    title="Attach GeoPackage or GeoTIFF"
                     disabled={loading}
                     onClick={() => fileInputRef.current && fileInputRef.current.click()}
                     style={{ alignSelf: 'flex-end' }}
